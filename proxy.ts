@@ -1,7 +1,7 @@
 // import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   return NextResponse.next(); // Lanjutkan ke request selanjutnya
 
   /*
@@ -12,7 +12,7 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Buat Supabase client yang dikonfigurasi untuk middleware
+  // Buat Supabase client yang dikonfigurasi untuk proxy
   // Ini diperlukan untuk membaca dan menulis cookies
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -96,7 +96,7 @@ export const config = {
      * - _next/image (file optimasi gambar)
      * - favicon.ico (file favicon)
      * - Path apa pun yang mengandung ekstensi file (misalnya: .png, .jpg, .svg)
-     * Ini penting agar middleware tidak berjalan pada file aset statis.
+     * Ini penting agar proxy tidak berjalan pada file aset statis.
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)',
   ],
