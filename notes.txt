@@ -1,0 +1,50 @@
+App Structure:
+/
+├── app/
+│   ├── (admin)/                # (Grup Rute) Untuk halaman yang pakai admin layout
+│   │   ├── layout.tsx          # <-- DI SINI KODE LAYOUT ANDA DITEMPATKAN
+│   │   ├── page.tsx            # (Halaman Dashboard / Beranda Admin)
+│   │   └── users/
+│   │       └── page.tsx        # (Contoh: Halaman manajemen user)
+│   │
+│   ├── (auth)/                 # (Grup Rute) Untuk halaman login/register
+│   │   ├── login/
+│   │   │   └── page.tsx
+│   │   └── layout.tsx          # (Layout simpel tanpa sidebar/header)
+│   │
+│   ├── layout.tsx              # (Root Layout - Server Component)
+│   └── globals.css             # (File CSS global & Tailwind)
+|   └── provider.tsx            # berisi ThemeProvider, NextTopProvider, dan SidebarProvider
+│
+├── components/
+|   ├── icon/                   # berisi icon2 yang digunakan 
+│   ├── layouts/
+│   │   ├── header
+|   |   |   │   ├── notification
+|   |   |   │   ├── theme-toggle
+|   |   |   │   ├── user-info
+|   |   |   │   ├── icons.tsx
+|   |   |   │   ├── index.tsx     # file utama header
+│   │   ├── sidebar
+|   |   |   │   ├── data
+|   |   |   │   |    ├── index.ts # berisi list menu
+|   |   |   │   ├── icons.tsx
+|   |   |   │   ├── index.tsx     # file utama sidebar
+|   |   |   │   ├── menu-item.tsx
+|   |   |   │   ├── sidebar-context.tsx
+│   ├── ui/                     # (Opsional: untuk komponen UI kecil spt Button, Input)
+│   └── App.tsx                 # (Komponen <App> dari template Anda)
+│
+├── lib/
+│   └── supabase/
+│       ├── client.ts           # (Supabase client untuk Client Component)
+│       └── server.ts           # (Supabase client untuk Server Component)
+│
+├── store/
+│   ├── provider.tsx            # (Redux Provider - Client Component)
+│   ├── store.ts                # (Konfigurasi Redux Store)
+│   └── userSlice.ts            # (Slice Redux Anda)
+│
+├── proxy.ts                    # (Untuk proteksi rute / auth)
+├── .env.local                  # (Menyimpan kunci API Supabase)
+└── tailwind.config.js
