@@ -1,5 +1,6 @@
 // import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { createClient } from './lib/supabase/middleware';
 
 export async function proxy(request: NextRequest) {
   return NextResponse.next(); // Lanjutkan ke request selanjutnya
@@ -86,6 +87,18 @@ export async function proxy(request: NextRequest) {
   return response;
   */
 }
+
+// export async function proxy(request: NextRequest) {
+//   // Buat client Supabase dan response
+//   const { supabase, response } = createClient(request);
+
+//   // Ambil data sesi/user.
+//   // Ini akan MENYEGARKAN (refresh) auth cookie jika diperlukan.
+//   await supabase.auth.getUser();
+
+//   // Teruskan response (yang mungkin berisi cookie auth baru)
+//   return response;
+// }
 
 // Konfigurasi Matcher
 export const config = {
