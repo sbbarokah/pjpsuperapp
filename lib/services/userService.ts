@@ -134,9 +134,9 @@ export async function createUser(data: CreateUserFormPayload) {
     last_name: data.last_name,
     gender: data.gender,
     birth_date: data.birth_date || null,
-    // Pastikan mengirim null jika group_id/class_id kosong
+    // Pastikan mengirim null jika group_id/category_id kosong
     group_id: data.group_id || null,
-    class_id: data.class_id || null,
+    category_id: data.category_id || null,
   });
 
   if (profileError) {
