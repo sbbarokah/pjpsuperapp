@@ -2,103 +2,125 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from './lib/supabase/middleware';
 
+// export async function proxy(request: NextRequest) {
+//   // return NextResponse.next(); // Lanjutkan ke request selanjutnya
+
+  
+//   // Buat respons awal. Kita mungkin akan memodifikasinya
+//   let response = NextResponse.next({
+//     request: {
+//       headers: request.headers,
+//     },
+//   });
+
+//   // Buat Supabase client yang dikonfigurasi untuk proxy
+//   // Ini diperlukan untuk membaca dan menulis cookies
+//   const supabase = createServerClient(
+//     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+//     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+//     {
+//       cookies: {
+//         get(name: string) {
+//           return request.cookies.get(name)?.value;
+//         },
+//         set(name: string, value: string, options: CookieOptions) {
+//           // Jika kita mengatur cookie, kita perlu memperbarui
+//           // request dan response
+//           request.cookies.set({ name, value, ...options });
+//           response = NextResponse.next({
+//             request: {
+//               headers: request.headers,
+//             },
+//           });
+//           response.cookies.set({ name, value, ...options });
+//         },
+//         remove(name: string, options: CookieOptions) {
+//           // Jika kita menghapus cookie, kita perlu memperbarui
+//           // request dan response
+//           request.cookies.set({ name, value: '', ...options });
+//           response = NextResponse.next({
+//             request: {
+//               headers: request.headers,
+//             },
+//           });
+//           response.cookies.set({ name, value: '', ...options });
+//         },
+//       },
+//     }
+//   );
+
+//   // Refresh sesi jika sudah kadaluwarsa.
+//   // Ini juga mengambil data pengguna (jika ada)
+//   const {
+//     data: { user },
+//   } = await supabase.auth.getUser();
+
+//   const { pathname } = request.nextUrl;
+
+//   // Tentukan rute publik Anda (grup rute (auth))
+//   // Grup rute (auth) Anda memiliki /login, jadi kita masukkan di sini
+//   const publicPaths = ['/login']; // Tambahkan rute lain seperti /register jika ada
+
+//   // Periksa apakah path saat ini adalah path publik
+//   const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
+
+//   // --- LOGIKA PERLINDUNGAN RUTE ---
+
+//   // 1. Jika pengguna TIDAK login DAN mencoba mengakses rute non-publik
+//   if (!user && !isPublicPath) {
+//     // Alihkan mereka ke halaman login
+//     const url = request.nextUrl.clone();
+//     url.pathname = '/login';
+//     return NextResponse.redirect(url);
+//   }
+
+//   // 2. Jika pengguna SUDAH login DAN mencoba mengakses rute publik
+//   if (user && isPublicPath) {
+//     // Alihkan mereka ke halaman dashboard
+//     const url = request.nextUrl.clone();
+//     url.pathname = '/'; // Arahkan ke dashboard utama Anda
+//     return NextResponse.redirect(url);
+//   }
+
+//   // 3. Jika tidak ada pengalihan, lanjutkan request.
+//   // Respons ini sekarang membawa cookie sesi yang sudah diperbarui (jika ada).
+//   return response;
+// }
+
 export async function proxy(request: NextRequest) {
-  return NextResponse.next(); // Lanjutkan ke request selanjutnya
+  // Buat client Supabase dan response
+  const { supabase, response } = createClient(request);
 
-  /*
-  // Buat respons awal. Kita mungkin akan memodifikasinya
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
-
-  // Buat Supabase client yang dikonfigurasi untuk proxy
-  // Ini diperlukan untuk membaca dan menulis cookies
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          // Jika kita mengatur cookie, kita perlu memperbarui
-          // request dan response
-          request.cookies.set({ name, value, ...options });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          // Jika kita menghapus cookie, kita perlu memperbarui
-          // request dan response
-          request.cookies.set({ name, value: '', ...options });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({ name, value: '', ...options });
-        },
-      },
-    }
-  );
-
-  // Refresh sesi jika sudah kadaluwarsa.
-  // Ini juga mengambil data pengguna (jika ada)
+  // Ambil data sesi/user.
+  // Ini akan MENYEGARKAN (refresh) auth cookie jika diperlukan.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Ambil pathname dari URL yang diminta
   const { pathname } = request.nextUrl;
 
-  // Tentukan rute publik Anda (grup rute (auth))
-  // Grup rute (auth) Anda memiliki /login, jadi kita masukkan di sini
-  const publicPaths = ['/login']; // Tambahkan rute lain seperti /register jika ada
-
-  // Periksa apakah path saat ini adalah path publik
-  const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
-
-  // --- LOGIKA PERLINDUNGAN RUTE ---
-
-  // 1. Jika pengguna TIDAK login DAN mencoba mengakses rute non-publik
-  if (!user && !isPublicPath) {
-    // Alihkan mereka ke halaman login
+  // LOGIKA PERLINDUNGAN RUTE:
+  // 1. Jika user BELUM login dan mencoba mengakses rute admin (semua rute KECUALI /login)
+  if (!user && pathname !== "/login") {
+    // Redirect ke halaman login
     const url = request.nextUrl.clone();
-    url.pathname = '/login';
+    url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // 2. Jika pengguna SUDAH login DAN mencoba mengakses rute publik
-  if (user && isPublicPath) {
-    // Alihkan mereka ke halaman dashboard
+  // 2. Jika user SUDAH login dan mencoba mengakses rute auth (seperti /login)
+  if (user && pathname === "/login") {
+    // Redirect ke halaman dashboard admin (sesuai struktur Anda, '/' adalah /app/(admin)/page.tsx)
     const url = request.nextUrl.clone();
-    url.pathname = '/'; // Arahkan ke dashboard utama Anda
+    url.pathname = "/";
     return NextResponse.redirect(url);
   }
 
-  // 3. Jika tidak ada pengalihan, lanjutkan request.
-  // Respons ini sekarang membawa cookie sesi yang sudah diperbarui (jika ada).
+  // 3. Jika lolos dari kedua kondisi di atas (misal: user login akses admin, atau non-user akses login)
+  // Teruskan response (yang mungkin berisi cookie auth baru)
   return response;
-  */
 }
-
-// export async function proxy(request: NextRequest) {
-//   // Buat client Supabase dan response
-//   const { supabase, response } = createClient(request);
-
-//   // Ambil data sesi/user.
-//   // Ini akan MENYEGARKAN (refresh) auth cookie jika diperlukan.
-//   await supabase.auth.getUser();
-
-//   // Teruskan response (yang mungkin berisi cookie auth baru)
-//   return response;
-// }
 
 // Konfigurasi Matcher
 export const config = {
