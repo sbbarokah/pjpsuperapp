@@ -1,9 +1,12 @@
+/***
+ * lib/supabase/server_user.ts
+ * Untuk MENGEKSEKUSI query (CRUD) setelah pengguna divalidasi.
+ * Ini menggunakan SERVICE_ROLE_KEY dan TIDAK mematuhi RLS.
+ * PENTING: File ini membuat client dengan hak akses ADMIN (service_role)
+ * Ini HANYA boleh digunakan di server (Server Actions, Route Handlers)
+ * untuk tugas yang memerlukan hak penuh dan MELEWATI RLS (Row Level Security).
+ * */
 import { createClient } from "@supabase/supabase-js";
-
-// PENTING: File ini membuat client dengan hak akses ADMIN (service_role)
-// Ini HANYA boleh digunakan di server (Server Actions, Route Handlers)
-// untuk tugas yang memerlukan hak penuh dan MELEWATI RLS (Row Level Security).
-// Ini adalah yang Anda butuhkan untuk userService.ts
 
 // Ambil variabel dari .env.local
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

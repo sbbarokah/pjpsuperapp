@@ -1,9 +1,12 @@
+/***
+ * lib/supabase/server_user.ts
+ * Untuk MEMVALIDASI siapa pengguna yang sedang login dan apa perannya.
+ * Ini dibuat untuk SETIAP REQUEST di SISI SERVER (Server Components, Server Actions).
+ * Ini menggunakan ANON_KEY dan akan mematuhi RLS (Row Level Security).
+ * */ 
+
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-
-// PENTING: File ini untuk membuat client di SISI SERVER (Server Components, Server Actions)
-// Ini dibuat untuk SETIAP REQUEST dan bertindak sebagai PENGGUNA YANG SEDANG LOGIN.
-// Ini menggunakan ANON_KEY dan akan mematuhi RLS (Row Level Security).
 
 export async function createClient() {
   const cookieStore = await cookies();
