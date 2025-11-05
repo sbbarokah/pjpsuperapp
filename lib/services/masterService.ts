@@ -74,7 +74,7 @@ export async function getVillageById(id: string) {
     return null; // Kembalikan null jika tidak ditemukan atau error
   }
 
-  return data as CategoryModel | null;
+  return data as VillageModel | null;
 }
 
 /**
@@ -137,6 +137,27 @@ export async function getGroups() {
 
   if (error) throw new Error(error.message);
   return data as GroupModel[];
+}
+
+/**
+ * Mengambil satu kelompok berdasarkan ID-nya.
+ */
+export async function getGroupById(id: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("group")
+    .select("*")
+    .eq("id", id) // Filter berdasarkan ID
+    .single(); // Ambil satu data (atau null jika tidak ada)
+
+  if (error) {
+    // Jika data tidak ditemukan, .single() akan menghasilkan error
+    // 'PGRST116' (PostgREST)
+    console.warn(`Error fetching group ${id}:`, error.message);
+    return null; // Kembalikan null jika tidak ditemukan atau error
+  }
+
+  return data as GroupModel | null;
 }
 
 export async function updateGroup(groupData: UpdateGroupDto) {
