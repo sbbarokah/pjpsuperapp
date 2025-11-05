@@ -4,6 +4,7 @@ import { useId } from "react";
 interface PropsType {
   label: string;
   placeholder: string;
+  name?: string; // ⬅️ TAMBAHKAN INI
   required?: boolean;
   disabled?: boolean;
   active?: boolean;
@@ -15,6 +16,7 @@ interface PropsType {
 export function TextAreaGroup({
   label,
   placeholder,
+  name, // ⬅️ TAMBAHKAN INI
   required,
   disabled,
   active,
@@ -36,6 +38,7 @@ export function TextAreaGroup({
       <div className="relative mt-3 [&_svg]:pointer-events-none [&_svg]:absolute [&_svg]:left-5.5 [&_svg]:top-5.5">
         <textarea
           id={id}
+          name={name} // ⬅️ TAMBAHKAN INI
           rows={6}
           placeholder={placeholder}
           defaultValue={defaultValue}
@@ -44,7 +47,7 @@ export function TextAreaGroup({
             icon && "py-5 pl-13 pr-5",
           )}
           required={required}
-          disabled={disabled}
+          disabled={disabled} // ⬅️ 'disabled' ini sudah benar
           data-active={active}
         />
 
