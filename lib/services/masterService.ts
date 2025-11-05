@@ -174,6 +174,27 @@ export async function getCategories() {
   return data as CategoryModel[];
 }
 
+/**
+ * Mengambil satu kategori berdasarkan ID-nya.
+ */
+export async function getCategoryById(id: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("category")
+    .select("*")
+    .eq("id", id) // Filter berdasarkan ID
+    .single(); // Ambil satu data (atau null jika tidak ada)
+
+  if (error) {
+    // Jika data tidak ditemukan, .single() akan menghasilkan error
+    // 'PGRST116' (PostgREST)
+    console.warn(`Error fetching category ${id}:`, error.message);
+    return null; // Kembalikan null jika tidak ditemukan atau error
+  }
+
+  return data as CategoryModel | null;
+}
+
 export async function updateCategory(categoryData: UpdateCategoryDto) {
   await validateSuperAdmin(); // 🔒 Validasi
   const supabase = createAdminClient(); // 🚀 Eksekusi

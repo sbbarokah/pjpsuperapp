@@ -28,15 +28,15 @@ export const NAV_DATA = [
         items: [
           {
             title: "Desa",
-            url: "/forms/form-elements",
+            url: "/villages",
           },
           {
             title: "Kelompok",
-            url: "/forms/form-layout",
+            url: "/group",
           },
           {
             title: "Kelas",
-            url: "/forms/form-layout",
+            url: "/categories",
           },
         ],
       },

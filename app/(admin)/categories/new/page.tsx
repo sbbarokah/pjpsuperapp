@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function NewCategoryPage() {
   return (
     <>
-      <Breadcrumb pageName="Tambah Kategori Baru" />
+      <Breadcrumb pageName="Tambah Kategori Baru" showNav={false} />
 
       {/* Kita adaptasi layout grid dari template Anda.
         Karena kita hanya punya satu form, kita gunakan 'grid-cols-1'.

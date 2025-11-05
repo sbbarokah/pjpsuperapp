@@ -8,6 +8,7 @@ import {
   CreateCategoryDto,
 } from "@/lib/types/master.types";
 import { createCategoryAction, updateCategoryAction } from "../actions";
+import { useRouter } from "next/navigation";
 
 /**
  * Props untuk CategoryForm:
@@ -23,6 +24,8 @@ interface CategoryFormProps {
  * tetapi menggunakan Server Actions dan state management.
  */
 export function CategoryForm({ category }: CategoryFormProps) {
+  const router = useRouter();
+  
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -70,11 +73,12 @@ export function CategoryForm({ category }: CategoryFormProps) {
         setError(response.error || "Terjadi kesalahan.");
       } else {
         setSuccess(response.message);
+        router.push("/categories");
         
         // Jika mode 'Create' berhasil, reset form
-        if (!isUpdateMode) {
-          (document.getElementById("category-form") as HTMLFormElement)?.reset();
-        }
+        // if (!isUpdateMode) {
+        //   (document.getElementById("category-form") as HTMLFormElement)?.reset();
+        // }
       }
     });
   };

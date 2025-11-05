@@ -20,7 +20,7 @@ export type ActionResponse<T = any> = {
   data?: T | null;
 };
 
-const ADMIN_CATEGORIES_PATH = "/admin/categories";
+const ADMIN_CATEGORIES_PATH = "/categories";
 
 /**
  * Membuat Kategori baru
@@ -83,23 +83,25 @@ export async function updateCategoryAction(
  * @param id ID kategori yang akan dihapus
  */
 export async function deleteCategoryAction(
-  id: string
-): Promise<ActionResponse> {
+  id: string,
+): Promise<{ success: true; message: string } | { success: false; error: string }> {
+  
+  // Validasi (jika 'deleteCategory' belum melakukannya)
   try {
-    await deleteCategory(id);
+    // 'deleteCategory' sudah memiliki 'validateSuperAdmin()' di dalamnya
+    // jadi kita bisa panggil langsung.
+    const result = await deleteCategory(id);
 
-    // Revalidasi path utama
-    revalidatePath(ADMIN_CATEGORIES_PATH);
+    // Sukses: Bersihkan cache path
+    revalidatePath("/categories");
 
-    return {
-      success: true,
-      message: "Kategori berhasil dihapus.",
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      message: "Gagal menghapus kategori.",
-      error: error.message,
-    };
+    return { success: true, message: result.message };
+
+  } catch (error) {
+    // Tangkap error (cth: dari validasi atau database)
+    const message = error instanceof Error ? error.message : "Terjadi kesalahan";
+    
+    // Kirim pesan error yang aman ke klien
+    return { success: false, error: message };
   }
 }

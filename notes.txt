@@ -48,3 +48,8 @@ App Structure:
 ├── proxy.ts                    # (Untuk proteksi rute / auth)
 ├── .env.local                  # (Menyimpan kunci API Supabase)
 └── tailwind.config.js
+
+
+akun: 
+superadmin@pjpsuperapp.com
+superadmin: pjpsuksesb4r0k4H
