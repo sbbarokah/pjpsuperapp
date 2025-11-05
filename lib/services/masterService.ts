@@ -57,6 +57,27 @@ export async function getVillages() {
 }
 
 /**
+ * Mengambil satu desa berdasarkan ID-nya.
+ */
+export async function getVillageById(id: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("village")
+    .select("*")
+    .eq("id", id) // Filter berdasarkan ID
+    .single(); // Ambil satu data (atau null jika tidak ada)
+
+  if (error) {
+    // Jika data tidak ditemukan, .single() akan menghasilkan error
+    // 'PGRST116' (PostgREST)
+    console.warn(`Error fetching village ${id}:`, error.message);
+    return null; // Kembalikan null jika tidak ditemukan atau error
+  }
+
+  return data as CategoryModel | null;
+}
+
+/**
  * Mengupdate Village (Hanya Superadmin)
  */
 export async function updateVillage(villageData: UpdateVillageDto) {

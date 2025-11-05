@@ -68,19 +68,26 @@ export async function updateVillageAction(
 /**
  * Menghapus Desa
  */
-export async function deleteVillageAction(id: string): Promise<ActionResponse> {
+export async function deleteVillageAction(
+  id: string,
+): Promise<{ success: true; message: string } | { success: false; error: string }> {
+  
+  // Validasi (jika 'deleteVillage' belum melakukannya)
   try {
-    await deleteVillage(id);
-    revalidatePath(ADMIN_VILLAGES_PATH);
-    return {
-      success: true,
-      message: "Desa berhasil dihapus.",
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      message: "Gagal menghapus desa.",
-      error: error.message,
-    };
+    // 'deleteVillage' sudah memiliki 'validateSuperAdmin()' di dalamnya
+    // jadi kita bisa panggil langsung.
+    const result = await deleteVillage(id);
+
+    // Sukses: Bersihkan cache path
+    revalidatePath("/villages");
+
+    return { success: true, message: result.message };
+
+  } catch (error) {
+    // Tangkap error (cth: dari validasi atau database)
+    const message = error instanceof Error ? error.message : "Terjadi kesalahan";
+    
+    // Kirim pesan error yang aman ke klien
+    return { success: false, error: message };
   }
 }
