@@ -50,7 +50,7 @@ async function GroupList() {
         <GroupCard
           key={item.id}
           group={item}
-          href={`/groups/edit/${item.id}`}
+          href={`/group/edit/${item.id}`}
           // PERUBAHAN 2: Tambahkan 'actions' prop
           // Kita berikan komponen Client 'DeleteitemButton'
           // ke prop 'actions' dari Server Component 'itemCard'.
@@ -71,7 +71,7 @@ export default function CategoryListPage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <Breadcrumb pageName="Kelompok" showNav={false} />
         <Link
-          href="/groups/new"
+          href="/group/new"
           className="inline-flex items-center justify-center gap-2.5 rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90"
         >
           {/* Ikon Plus Sederhana */}

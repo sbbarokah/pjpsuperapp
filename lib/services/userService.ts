@@ -134,9 +134,16 @@ export async function createUser(data: CreateUserFormPayload) {
     last_name: data.last_name,
     gender: data.gender,
     birth_date: data.birth_date || null,
-    // Pastikan mengirim null jika group_id/category_id kosong
+    village_id: data.village_id || null,
     group_id: data.group_id || null,
     category_id: data.category_id || null,
+    school_level: data.school_level || null,
+    school_name: data.school_name || null,
+    father_name: data.father_name || null,
+    father_occupation: data.father_occupation || null,
+    mother_name: data.mother_name || null,
+    mother_occupation: data.mother_occupation || null,
+    parent_contact: data.parent_contact || null,
   });
 
   if (profileError) {

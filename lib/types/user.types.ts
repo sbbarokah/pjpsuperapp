@@ -26,7 +26,7 @@ export type Profile = {
 // Ini menggabungkan Profile, Group, Class, dan data Auth (email, role)
 export type UserAdminView = Profile & {
   email: string; // Diambil dari auth.users
-  role: string; // Diambil dari auth.user_metadata
+  role: string; // Diambil dari profile.role
   group: Pick<GroupModel, 'name'> | null; // Hanya mengambil nama grup
   class: Pick<CategoryModel, 'name'> | null; // Hanya mengambil nama kelas
 };
@@ -37,12 +37,20 @@ export type CreateUserFormPayload = {
   password: string;
   username: string;
   front_name: string;
-  role: 'superadmin' | 'admin_desa' | 'admin_kelompok' | 'user'; // DITAMBAHKAN
   last_name?: string;
+  role: 'superadmin' | 'admin_desa' | 'admin_kelompok' | 'user'; // DITAMBAHKAN
   gender?: 'L' | 'P';
   birth_date?: string;
+  village_id?: string | null;
   group_id?: string | null;
   category_id?: string | null;
+  school_level?: string | null;
+  school_name?: string | null;
+  father_name?: string | null;
+  father_occupation?: string | null;
+  mother_name?: string | null;
+  mother_occupation?: string | null;
+  parent_contact?: string | null;
 };
 
 // Tipe data untuk payload form (memperbarui user)
