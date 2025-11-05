@@ -9,18 +9,66 @@ import {
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LogOutIcon, SettingsIcon, UserIcon } from "./icons";
+import { createClient } from "@/lib/supabase/client";
+import { User } from "@supabase/supabase-js";
+
+function UserInfoSkeleton() {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="size-12 animate-pulse rounded-full bg-gray-2 dark:bg-boxdark-2"></div>
+      <div className="hidden h-5 w-24 animate-pulse rounded bg-gray-2 dark:bg-boxdark-2 lg:block"></div>
+    </div>
+  );
+}
 
 export function UserInfo() {
   const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // 5. Gunakan useEffect untuk mengambil data user saat komponen dimuat
+  useEffect(() => {
+    // Buat fungsi async di dalam effect
+    async function getUserData() {
+      const supabase = createClient(); // Buat client Supabase (sisi klien)
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUser(user);
+      setLoading(false);
+    }
+
+    getUserData(); // Panggil fungsi tersebut
+  }, []);
+
+  if (loading) {
+    return <UserInfoSkeleton />;
+  }
+
+  // 7. Jika user tidak login, tampilkan tombol login (atau null)
+  if (!user) {
+    return (
+      <Link
+        href="/login"
+        className="rounded-lg bg-primary px-4 py-2 text-white"
+      >
+        Log In
+      </Link>
+    );
+  }
+
+  const userName = user.user_metadata?.full_name || user.email?.split("@")[0];
+  const userEmail = user.email || "No email";
+  const userImg = user.user_metadata?.avatar_url || "/images/user/user-03.png"; // Fallback image
+  console.log("isi user img", userImg);
 
   const USER = {
     name: "John Smith",
     email: "johnson@nextadmin.com",
     img: "/images/user/user-03.png",
   };
-
   return (
     <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
       <DropdownTrigger className="rounded align-middle outline-none ring-primary ring-offset-2 focus-visible:ring-1 dark:ring-offset-gray-dark">
@@ -28,15 +76,15 @@ export function UserInfo() {
 
         <figure className="flex items-center gap-3">
           <Image
-            src={USER.img}
-            className="size-12"
-            alt={`Avatar of ${USER.name}`}
+            src={userImg} // Gunakan data dinamis
+            className="size-12 rounded-full" // Tambahkan rounded-full
+            alt={`Avatar of ${userName}`}
             role="presentation"
-            width={200}
-            height={200}
+            width={200} // Sesuaikan dengan size-12
+            height={200} // Sesuaikan dengan size-12
           />
           <figcaption className="flex items-center gap-1 font-medium text-dark dark:text-dark-6 max-[1024px]:sr-only">
-            <span>{USER.name}</span>
+            <span>{userName}</span>
 
             <ChevronUpIcon
               aria-hidden
@@ -58,9 +106,9 @@ export function UserInfo() {
 
         <figure className="flex items-center gap-2.5 px-5 py-3.5">
           <Image
-            src={USER.img}
+            src={userImg}
             className="size-12"
-            alt={`Avatar for ${USER.name}`}
+            alt={`Avatar for ${userName}`}
             role="presentation"
             width={200}
             height={200}
@@ -68,10 +116,10 @@ export function UserInfo() {
 
           <figcaption className="space-y-1 text-base font-medium">
             <div className="mb-2 leading-none text-dark dark:text-white">
-              {USER.name}
+              {userName}
             </div>
 
-            <div className="leading-none text-gray-6">{USER.email}</div>
+            <div className="leading-none text-gray-6">{userEmail}</div>
           </figcaption>
         </figure>
 

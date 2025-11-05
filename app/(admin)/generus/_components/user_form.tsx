@@ -124,7 +124,6 @@ export function UserForm({
         // Mode Create
         const createPayload: CreateUserFormPayload = {
           ...data,
-          // Pastikan nilai 'null' jika string kosong
           last_name: data.last_name || undefined,
           gender: data.gender || undefined,
           birth_place: data.birth_place || undefined,
