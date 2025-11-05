@@ -12,7 +12,7 @@ export const NAV_DATA = [
       },
       {
         title: "Generus",
-        url: "/users",
+        url: "/generus",
         icon: Icons.User,
         items: [],
       },

@@ -9,32 +9,93 @@ import {
 } from "../types/user.types";
 
 /**
- * Mendapatkan daftar semua pengguna untuk panel admin.
- * Fungsi ini menggabungkan data dari auth.users, profile, group, dan class.
- * Ini memerlukan hak akses admin pada Supabase client.
+ * Tipe data untuk admin yang sedang login.
+ * Sebaiknya letakkan ini di file 'user.types.ts' Anda.
  */
-export async function getUsersForAdmin(): Promise<UserAdminView[]> {
+export type CurrentAdminUser = {
+  role: string;
+  village_id?: string | null;
+  group_id?: string | null;
+};
+
+/**
+ * Mendapatkan daftar semua pengguna untuk panel admin,
+ * dengan filter berdasarkan role admin yang login.
+ *
+ * @param admin - Objek berisi data admin yang sedang login (role, village_id, group_id)
+ */
+export async function getUsersForAdmin(
+  admin: CurrentAdminUser
+): Promise<UserAdminView[]> {
+  // [CATATAN EFISIENSI]
+  // Peringatan ini SANGAT PENTING:
+  // Logika baru ini memfilter 'profiles' (Bagus), TAPI masih mengambil
+  // SEMUA 'authUsers' (Langkah 4).
+  // Jika admin_desa punya 50 user, kode ini tetap mengambil 10.000 auth users
+  // hanya untuk menggabungkan 50 email.
+  //
+  // REKOMENDASI TETAP SAMA:
+  // Gunakan SQL Function (RPC) di Supabase agar filtering dan join
+  // terjadi di database. Ini adalah solusi yang paling mangkus.
+
   const supabase = createAdminClient();
 
-  // 1. Dapatkan semua data profile beserta relasinya
-  const { data: profiles, error: profileError } = await supabase
+  // 1. [PERUBAHAN] Buat query builder untuk 'profile'
+  let profileQuery = supabase
     .from("profile")
     .select(
       `
       *,
+      village (name),
       group (name),
-      class (name)
+      category (name)
     `
     );
 
-  if (profileError) {
-    console.error("Error fetching profiles:", profileError.message);
-    throw new Error(profileError.message);
+  // 2. [LOGIKA BARU] Terapkan filter berdasarkan role admin
+  switch (admin.role) {
+    case "superadmin":
+      // Tidak perlu filter, ambil semua
+      break;
+
+    case "admin_desa":
+      if (!admin.village_id) {
+        console.warn("Admin Desa tidak memiliki village_id. Mengembalikan 0 users.");
+        return [];
+      }
+      // Tambahkan WHERE village_id = '...'
+      profileQuery = profileQuery.eq("village_id", admin.village_id);
+      break;
+
+    case "admin_kelompok":
+      if (!admin.group_id) {
+        console.warn("Admin Kelompok tidak memiliki group_id. Mengembalikan 0 users.");
+        return [];
+      }
+      // Tambahkan WHERE group_id = '...'
+      profileQuery = profileQuery.eq("group_id", admin.group_id);
+      break;
+
+    default:
+      // Role lain (misal: 'user' biasa) tidak boleh melihat daftar user
+      console.warn(`Role '${admin.role}' tidak diizinkan mengakses getUsersForAdmin.`);
+      return [];
   }
 
-  // 2. Dapatkan semua data user dari auth
-  // PENTING: Ini memerlukan koneksi Supabase dengan 'service_role' key
-  // yang seharusnya sudah diatur di lib/supabase/server.ts
+  // 3. [PERUBAHAN] Eksekusi query 'profile' yang sudah dinamis
+  const { data: profiles, error: profileError } = await profileQuery;
+
+  if (profileError) {
+    console.error("Error fetching filtered profiles:", profileError.message);
+    throw new Error(profileError.message);
+  }
+  
+  // Jika tidak ada profil yang cocok, langsung kembalikan array kosong
+  if (!profiles || profiles.length === 0) {
+    return [];
+  }
+
+  // 4. Dapatkan semua data user dari auth (Tetap tidak efisien)
   const {
     data: { users: authUsers },
     error: authError,
@@ -45,10 +106,10 @@ export async function getUsersForAdmin(): Promise<UserAdminView[]> {
     throw new Error(authError.message);
   }
 
-  // 3. Buat Map untuk pencarian email yang efisien
+  // 5. Buat Map untuk pencarian email yang efisien
   const authUserMap = new Map(authUsers.map((user) => [user.id, user]));
 
-  // 4. Gabungkan data
+  // 6. Gabungkan data (sekarang 'profiles' sudah terfilter)
   const combinedUsers: UserAdminView[] = profiles.map((profile) => {
     const authUser = authUserMap.get(profile.user_id);
     return {
@@ -108,7 +169,6 @@ export async function getUserDetails(userId: string) {
 
 /**
  * Membuat pengguna baru (Auth + Profile)
- * @param data - Payload dari form
  */
 export async function createUser(data: CreateUserFormPayload) {
   const supabase = createAdminClient();
@@ -118,11 +178,12 @@ export async function createUser(data: CreateUserFormPayload) {
     await supabase.auth.admin.createUser({
       email: data.email,
       password: data.password,
-      email_confirm: true, // Asumsi kita langsung konfirmasi email
+      email_confirm: true,
     });
 
   if (authError) {
     console.error("Error creating auth user:", authError.message);
+    // [PERBAIKAN] Kembalikan objek error standar
     return { error: authError.message };
   }
 
@@ -148,23 +209,31 @@ export async function createUser(data: CreateUserFormPayload) {
 
   if (profileError) {
     console.error("Error creating profile:", profileError.message);
-    // CATATAN: Di produksi, Anda mungkin ingin menghapus auth user yang baru dibuat jika profile gagal
-    // await supabase.auth.admin.deleteUser(authUser.user.id);
+
+    // [PERBAIKAN KRITIS] Implementasi Rollback.
+    // Hapus auth user yang baru dibuat jika profil GAGAL dibuat.
+    // Ini mencegah "orphaned auth user".
+    await supabase.auth.admin.deleteUser(authUser.user.id);
+    console.error("Rollback: Deleted auth user", authUser.user.id);
+
+    // [PERBAIKAN] Kembalikan objek error standar
     return { error: profileError.message };
   }
 
-  // 3. Revalidasi path agar daftar user di /users ter-update
-  revalidatePath("/users");
-  return { success: true };
+  // [PERBAIKAN] Hapus revalidatePath dari service.
+  // revalidatePath("/users");
+
+  // [PERBAIKAN] Kembalikan data pengguna yang baru dibuat, bukan pesan.
+  return { success: true, data: authUser.user };
 }
 
 /**
  * Memperbarui data pengguna (Auth email + Profile)
- * @param userId - ID dari auth.users
- * @param data - Payload dari form
  */
 export async function updateUser(userId: string, data: UpdateUserFormPayload) {
   const supabase = createAdminClient();
+  let authDataUpdated = false;
+  let profileDataUpdated = false;
 
   // 1. Update data auth (jika ada)
   if (data.email) {
@@ -176,38 +245,57 @@ export async function updateUser(userId: string, data: UpdateUserFormPayload) {
       console.error("Error updating auth user:", authError.message);
       return { error: authError.message };
     }
+    authDataUpdated = true;
   }
 
   // 2. Update data profile
-  const { error: profileError } = await supabase
-    .from("profile")
-    .update(data.profileData)
-    .eq("user_id", userId);
+  // [CATATAN] Pastikan data.profileData tidak kosong jika email tidak di-pass
+  if (data.profileData && Object.keys(data.profileData).length > 0) {
+    const { error: profileError } = await supabase
+      .from("profile")
+      .update(data.profileData)
+      .eq("user_id", userId);
 
-  if (profileError) {
-    console.error("Error updating profile:", profileError.message);
-    return { error: profileError.message };
+    if (profileError) {
+      console.error("Error updating profile:", profileError.message);
+      return { error: profileError.message };
+    }
+    profileDataUpdated = true;
   }
 
-  // 3. Revalidasi path
-  revalidatePath("/users");
-  revalidatePath(`/users/${userId}`); // Jika ada halaman detail
+  // [CATATAN] Jika tidak ada data email atau profile, tidak ada yang diupdate.
+  if (!authDataUpdated && !profileDataUpdated) {
+    return { error: "Tidak ada data untuk diperbarui." };
+  }
+  
+  // [PERBAIKAN] Hapus revalidatePath
+  // revalidatePath("/users");
+  // revalidatePath(`/users/${userId}`);
   return { success: true };
 }
 
 /**
  * Menghapus pengguna (Profile + Auth)
- * @param userId - ID dari auth.users
  */
 export async function deleteUser(userId: string) {
   const supabase = createAdminClient();
 
-  // PENTING:
-  // Sebaiknya atur Foreign Key di tabel 'profile' (kolom 'user_id')
-  // agar memiliki 'ON DELETE CASCADE'.
-  // Jika sudah, Anda HANYA perlu menghapus auth user, dan profile akan terhapus otomatis.
+  // [CATATAN] Logika Anda saat ini (hapus profile, lalu auth)
+  // adalah benar JIKA 'ON DELETE CASCADE' TIDAK diatur.
+  //
+  // Namun, ini BERISIKO. Jika hapus profile (1) berhasil,
+  // tapi hapus auth user (2) GAGAL (misal error jaringan),
+  // Anda akan memiliki 'orphaned auth user' (auth user tanpa profil).
+  //
+  // REKOMENDASI:
+  // Atur 'ON DELETE CASCADE' pada Foreign Key 'user_id' di tabel 'profile' Anda.
+  // Jika sudah, Anda HANYA perlu menjalankan `supabase.auth.admin.deleteUser(userId)`.
+  // Profil akan terhapus otomatis, dan ini bersifat transaksional (jika auth gagal, profil aman).
+  //
+  // Kode di bawah ini saya biarkan sesuai logika awal Anda, tapi saya
+  // tetap merekomendasikan 'ON DELETE CASCADE'.
 
-  // 1. Hapus profile (jika cascade tidak diatur)
+  // 1. Hapus profile
   const { error: profileError } = await supabase
     .from("profile")
     .delete()
@@ -223,11 +311,11 @@ export async function deleteUser(userId: string) {
 
   if (authError) {
     console.error("Error deleting auth user:", authError.message);
-    // Profil sudah terhapus, jadi ini adalah error parsial
+    // Ini adalah state error parsial (profile terhapus, auth gagal)
     return { error: authError.message };
   }
 
-  // 3. Revalidasi path
-  revalidatePath("/users");
+  // [PERBAIKAN] Hapus revalidatePath
+  // revalidatePath("/users");
   return { success: true };
 }

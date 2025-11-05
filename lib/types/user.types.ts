@@ -1,5 +1,5 @@
 // Impor asumsi dari file master data Anda
-import { CategoryModel, GroupModel } from "./master.types";
+import { CategoryModel, GroupModel, VillageModel } from "./master.types";
 
 export type Profile = {
   id: string; // atau number
@@ -7,19 +7,20 @@ export type Profile = {
   username: string;
   role: string;
   front_name: string;
-  last_name?: string;
+  last_name?: string | null;
   gender?: 'L' | 'P';
-  birth_place?: string;
-  birth_date?: string;
-  group_id?: string | null; // atau number
-  class_id?: string | null; // atau number
-  school_level?: string;
-  school_name?: string;
-  father_name?: string;
-  father_occupation?: string;
-  mother_name?: string;
-  mother_occupation?: string;
-  parent_contact?: string;
+  birth_place?: string | null;
+  birth_date?: string | null;
+  village_id?: string | null;
+  group_id?: string | null;
+  category_id?: string | null;
+  school_level?: string | null;
+  school_name?: string | null;
+  father_name?: string | null;
+  father_occupation?: string | null;
+  mother_name?: string | null;
+  mother_occupation?: string | null;
+  parent_contact?: string | null;
 };
 
 // Tipe data gabungan untuk tampilan di Admin Panel
@@ -27,8 +28,9 @@ export type Profile = {
 export type UserAdminView = Profile & {
   email: string; // Diambil dari auth.users
   role: string; // Diambil dari profile.role
+  village: Pick<VillageModel, 'name'> | null; // Hanya mengambil nama grup
   group: Pick<GroupModel, 'name'> | null; // Hanya mengambil nama grup
-  class: Pick<CategoryModel, 'name'> | null; // Hanya mengambil nama kelas
+  category: Pick<CategoryModel, 'name'> | null; // Hanya mengambil nama kelas
 };
 
 // Tipe data untuk payload form (membuat user baru)
@@ -40,6 +42,7 @@ export type CreateUserFormPayload = {
   last_name?: string;
   role: 'superadmin' | 'admin_desa' | 'admin_kelompok' | 'user'; // DITAMBAHKAN
   gender?: 'L' | 'P';
+  birth_place?: string;
   birth_date?: string;
   village_id?: string | null;
   group_id?: string | null;
@@ -57,5 +60,4 @@ export type CreateUserFormPayload = {
 export type UpdateUserFormPayload = {
   profileData: Partial<Omit<Profile, 'id' | 'user_id'>>;
   email?: string; // Opsional jika Anda mengizinkan perubahan email
-  role?: 'superadmin' | 'admin_desa' | 'admin_kelompok' | 'user'; // DITAMBAHKAN
 };

@@ -16,7 +16,7 @@ export type ActionResponse<T = any> = {
   data?: T | null;
 };
 
-const ADMIN_GROUPS_PATH = "/admin/groups";
+const ADMIN_GROUPS_PATH = "/groups";
 
 /**
  * Membuat Grup baru
