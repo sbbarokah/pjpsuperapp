@@ -9,9 +9,20 @@ import { createClient } from "@/lib/supabase/server_user"; // Client untuk sesi
 import { getUsersForAdmin } from "@/lib/services/userService"; // Service yg kita buat tadi
 import { DeleteUserButton } from "./_components/delete_user_button";
 import { UserCard } from "@/components/cards/carduser";
+import {
+  getGroups,
+  getVillages,
+  getCategories,
+} from "@/lib/services/masterService";
 
 export const metadata = {
   title: "Daftar Generus | Admin",
+};
+
+export type UserFormMasterData = {
+  groups: Awaited<ReturnType<typeof getGroups>>;
+  villages: Awaited<ReturnType<typeof getVillages>>;
+  categories: Awaited<ReturnType<typeof getCategories>>;
 };
 
 // --- Skeleton Loader ---

@@ -14,6 +14,7 @@ import {
   UpdateUserFormPayload,
 } from "@/lib/types/user.types";
 import { createUserAction, updateUserAction } from "../actions";
+import { genderOptions, roleOptions } from "@/lib/constants";
 
 // Tipe data untuk prop 'user' (untuk mode update)
 type UserFormUser = Partial<Profile> & { email?: string; user_id: string };
@@ -24,19 +25,6 @@ interface UserFormProps {
   groups: GroupModel[];
   categories: CategoryModel[];
 }
-
-// Opsi hardcoded untuk dropdown
-const roleOptions = [
-  { value: "user", label: "Siswa (User)" },
-  { value: "admin_kelompok", label: "Admin Kelompok" },
-  { value: "admin_desa", label: "Admin Desa" },
-  { value: "superadmin", label: "Superadmin" },
-];
-
-const genderOptions = [
-  { value: "L", label: "Laki-laki" },
-  { value: "P", label: "Perempuan" },
-];
 
 export function UserForm({
   user,

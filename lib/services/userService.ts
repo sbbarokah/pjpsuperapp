@@ -116,8 +116,9 @@ export async function getUsersForAdmin(
       ...profile,
       email: authUser?.email || "N/A",
       // Pastikan 'group' dan 'class' adalah objek atau null
+      village: profile.village ? { name: profile.village.name } : null,
       group: profile.group ? { name: profile.group.name } : null,
-      class: profile.class ? { name: profile.class.name } : null,
+      category: profile.category ? { name: profile.category.name } : null,
     };
   });
 
@@ -137,8 +138,9 @@ export async function getUserDetails(userId: string) {
     .select(
       `
       *,
+      village (*),
       group (*),
-      class (*)
+      category (*)
     `
     )
     .eq("user_id", userId)
