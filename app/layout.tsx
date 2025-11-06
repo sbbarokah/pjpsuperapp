@@ -13,8 +13,7 @@ export const metadata: Metadata = {
     template: "%s | PJP Super App",
     default: "PJP Super App",
   },
-  description:
-    "Next.js admin dashboard toolkit with 200+ templates, UI components, and integrations for fast dashboard development.",
+  description: "PJP Super App.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

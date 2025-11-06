@@ -6,15 +6,12 @@ import Link from "next/link";
 import Breadcrumb from "@/components/ui/breadcrumb";
 import { createClient } from "@/lib/supabase/server_user";
 import { getUsersForAdmin } from "@/lib/services/userService";
-// Hapus DeleteUserButton & UserCard, karena akan di-handle oleh Client Component
-// import { DeleteUserButton } from "./_components/delete_user_button";
-// import { UserCard } from "@/components/cards/carduser";
 import {
   getGroups,
   getVillages,
   getCategories,
 } from "@/lib/services/masterService";
-import { FilteredUserListClient } from "./_components/filtered_user_list"; // <-- [BARU] Impor Client Component
+import { FilteredUserListClient } from "./_components/filtered_user_list";
 
 export const metadata = {
   title: "Daftar Generus | Admin",
@@ -54,17 +51,17 @@ async function UserList() {
 
   // 2. Logika getSession dan get adminProfile
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     return <p className="text-center">Sesi tidak valid atau Anda tidak login.</p>;
   }
 
   const { data: adminProfile } = await supabase
     .from("profile")
     .select("role, village_id, group_id")
-    .eq("user_id", session.user.id)
+    .eq("user_id", user.id)
     .single();
 
   if (!adminProfile) {
