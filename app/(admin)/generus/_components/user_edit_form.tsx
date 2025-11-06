@@ -40,8 +40,7 @@ export function EditUserForm({ user, masterData }: EditUserFormProps) {
   const [formData, setFormData] = useState({
     email: user.email || "",
     role: user.role || "user",
-    front_name: user.front_name || "",
-    last_name: user.last_name || "",
+    full_name: user.full_name || "",
     username: user.username || "",
     village_id: user.village_id || "",
     group_id: user.group_id || "",
@@ -70,8 +69,7 @@ export function EditUserForm({ user, masterData }: EditUserFormProps) {
     const payload: UpdateUserFormPayload = {
       email: formData.email,
       profileData: {
-        front_name: formData.front_name,
-        last_name: formData.last_name,
+        full_name: formData.full_name,
         username: formData.username,
         role: formData.role, // Pastikan role juga di-update di profile
         village_id: formData.village_id || null,
@@ -139,22 +137,22 @@ export function EditUserForm({ user, masterData }: EditUserFormProps) {
 
           <div>
             <label
-              htmlFor="front_name"
+              htmlFor="full_name"
               className="mb-2.5 block font-medium text-black dark:text-white"
             >
-              Nama Depan
+              Nama Langkap
             </label>
             <input
               type="text"
-              id="front_name"
-              name="front_name"
-              value={formData.front_name}
+              id="full_name"
+              name="full_name"
+              value={formData.full_name}
               onChange={handleChange}
               className={inputClass}
             />
           </div>
 
-          <div>
+          {/* <div>
             <label
               htmlFor="last_name"
               className="mb-2.5 block font-medium text-black dark:text-white"
@@ -169,7 +167,7 @@ export function EditUserForm({ user, masterData }: EditUserFormProps) {
               onChange={handleChange}
               className={inputClass}
             />
-          </div>
+          </div> */}
 
           {/* Kolom Kanan */}
           <div>

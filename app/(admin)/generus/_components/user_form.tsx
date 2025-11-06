@@ -48,8 +48,7 @@ export function UserForm({
       email: formData.get("email") as string,
       password: formData.get("password") as string,
       username: formData.get("username") as string,
-      front_name: formData.get("front_name") as string,
-      last_name: formData.get("last_name") as string,
+      full_name: formData.get("full_name") as string,
       role: formData.get("role") as CreateUserFormPayload["role"],
       gender: formData.get("gender") as "L" | "P",
       birth_place: formData.get("birth_place") as string,
@@ -67,8 +66,8 @@ export function UserForm({
     };
 
     // Validasi Sederhana
-    if (!data.email || !data.username || !data.front_name) {
-      setError("Email, Username, dan Nama Depan wajib diisi.");
+    if (!data.email || !data.username || !data.full_name) {
+      setError("Email, Username, dan Nama wajib diisi.");
       return;
     }
     if (!isUpdateMode && !data.password) {
@@ -90,8 +89,7 @@ export function UserForm({
           profileData: {
             // Masukkan semua data profil di sini
             username: data.username,
-            front_name: data.front_name,
-            last_name: data.last_name || null,
+            full_name: data.full_name,
             gender: data.gender || null,
             birth_place: data.birth_place || null,
             birth_date: data.birth_date || null,
@@ -112,7 +110,7 @@ export function UserForm({
         // Mode Create
         const createPayload: CreateUserFormPayload = {
           ...data,
-          last_name: data.last_name || undefined,
+          full_name: data.full_name,
           gender: data.gender || undefined,
           birth_place: data.birth_place || undefined,
           birth_date: data.birth_date || undefined,
@@ -226,22 +224,22 @@ export function UserForm({
 
           <h4 className="mb-3 mt-6 text-lg font-semibold">Data Diri</h4>
           <InputGroup
-            label="Nama Depan"
+            label="Nama Lengkap"
             type="text"
-            name="front_name"
-            placeholder="Masukkan nama depan"
-            defaultValue={user?.front_name}
+            name="full_name"
+            placeholder="Masukkan nama lengkap"
+            defaultValue={user?.full_name}
             required
             className="mb-4.5"
           />
-          <InputGroup
+          {/* <InputGroup
             label="Nama Belakang"
             type="text"
             name="last_name"
             placeholder="Masukkan nama belakang (opsional)"
             defaultValue={user?.last_name || ""}
             className="mb-4.5"
-          />
+          /> */}
           <SelectGroup
             label="Jenis Kelamin"
             name="gender"

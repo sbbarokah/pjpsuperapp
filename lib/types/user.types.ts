@@ -6,8 +6,7 @@ export type Profile = {
   user_id: string; // Ini adalah UUID dari auth.users
   username: string;
   role: string;
-  front_name: string;
-  last_name?: string | null;
+  full_name: string;
   gender?: 'L' | 'P';
   birth_place?: string | null;
   birth_date?: string | null;
@@ -38,8 +37,7 @@ export type CreateUserFormPayload = {
   email: string;
   password: string;
   username: string;
-  front_name: string;
-  last_name?: string;
+  full_name: string;
   role: 'superadmin' | 'admin_desa' | 'admin_kelompok' | 'user'; // DITAMBAHKAN
   gender?: 'L' | 'P';
   birth_place?: string;

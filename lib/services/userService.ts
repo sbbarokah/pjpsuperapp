@@ -193,8 +193,7 @@ export async function createUser(data: CreateUserFormPayload) {
   const { error: profileError } = await supabase.from("profile").insert({
     user_id: authUser.user.id,
     username: data.username,
-    front_name: data.front_name,
-    last_name: data.last_name,
+    full_name: data.full_name,
     role: data.role,
     gender: data.gender,
     birth_place: data.birth_place || null,

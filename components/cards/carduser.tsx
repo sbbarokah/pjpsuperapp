@@ -10,10 +10,10 @@ type UserCardProps = {
 };
 
 // Helper untuk format nama
-const formatName = (user: UserAdminView) => {
-  const name = `${user.front_name || ""} ${user.last_name || ""}`.trim();
-  return name || user.username || "Tanpa Nama"; // Fallback ke username
-};
+// const formatName = (user: UserAdminView) => {
+//   const name = `${user.front_name || ""} ${user.last_name || ""}`.trim();
+//   return name || user.username || "Tanpa Nama"; // Fallback ke username
+// };
 
 // Helper untuk badge role
 const RoleBadge = ({ role }: { role: string | null }) => {
@@ -55,7 +55,7 @@ export function UserCard({ user, actions, href }: UserCardProps) {
         {/* Header: Nama dan Role */}
         <div className="flex flex-col gap-1.5">
           <h3 className="text-lg font-semibold text-black dark:text-white truncate">
-            {formatName(user)}
+            {user.full_name || user.username}
           </h3>
           <RoleBadge role={user.role} />
         </div>

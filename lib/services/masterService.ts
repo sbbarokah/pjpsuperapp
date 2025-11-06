@@ -160,6 +160,24 @@ export async function getGroupById(id: string) {
   return data as GroupModel | null;
 }
 
+/**
+ * Mengambil daftar grup berdasarkan village_id.
+ * Dibuat khusus untuk form impor admin_desa.
+ */
+export async function getGroupsByVillage(villageId: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("group")
+    .select("*")
+    .eq("village_id", villageId);
+
+  if (error) {
+    console.error("Error fetching groups by village:", error.message);
+    return [];
+  }
+  return data;
+}
+
 export async function updateGroup(groupData: UpdateGroupDto) {
   await validateSuperAdmin(); // 🔒 Validasi
   const supabase = createAdminClient(); // 🚀 Eksekusi
