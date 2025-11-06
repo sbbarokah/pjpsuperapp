@@ -1,21 +1,36 @@
 // app/generus/_components/usercard.tsx
 
-import { UserAdminView } from "@/lib/types/user.types"; // Impor tipe Anda
-import { DataCard } from "@/components/cards/datacard"; // Impor DataCard generik Anda
+import { UserAdminView } from "@/lib/types/user.types";
+import { DataCard } from "@/components/cards/datacard"; // Asumsi DataCard Anda
 
-type UserCardProps = {
-  user: UserAdminView;
-  actions?: React.ReactNode;
-  href?: string;
-};
+function calculateAge(birthDateString?: string | null): number | null {
+  if (!birthDateString) {
+    return null;
+  }
+  
+  try {
+    const birthDate = new Date(birthDateString);
+    // Cek jika tanggal valid
+    if (isNaN(birthDate.getTime())) {
+      return null;
+    }
 
-// Helper untuk format nama
-// const formatName = (user: UserAdminView) => {
-//   const name = `${user.front_name || ""} ${user.last_name || ""}`.trim();
-//   return name || user.username || "Tanpa Nama"; // Fallback ke username
-// };
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
 
-// Helper untuk badge role
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
+  } catch (error) {
+    console.error("Invalid birth_date format:", error);
+    return null;
+  }
+}
+
+// Pastikan komponen ini ada di file ini atau diimpor
 const RoleBadge = ({ role }: { role: string | null }) => {
   let bgColor = "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
   let text = role || "user";
@@ -45,12 +60,20 @@ const RoleBadge = ({ role }: { role: string | null }) => {
   );
 };
 
+
+// --- Komponen UserCard Utama ---
+type UserCardProps = {
+  user: UserAdminView;
+  actions?: React.ReactNode;
+  href?: string;
+};
+
 export function UserCard({ user, actions, href }: UserCardProps) {
+  // Hitung umur dari birth_date
+  const age = calculateAge(user.birth_date);
+
   return (
     <DataCard actions={actions} href={href}>
-      {/* DataCard harusnya sudah menangani 'flex flex-col h-full'.
-        Isi di bawah ini adalah 'children' dari DataCard.
-      */}
       <div className="flex h-full flex-col gap-3">
         {/* Header: Nama dan Role */}
         <div className="flex flex-col gap-1.5">
@@ -60,15 +83,27 @@ export function UserCard({ user, actions, href }: UserCardProps) {
           <RoleBadge role={user.role} />
         </div>
 
-        {/* Detail: Email */}
-        <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
-          {user.email}
-        </p>
-
-        {/* Footer: Info Desa & Kelompok (didorong ke bawah) */}
-        <div className="mt-auto border-t border-gray-100 pt-3 dark:border-boxdark-2">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            {user.group?.name ? (
+        {/* [PERUBAHAN] Detail Kontak & Info Pribadi */}
+        <div className="text-sm text-gray-600 dark:text-gray-300">
+          <p className="truncate">
+            Email:{" "}
+            <span className="font-medium text-black dark:text-white">
+              {user.email}
+            </span>
+          </p>
+          {age !== null && (
+            <p>
+              Umur:{" "}
+              <span className="font-medium text-black dark:text-white">
+                {age} tahun
+              </span>
+            </p>
+          )}
+        </div>
+        
+        {/* [PERUBAHAN] Detail Klasifikasi (Grup & Kategori) */}
+        <div className="text-sm text-gray-600 dark:text-gray-300">
+          {user.group?.name ? (
               <p>
                 Kelompok:{" "}
                 <span className="font-semibold text-black dark:text-white">
@@ -77,6 +112,19 @@ export function UserCard({ user, actions, href }: UserCardProps) {
               </p>
             ) : null}
             
+          {user.category?.name ? (
+              <p>
+                Kategori:{" "}
+                <span className="font-semibold text-black dark:text-white">
+                  {user.category.name}
+                </span>
+              </p>
+            ) : null}
+        </div>
+
+        {/* Footer: Info Lokasi (didorong ke bawah) */}
+        <div className="mt-auto border-t border-gray-100 pt-3 dark:border-boxdark-2">
+          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
             {user?.village?.name ? (
               <p>
                 Desa:{" "}
@@ -86,8 +134,8 @@ export function UserCard({ user, actions, href }: UserCardProps) {
               </p>
             ) : null}
 
-            {!user.group?.name && !user.village?.name && (
-              <p className="italic">Belum ada data desa/kelompok.</p>
+            {!user.village?.name && (
+              <p className="italic">Belum ada data desa.</p>
             )}
           </div>
         </div>

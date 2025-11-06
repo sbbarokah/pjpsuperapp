@@ -2,18 +2,19 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import { cookies } from "next/headers";
 
 import Breadcrumb from "@/components/ui/breadcrumb";
-import { createClient } from "@/lib/supabase/server_user"; // Client untuk sesi
-import { getUsersForAdmin } from "@/lib/services/userService"; // Service yg kita buat tadi
-import { DeleteUserButton } from "./_components/delete_user_button";
-import { UserCard } from "@/components/cards/carduser";
+import { createClient } from "@/lib/supabase/server_user";
+import { getUsersForAdmin } from "@/lib/services/userService";
+// Hapus DeleteUserButton & UserCard, karena akan di-handle oleh Client Component
+// import { DeleteUserButton } from "./_components/delete_user_button";
+// import { UserCard } from "@/components/cards/carduser";
 import {
   getGroups,
   getVillages,
   getCategories,
 } from "@/lib/services/masterService";
+import { FilteredUserListClient } from "./_components/filtered_user_list"; // <-- [BARU] Impor Client Component
 
 export const metadata = {
   title: "Daftar Generus | Admin",
@@ -26,7 +27,6 @@ export type UserFormMasterData = {
 };
 
 // --- Skeleton Loader ---
-// Disesuaikan agar lebih mirip UserCard
 function CardGridSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -49,10 +49,10 @@ function CardGridSkeleton() {
 
 // --- Komponen Server untuk Fetching Data ---
 async function UserList() {
-  // 1. [INI DIA] Panggil client dari 'server_user.ts'
-  //    Ini secara otomatis membaca cookie dan memvalidasi sesi.
+  // 1. Panggil client dari 'server_user.ts'
   const supabase = await createClient();
 
+  // 2. Logika getSession dan get adminProfile
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -61,7 +61,6 @@ async function UserList() {
     return <p className="text-center">Sesi tidak valid atau Anda tidak login.</p>;
   }
 
-  // 2. Dapatkan profil admin yang login untuk filter
   const { data: adminProfile } = await supabase
     .from("profile")
     .select("role, village_id, group_id")
@@ -75,40 +74,10 @@ async function UserList() {
   // 3. Panggil service dengan data admin yang login
   const users = await getUsersForAdmin(adminProfile);
 
-  if (users.length === 0) {
-    return (
-      <div className="text-center text-gray-600 dark:text-gray-300">
-        Belum ada data Generus.
-        <Link
-          href="/generus/new"
-          className="ml-2 text-primary hover:underline"
-        >
-          Buat Baru
-        </Link>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {users.map((user) => {
-        const userName =
-          `${user.full_name || ""}`.trim() ||
-          user.username;
-
-        return (
-          <UserCard
-            key={user.user_id} // Pastikan key unik, user_id adalah kandidat bagus
-            user={user}
-            href={`/generus/edit/${user.user_id}`}
-            actions={
-              <DeleteUserButton id={user.user_id} name={userName} />
-            }
-          />
-        );
-      })}
-    </div>
-  );
+  // 4. [PERUBAHAN]
+  //    Kita tidak me-render list di sini lagi.
+  //    Kita kirim 'users' ke Client Component untuk di-filter dan di-render.
+  return <FilteredUserListClient users={users} />;
 }
 
 // --- Halaman Utama ---
@@ -118,26 +87,55 @@ export default function GenerusListPage() {
       {/* Header: Breadcrumb dan Tombol Tambah Baru */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <Breadcrumb pageName="Generus" showNav={false} />
-        <Link
-          href="/generus/new"
-          className="inline-flex items-center justify-center gap-2.5 rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90"
-        >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
+
+        {/* Grup Tombol Impor dan Tambah Baru */}
+        <div className="flex items-center gap-3">
+          {/* Tombol Impor Baru */}
+          <Link
+            href="/generus/import"
+            className="inline-flex items-center justify-center gap-2.5 rounded-lg border border-primary bg-white px-4 py-2 text-center font-medium text-primary hover:bg-primary/10 dark:border-primary dark:bg-boxdark dark:text-white dark:hover:bg-primary/10"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-            ></path>
-          </svg>
-          Tambah Generus Baru
-        </Link>
+            {/* Ikon Upload Sederhana */}
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+              ></path>
+            </svg>
+            Impor Generus
+          </Link>
+
+          {/* Tombol Tambah Baru (Sudah Ada) */}
+          <Link
+            href="/generus/new"
+            className="inline-flex items-center justify-center gap-2.5 rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90"
+          >
+            {/* Ikon Tambah Sederhana */}
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              ></path>
+            </svg>
+            Tambah Generus Baru
+          </Link>
+        </div>
       </div>
 
       {/* Grid Data dengan Suspense */}
