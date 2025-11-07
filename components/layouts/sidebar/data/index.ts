@@ -17,6 +17,12 @@ export const NAV_DATA = [
         items: [],
       },
       {
+        title: "Laporan KBM",
+        url: "/report",
+        icon: Icons.User,
+        items: [],
+      },
+      {
         title: "Master Data",
         icon: Icons.Alphabet,
         items: [
