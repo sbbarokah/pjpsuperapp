@@ -8,6 +8,8 @@ import { formatReportDate } from "@/lib/utils"; // Asumsi ada helper format tang
 import { DataCard } from "@/components/cards/datacard";
 import { MeetingReportWithRelations } from "@/lib/types/mreport.types";
 import { getMeetingReportsList } from "@/lib/services/mReportService";
+import { MuslimunGroupList } from "./_components/group_report_list";
+import { MuslimunVillageList } from "./_components/village_report_list";
 
 export const metadata = {
   title: "Laporan Muslimun | Admin",
@@ -106,6 +108,14 @@ export default async function MeetingReportsPage() {
     );
   }
 
+  // Tentukan komponen yang akan ditampilkan
+  let ReportViewComponent = null;
+  if (profile.role === "admin_kelompok") {
+    ReportViewComponent = <MuslimunGroupList profile={profile} />;
+  } else if (profile.role === "admin_desa") {
+    ReportViewComponent = <MuslimunVillageList profile={profile} />;
+  }
+
   return (
     <>
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
@@ -120,7 +130,15 @@ export default async function MeetingReportsPage() {
 
       <div className="space-y-10">
         <Suspense fallback={<CardListSkeleton />}>
-          <ReportList profile={profile} />
+          {ReportViewComponent ? (
+            ReportViewComponent
+          ) : (
+            // Pesan jika peran tidak sesuai
+            <p>
+              Peran Anda ({profile.role}) tidak memiliki akses untuk melihat
+              laporan ini.
+            </p>
+          )}
         </Suspense>
       </div>
     </>

@@ -45,13 +45,12 @@ export default async function KbmReportsPage() {
 
   // 2. Tentukan komponen yang akan di-render
   let ReportViewComponent = null;
-  ReportViewComponent = <GroupReportList profile={profile} />;
 
-  // if (profile.role === "admin_kelompok") {
-  //   ReportViewComponent = <GroupReportList profile={profile} />;
-  // } else if (profile.role === "admin_desa") {
-  //   ReportViewComponent = <VillageReportList profile={profile} />;
-  // }
+  if (profile.role === "admin_kelompok") {
+    ReportViewComponent = <GroupReportList profile={profile} />;
+  } else if (profile.role === "admin_desa") {
+    ReportViewComponent = <VillageReportList profile={profile} />;
+  }
 
   const canCreateReport =
     profile.role === "admin_kelompok" || profile.role === "admin_desa";

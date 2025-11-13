@@ -101,3 +101,37 @@ export async function getMeetingReportsByPeriod({
   }
   return data as MeetingReportWithRelations[];
 }
+
+/**
+ * PENTING: Anda perlu membuat service function baru `getConsolidatedMuslimunPeriods`
+ * di `mReportService.ts`.
+ *
+ * Fungsi ini harus mengambil `villageId` dan mengembalikan
+ * array unik dari periode laporan, idealnya dengan jumlah laporan.
+ *
+ * Contoh query Supabase (atau Prisma) di service Anda:
+ **/ 
+export async function getConsolidatedMuslimunPeriods(villageId: string) {
+  const supabase = createAdminClient();
+
+  // Panggil fungsi RPC yang baru kita buat
+  const { data, error } = await supabase.rpc(
+    'get_muslimun_periods', 
+    { v_id: villageId } // Ini adalah parameter yang kita kirim ke fungsi SQL
+  );
+
+  // Baris 124 Anda sekarang akan menangani error RPC
+  if (error) {
+    console.error("Supabase RPC Error:", error);
+    throw new Error(error.message);
+  }
+
+  // Penting: ubah nama 'report_count' (dari SQL) menjadi 'count' (sesuai kebutuhan komponen)
+  const formattedData = data.map((item: any) => ({
+    period_year: item.period_year,
+    period_month: item.period_month,
+    count: item.report_count 
+  }));
+
+  return formattedData as { period_year: number; period_month: number; count: number }[];
+}
