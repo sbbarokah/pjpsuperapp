@@ -26,6 +26,7 @@ export type CreateKbmReportPayload = {
   achievement_dalil_memorization: string;
   achievement_prayer_memorization: string;
   achievement_tajwid: string;
+  achievement_character: string;
 
   // 4. Info Keberhasilan Program
   program_success_info: string;

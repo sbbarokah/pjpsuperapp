@@ -1,3 +1,4 @@
+export { default as logopjp } from './logo_pjp_clean.png'; 
 export { default as dark } from './dark.svg'; 
 export { default as facebook } from './facebook.svg'; 
 export { default as github } from './github.svg'; 

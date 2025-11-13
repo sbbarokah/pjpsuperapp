@@ -64,11 +64,6 @@ export function UserInfo() {
   const userImg = user.user_metadata?.avatar_url || "/images/user/user-03.png"; // Fallback image
   console.log("isi user img", userImg);
 
-  const USER = {
-    name: "John Smith",
-    email: "johnson@nextadmin.com",
-    img: "/images/user/user-03.png",
-  };
   return (
     <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
       <DropdownTrigger className="rounded align-middle outline-none ring-primary ring-offset-2 focus-visible:ring-1 dark:ring-offset-gray-dark">

@@ -181,6 +181,7 @@ const initialState = {
   achievement_dalil_memorization: "",
   achievement_prayer_memorization: "",
   achievement_tajwid: "",
+  achievement_character: "",
 
   program_success_info: "",
   challenges_info: "",
@@ -253,6 +254,7 @@ export function ReportForm({ groups, categories }: ReportFormProps) {
         achievement_dalil_memorization: formData.achievement_dalil_memorization,
         achievement_prayer_memorization: formData.achievement_prayer_memorization,
         achievement_tajwid: formData.achievement_tajwid,
+        achievement_character: formData.achievement_character,
 
         program_success_info: formData.program_success_info,
         challenges_info: formData.challenges_info,
@@ -425,7 +427,7 @@ export function ReportForm({ groups, categories }: ReportFormProps) {
           onChange={handleChange}
         />
         <InputGroup
-          label="Bacaan Al-Qur'an"
+          label="Bacaan Al-Qur'an / Tilawaty / Iqro"
           name="achievement_quran_reading"
           type="text"
           placeholder="Capaian bacaan Al-Qur'an"
@@ -462,6 +464,14 @@ export function ReportForm({ groups, categories }: ReportFormProps) {
           type="text"
           placeholder="Capaian tajwid"
           value={formData.achievement_tajwid}
+          onChange={handleChange}
+        />
+        <InputGroup
+          label="Akhlaqul Karimah (29 Karakter Luhur)"
+          name="achievement_character"
+          type="text"
+          placeholder="Pembiasaan Akhlaqul Karimah"
+          value={formData.achievement_character}
           onChange={handleChange}
         />
       </div>

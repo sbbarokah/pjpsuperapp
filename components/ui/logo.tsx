@@ -1,11 +1,19 @@
 import darkLogo from "@/assets/logos/dark.svg";
 import logo from "@/assets/logos/main.svg";
+import logopjp from "@/assets/logos/pjp_logo_clean.png";
 import Image from "next/image";
 
 export function Logo() {
   return (
     <div className="relative h-8 max-w-[10.847rem]">
       <Image
+        src={logopjp}
+        fill
+        alt="PJP logo"
+        role="presentation"
+        quality={100}
+      />
+      {/* <Image
         src={logo}
         fill
         className="dark:hidden"
@@ -21,7 +29,7 @@ export function Logo() {
         alt="NextAdmin logo"
         role="presentation"
         quality={100}
-      />
+      /> */}
     </div>
   );
 }
