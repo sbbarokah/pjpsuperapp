@@ -3,13 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server_user";
 import { createKbmReport } from "@/lib/services/reportService";
-import { CreateKbmReportPayload } from "@/lib/types/report.types";
+import { CreateKbmReportDto, UpdateKbmReportDto } from "@/lib/types/report.types";
+
+type FormResponse = {
+  success: boolean;
+  message: string;
+  data?: any;
+};
 
 /**
  * Server Action untuk membuat Laporan KBM.
  * Ini akan dipanggil oleh <form>.
  */
-export async function createKbmReportAction(payload: CreateKbmReportPayload) {
+export async function createKbmReportAction(payload: CreateKbmReportDto) {
   // 1. Validasi Sesi Pengguna
   const supabase = await createClient();
   const {
@@ -57,4 +63,71 @@ export async function createKbmReportAction(payload: CreateKbmReportPayload) {
   } catch (error: any) {
     return { success: false, message: error.message };
   }
+}
+
+export async function updateKbmReportAction(
+  payload: UpdateKbmReportDto,
+): Promise<FormResponse> {
+  const supabase = await createClient();
+
+  // Ambil ID dan sisa data
+  const { id, ...dataToUpdate } = payload;
+
+  if (!id) {
+    return { success: false, message: "ID Laporan tidak ditemukan." };
+  }
+
+  // Validasi Keamanan Sisi Server (SANGAT PENTING)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, message: "Akses ditolak: Tidak terotentikasi." };
+  }
+
+  const { data: profile } = await supabase
+    .from("profile")
+    .select("role, group_id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!profile || profile.role !== "admin_kelompok") {
+    return { success: false, message: "Akses ditolak: Bukan Admin Kelompok." };
+  }
+
+  // Cek kepemilikan laporan
+  const { data: existingReport, error: fetchError } = await supabase
+    .from("kbm_reports")
+    .select("group_id")
+    .eq("id", id)
+    .single();
+
+  if (fetchError || !existingReport) {
+    return { success: false, message: "Laporan yang akan di-update tidak ditemukan." };
+  }
+
+  if (existingReport.group_id !== profile.group_id) {
+    return {
+      success: false,
+      message: "Akses ditolak: Anda tidak bisa mengedit laporan kelompok lain.",
+    };
+  }
+
+  // Lakukan Update
+  const { error: updateError } = await supabase
+    .from("kbm_reports")
+    .update(dataToUpdate)
+    .eq("id", id);
+
+  if (updateError) {
+    console.error("updateKbmReportAction Error:", updateError.message);
+    return {
+      success: false,
+      message: `Gagal memperbarui laporan: ${updateError.message}`,
+    };
+  }
+
+  revalidatePath("/admin/report"); // Revalidasi halaman daftar
+  revalidatePath(`/admin/report/edit/${id}`); // Revalidasi halaman edit ini
+  return { success: true, message: "Laporan berhasil diperbarui." };
 }

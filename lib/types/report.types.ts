@@ -33,7 +33,9 @@ export type KbmReportModel = {
 
 // 2. Tipe DTO (Data Transfer Object)
 export type CreateKbmReportDto = Omit<KbmReportModel, "id" | "created_at">;
-export type UpdateKbmReportDto = Partial<CreateKbmReportDto> & { id: string };
+export type UpdateKbmReportDto = Partial<Omit<KbmReportModel, "id" | "created_at" | "author_user_id">> & { id: string };
+
+// export type UpdateKbmReportDto = Partial<CreateKbmReportDto> & { id: string };
 
 // 3. Tipe Kustom untuk Join
 //    Digunakan saat mengambil laporan DENGAN nama kategorinya

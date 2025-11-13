@@ -1,7 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/server_admin";
-import { CreateKbmReportDto, KbmReportWithCategory } from "@/lib/types/report.types";
+import { CreateKbmReportDto, KbmReportModel, KbmReportWithCategory } from "@/lib/types/report.types";
 import { Profile } from "../types/user.types";
 import { validateUserRole } from "./authService";
 
@@ -74,6 +74,28 @@ export type AggregatedPeriod = {
   period_month: number;
   period_year: number;
 };
+
+/**
+ * Mengambil satu laporan KBM berdasarkan ID.
+ * Hanya untuk penggunaan di Server Component.
+ */
+export async function getKbmReportById(
+  reportId: string,
+): Promise<KbmReportModel | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("kbm_reports")
+    .select("*")
+    .eq("id", reportId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching report by ID:", error.message);
+    return null;
+  }
+
+  return data as KbmReportModel;
+}
 
 /**
  * --------------------------------------------------------------------
