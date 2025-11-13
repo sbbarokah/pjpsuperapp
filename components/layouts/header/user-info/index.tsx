@@ -1,11 +1,7 @@
 "use client";
 
 import { ChevronUpIcon } from "@/assets/icons";
-import {
-  Dropdown,
-  DropdownContent,
-  DropdownTrigger,
-} from "@/components/ui/dropdown";
+
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,6 +9,7 @@ import { useEffect, useState } from "react";
 import { LogOutIcon, SettingsIcon, UserIcon } from "./icons";
 import { createClient } from "@/lib/supabase/client";
 import { User } from "@supabase/supabase-js";
+import { Dropdown, DropdownContent, DropdownTrigger } from "@/components/ui/dropdown";
 
 function UserInfoSkeleton() {
   return (
