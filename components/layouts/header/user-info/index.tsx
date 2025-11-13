@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { LogOutIcon, SettingsIcon, UserIcon } from "./icons";
 import { createClient } from "@/lib/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Dropdown, DropdownContent, DropdownTrigger } from "../../../ui/dropdown";
+import { Dropdown, DropdownContent, DropdownTrigger } from "@/components/ui/dropdown";
 
 function UserInfoSkeleton() {
   return (
