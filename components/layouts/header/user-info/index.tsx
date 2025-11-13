@@ -59,7 +59,6 @@ export function UserInfo() {
   const userName = user.user_metadata?.full_name || user.email?.split("@")[0];
   const userEmail = user.email || "No email";
   const userImg = user.user_metadata?.avatar_url || "/images/user/user-03.png"; // Fallback image
-  console.log("isi user img", userImg);
 
   return (
     <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>

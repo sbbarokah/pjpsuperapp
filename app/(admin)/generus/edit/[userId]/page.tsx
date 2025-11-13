@@ -46,7 +46,6 @@ export default async function EditGenerusPage({
   params: { userId: string };
 }) {
   const { userId } = await params;
-  console.log("isi params", userId);
   const [userData, groups, villages, categories] = await Promise.all([
     getUserDetails(userId).catch(() => null), // Ambil detail user
     getGroups(),

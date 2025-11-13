@@ -111,8 +111,6 @@ function aggregateData(
 // --- Komponen Halaman Utama ---
 export default async function VillageReportDetailPage({ params }: DetailPageProps) {
   const { year, month } = await params;
-  console.log("isi year", year);
-  console.log("isi month", month);
 
   const yearParam = parseInt(year, 10);
   const monthParam = parseInt(month, 10);

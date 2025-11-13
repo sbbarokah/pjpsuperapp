@@ -37,7 +37,6 @@ async function getAdminData() {
 // Komponen Server untuk mengambil data
 async function ImportPageLoader() {
   const adminProfile = await getAdminData();
-  console.log("isi adminProfile", adminProfile);
 
   if (!adminProfile) {
     return <p>Sesi tidak valid atau profil admin tidak ditemukan.</p>;

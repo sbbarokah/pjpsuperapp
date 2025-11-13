@@ -46,7 +46,6 @@ export default async function EditCategoryPage(
 
   // Ambil data kategori spesifik dari server
   const category = await getCategoryById(id);
-  console.log("isi categoy", category);
 
   // Jika kategori tidak ditemukan, tampilkan halaman 404
   if (!category) {
