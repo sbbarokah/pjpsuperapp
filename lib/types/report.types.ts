@@ -1,36 +1,39 @@
-// Tipe data ini mendefinisikan payload dari form
-// Ini akan digunakan oleh Form (Client) dan Action (Server)
+import { CategoryModel } from "./master.types";
 
-export type CreateKbmReportPayload = {
-  group_id: string;
-  period_month: number; // 1-12
-  period_year: number; // e.g., 2025
-  category_id: string; // <-- DIUBAH DARI 'jenjang'
-
-  // 1. Info Jumlah Generus
+export type KbmReportModel = {
+  id: string; // UUID
+  created_at: string; // timestamptz
+  group_id: string; // atau number, sesuaikan dengan tipe 'group.id'
+  village_id: string; // atau number
+  category_id: string; // atau number
+  author_user_id: string; // UUID
+  period_month: number;
+  period_year: number;
   count_male: number;
   count_female: number;
   count_total: number;
-
-  // 2. Info Presentase Kehadiran
   attendance_total_students: number;
   attendance_present_percentage: number;
   attendance_permission_percentage: number;
   attendance_absent_percentage: number;
+  achievement_quran_meaning?: string | null;
+  achievement_hadith_meaning?: string | null;
+  achievement_quran_reading?: string | null;
+  achievement_surah_memorization?: string | null;
+  achievement_dalil_memorization?: string | null;
+  achievement_prayer_memorization?: string | null;
+  achievement_tajwid?: string | null;
+  achievement_character?: string | null;
+  program_success_info?: string | null;
+  challenges_info?: string | null;
+};
 
-  // 3. Info Capaian Materi (string karena bisa diisi deskripsi)
-  achievement_quran_meaning: string;
-  achievement_hadith_meaning: string;
-  achievement_quran_reading: string;
-  achievement_surah_memorization: string;
-  achievement_dalil_memorization: string;
-  achievement_prayer_memorization: string;
-  achievement_tajwid: string;
-  achievement_character: string;
+// 2. Tipe DTO (Data Transfer Object)
+export type CreateKbmReportDto = Omit<KbmReportModel, "id" | "created_at">;
+export type UpdateKbmReportDto = Partial<CreateKbmReportDto> & { id: string };
 
-  // 4. Info Keberhasilan Program
-  program_success_info: string;
-
-  // 5. Info Tantangan/Kendala
-  challenges_info: string;
+// 3. Tipe Kustom untuk Join
+//    Digunakan saat mengambil laporan DENGAN nama kategorinya
+export type KbmReportWithCategory = KbmReportModel & {
+  category: Pick<CategoryModel, "name">;
 };

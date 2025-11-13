@@ -16,8 +16,8 @@ export function RoleBadge({ role, className }: RoleBadgeProps) {
     case "superadmin":
       colorClasses = "bg-danger/10 text-danger-dark dark:bg-danger/20 dark:text-danger";
       break;
-    case "admin_village":
-    case "admin_group":
+    case "admin_desa":
+    case "admin_kelompok":
       colorClasses = "bg-primary/10 text-primary-dark dark:bg-primary/20 dark:text-primary";
       break;
     case "parent":

@@ -9,6 +9,7 @@ import { NAV_DATA } from "./data";
 import { ArrowLeftIcon, ChevronUp } from "./icons";
 import { MenuItem } from "./menu-item";
 import { useSidebarContext } from "./sidebar-context";
+import { LogoWTitle } from "@/components/ui/logo_title";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -70,7 +71,7 @@ export function Sidebar() {
               onClick={() => isMobile && toggleSidebar()}
               className="px-0 py-2.5 min-[850px]:py-0"
             >
-              <Logo />
+              <LogoWTitle />
             </Link>
 
             {isMobile && (

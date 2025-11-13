@@ -9,6 +9,7 @@ import InputGroup from "@/components/forms/InputGroup";
 import { Checkbox } from "@/components/forms/checkbox";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { LogoWTitle } from "@/components/ui/logo_title";
 
 export default function SignIn() {
   const supabase = createClient();
@@ -70,12 +71,13 @@ export default function SignIn() {
                   width={176}
                   height={32}
                 /> */}
-                <Image
-                  src={"/images/logo/logo_pjp_clean.png"}
+                {/* <Image
+                  src={"/images/logo/pjp_logo_clean.png"}
                   alt="Logo"
                   width={50}
                   height={50}
-                />
+                /> */}
+                <LogoWTitle />
               </Link>
               <p className="mb-3 text-xl font-medium text-dark dark:text-white">
                 Assalaamu'alaikum...
@@ -119,7 +121,7 @@ export default function SignIn() {
                   height={32}
                 /> */}
                 <Image
-                  src={"/images/logo/logo_pjp_clean.png"}
+                  src={"/images/logo/pjp_logo_clean.png"}
                   alt="Logo"
                   width={50}
                   height={50}

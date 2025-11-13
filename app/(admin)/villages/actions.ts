@@ -16,7 +16,7 @@ export type ActionResponse<T = any> = {
   data?: T | null;
 };
 
-const ADMIN_VILLAGES_PATH = "/admin/villages";
+const ADMIN_VILLAGES_PATH = "/villages";
 
 /**
  * Membuat Desa baru

@@ -32,7 +32,7 @@ export function Header() {
             role="presentation"
           /> */}
           <Image
-            src={"/images/logo/logo_pjp_clean.png"}
+            src={"/images/logo/pjp_logo_clean.png"}
             width={32}
             height={32}
             alt=""

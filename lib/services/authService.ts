@@ -3,7 +3,7 @@ import { Profile } from "@/lib/types/user.types"; // Asumsi path ini benar
 
 /**
  * Mendapatkan tipe 'role' secara dinamis dari tipe Profile.
- * cth: "superadmin" | "admin_village" | "admin_group" | "parent" | "user"
+ * cth: "superadmin" | "admin_desa" | "admin_kelompok" | "parent" | "user"
  */
 export type UserRole = Profile["role"];
 
@@ -66,7 +66,7 @@ export async function getAuthenticatedUserAndProfile() {
  * Fungsi validasi paling fleksibel.
  * Memeriksa apakah peran pengguna yang login ada di dalam daftar peran yang diizinkan.
  *
- * @param allowedRoles Array dari peran yang diizinkan, cth: ['superadmin', 'admin_group']
+ * @param allowedRoles Array dari peran yang diizinkan, cth: ['superadmin', 'admin_kelompok']
  * @returns { profile } Profil pengguna jika validasi berhasil.
  * @throws { Error } Jika peran tidak diizinkan.
  */
@@ -102,17 +102,17 @@ export async function validateSuperAdmin() {
 }
 
 /**
- * Memastikan pengguna adalah 'admin_village'.
+ * Memastikan pengguna adalah 'admin_desa'.
  */
 export async function validateAdminVillage() {
-  return validateUserRole(["admin_village"]);
+  return validateUserRole(["admin_desa"]);
 }
 
 /**
- * Memastikan pengguna adalah 'admin_group'.
+ * Memastikan pengguna adalah 'admin_kelompok'.
  */
 export async function validateAdminGroup() {
-  return validateUserRole(["admin_group"]);
+  return validateUserRole(["admin_kelompok"]);
 }
 
 /**
@@ -133,7 +133,7 @@ export async function validateUser() {
  * Memastikan pengguna adalah TIPE admin (salah satu dari admin).
  */
 export async function validateAnyAdmin() {
-  return validateUserRole(["superadmin", "admin_village", "admin_group"]);
+  return validateUserRole(["superadmin", "admin_desa", "admin_kelompok"]);
 }
 
 /**
