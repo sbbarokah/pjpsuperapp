@@ -110,12 +110,16 @@ function aggregateData(
 
 // --- Komponen Halaman Utama ---
 export default async function VillageReportDetailPage({ params }: DetailPageProps) {
-  const year = parseInt(params.year, 10);
-  const month = parseInt(params.month, 10);
-  const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-  const periodLabel = `${monthNames[month - 1]} ${year}`;
+  const { year, month } = await params;
+  console.log("isi year", year);
+  console.log("isi month", month);
 
-  if (isNaN(year) || isNaN(month)) {
+  const yearParam = parseInt(year, 10);
+  const monthParam = parseInt(month, 10);
+  const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+  const periodLabel = `${monthNames[monthParam - 1]} ${year}`;
+
+  if (isNaN(yearParam) || isNaN(monthParam)) {
     notFound();
   }
 
@@ -147,8 +151,8 @@ export default async function VillageReportDetailPage({ params }: DetailPageProp
   ] = await Promise.all([
     getGroupsByVillage(villageId),
     getCategories(),
-    getMeetingReportsByPeriod({ villageId, year, month }),
-    getKbmReportsByPeriod({ villageId, year, month }),
+    getMeetingReportsByPeriod({ villageId, year: yearParam, month: monthParam }),
+    getKbmReportsByPeriod({ villageId, year: yearParam, month: monthParam }),
   ]);
 
   // 2. Lakukan Agregasi Data

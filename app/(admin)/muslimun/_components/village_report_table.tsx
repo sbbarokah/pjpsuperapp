@@ -18,17 +18,20 @@ const getAverage = (sum: number, count: number) => {
 };
 
 /**
+ * [REVISI]
  * Komponen Tabel Generik untuk Laporan Capaian, Sukses, dan Kendala
- * Ini akan me-render satu baris untuk setiap KBM Report (per kategori)
+ * Sekarang mengelompokkan berdasarkan Kategori, lalu menampilkan Kelompok.
  */
 const AchievementTable = ({
   data,
   field,
-  title
+  title,
+  categories, // Perlu daftar kategori untuk iterasi
 }: {
   data: AggregatedGroupData[];
   field: keyof KbmReportWithCategory;
   title: string;
+  categories: CategoryModel[];
 }) => {
   // 1. Pipihkan data: Ubah dari [Group] > [KBMs] menjadi daftar KBM
   const allKbmReports = data.flatMap(groupData => 
@@ -59,40 +62,56 @@ const AchievementTable = ({
       <h3 className="mb-4 text-xl font-semibold text-black dark:text-white">
         {title}
       </h3>
-      <div className="max-w-full overflow-x-auto">
-        <table className="w-full table-auto">
-          <thead>
-            <tr className="bg-gray-2 text-left dark:bg-meta-4">
-              <th className="min-w-[150px] px-4 py-4 font-medium text-black dark:text-white">
-                Kelompok
-              </th>
-              <th className="min-w-[120px] px-4 py-4 font-medium text-black dark:text-white">
-                Kategori
-              </th>
-              <th className="px-4 py-4 font-medium text-black dark:text-white">
-                Catatan Laporan
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredReports.map((item) => (
-              <tr key={item.report.id}>
-                <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
-                  <p className="font-medium">{item.groupName}</p>
-                </td>
-                <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
-                  <p>{item.report.category?.name || "N/A"}</p>
-                </td>
-                <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
-                  <p className="text-black dark:text-white whitespace-pre-wrap">
-                    {String(item.report[field])}
-                  </p>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      
+      {/* 3. Iterasi PER KATEGORI terlebih dahulu */}
+      {categories.map(category => {
+        // 4. Ambil laporan untuk kategori ini
+        const reportsForThisCategory = filteredReports.filter(
+          item => item.report.category_id === category.id
+        );
+
+        // 5. Jika tidak ada laporan, jangan render apapun
+        if (reportsForThisCategory.length === 0) {
+          return null;
+        }
+
+        // 6. Render sub-judul kategori dan tabelnya
+        return (
+          <div key={category.id} className="mb-6 last:mb-0">
+            <h4 className="mb-3 text-lg font-medium text-black dark:text-white">
+              Kategori: {category.name}
+            </h4>
+            <div className="max-w-full overflow-x-auto">
+              <table className="w-full table-auto">
+                <thead>
+                  <tr className="bg-gray-2 text-left dark:bg-meta-4">
+                    <th className="min-w-[200px] px-4 py-4 font-medium text-black dark:text-white">
+                      Kelompok
+                    </th>
+                    <th className="px-4 py-4 font-medium text-black dark:text-white">
+                      Catatan Laporan
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportsForThisCategory.map((item) => (
+                    <tr key={item.report.id}>
+                      <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
+                        <p className="font-medium">{item.groupName}</p>
+                      </td>
+                      <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
+                        <p className="text-black dark:text-white whitespace-pre-wrap">
+                          {String(item.report[field])}
+                        </p>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -100,6 +119,20 @@ const AchievementTable = ({
 
 // --- Komponen Utama ---
 export function VillageReportTables({ data, categories }: VillageReportTablesProps) {
+
+  const allKbmReports = data.flatMap(groupData => 
+    groupData.kbmReports.map(report => ({
+      groupName: groupData.group.name,
+      report: report
+    }))
+  ).sort((a, b) => { 
+    // Urutkan berdasarkan nama kelompok, lalu kategori
+    if (a.groupName < b.groupName) return -1;
+    if (a.groupName > b.groupName) return 1;
+    if (a.report.category.name < b.report.category.name) return -1;
+    if (a.report.category.name > b.report.category.name) return 1;
+    return 0;
+  });
   
   // Daftar bidang capaian yang ingin ditampilkan
   const achievementFields: (keyof KbmReportWithCategory)[] = [
@@ -181,32 +214,36 @@ export function VillageReportTables({ data, categories }: VillageReportTablesPro
       {/* --- 2. Jumlah Generus --- */}
       <div className="rounded-lg border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark">
         <h3 className="mb-4 text-xl font-semibold text-black dark:text-white">
-          Rekap Jumlah Generus
+          Rekap Jumlah Generus per Kategori
         </h3>
         <div className="max-w-full overflow-x-auto">
           <table className="w-full table-auto">
             <thead>
               <tr className="bg-gray-2 text-left dark:bg-meta-4">
                 <th className="px-4 py-4 font-medium text-black dark:text-white">Kelompok</th>
+                <th className="px-4 py-4 font-medium text-black dark:text-white">Kategori</th>
                 <th className="px-4 py-4 font-medium text-black dark:text-white">Laki-laki</th>
                 <th className="px-4 py-4 font-medium text-black dark:text-white">Perempuan</th>
                 <th className="px-4 py-4 font-medium text-black dark:text-white">Total</th>
               </tr>
             </thead>
             <tbody>
-              {data.map(({ group, summary }) => (
-                <tr key={group.id}>
+              {allKbmReports.map(({ groupName, report }) => (
+                <tr key={report.id}>
                   <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
-                    <p className="font-medium">{group.name}</p>
+                    <p className="font-medium">{groupName}</p>
                   </td>
                   <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
-                    {summary.count_male}
+                    <p>{report.category.name}</p>
                   </td>
                   <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
-                    {summary.count_female}
+                    {report.count_male}
                   </td>
                   <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
-                    <p className="font-medium">{summary.count_total}</p>
+                    {report.count_female}
+                  </td>
+                  <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
+                    <p className="font-medium">{report.count_total}</p>
                   </td>
                 </tr>
               ))}
@@ -218,16 +255,14 @@ export function VillageReportTables({ data, categories }: VillageReportTablesPro
       {/* --- 3. Kehadiran --- */}
       <div className="rounded-lg border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark">
         <h3 className="mb-4 text-xl font-semibold text-black dark:text-white">
-          Rekap Rata-Rata Kehadiran KBM
+          Rekap Kehadiran KBM per Kategori
         </h3>
-        <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-          * Rata-rata dihitung dari semua laporan KBM per kategori yang masuk.
-        </p>
         <div className="max-w-full overflow-x-auto">
           <table className="w-full table-auto">
             <thead>
               <tr className="bg-gray-2 text-left dark:bg-meta-4">
                 <th className="px-4 py-4 font-medium text-black dark:text-white">Kelompok</th>
+                <th className="px-4 py-4 font-medium text-black dark:text-white">Kategori</th>
                 <th className="px-4 py-4 font-medium text-black dark:text-white">Hadir (%)</th>
                 <th className="px-4 py-4 font-medium text-black dark:text-white">Izin (%)</th>
                 <th className="px-4 py-4 font-medium text-black dark:text-white">Alpa (%)</th>
@@ -235,24 +270,27 @@ export function VillageReportTables({ data, categories }: VillageReportTablesPro
               </tr>
             </thead>
             <tbody>
-              {data.map(({ group, summary }) => (
-                <tr key={group.id}>
+              {allKbmReports.map(({ groupName, report }) => (
+                <tr key={report.id}>
                   <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
-                    <p className="font-medium">{group.name}</p>
+                    <p className="font-medium">{groupName}</p>
+                  </td>
+                  <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
+                    <p>{report.category.name}</p>
                   </td>
                   <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
                     <p className="font-medium text-green-600">
-                      {getAverage(summary.attendance_present_sum, summary.attendance_report_count).toFixed(1)}%
+                      {report.attendance_present_percentage.toFixed(1)}%
                     </p>
                   </td>
                   <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
-                    {getAverage(summary.attendance_permission_sum, summary.attendance_report_count).toFixed(1)}%
+                    {report.attendance_permission_percentage.toFixed(1)}%
                   </td>
                   <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
-                    {getAverage(summary.attendance_absent_sum, summary.attendance_report_count).toFixed(1)}%
+                    {report.attendance_absent_percentage.toFixed(1)}%
                   </td>
                   <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
-                    {summary.attendance_total_meetings}
+                    {report.attendance_total_meetings}
                   </td>
                 </tr>
               ))}
@@ -271,6 +309,7 @@ export function VillageReportTables({ data, categories }: VillageReportTablesPro
           data={data}
           field={field}
           title={`Rekap Capaian: ${achievementLabels[field] || field}`}
+          categories={categories} // <-- Berikan daftar kategori
         />
       ))}
       
@@ -282,6 +321,7 @@ export function VillageReportTables({ data, categories }: VillageReportTablesPro
         data={data}
         field="program_success_info"
         title="Rekap Informasi Program Sukses"
+        categories={categories} // <-- Berikan daftar kategori
       />
 
       {/* --- 6. Kendala --- */}
@@ -292,6 +332,7 @@ export function VillageReportTables({ data, categories }: VillageReportTablesPro
         data={data}
         field="challenges_info"
         title="Rekap Informasi Kendala & Solusi"
+        categories={categories} // <-- Berikan daftar kategori
       />
 
     </div>
