@@ -15,7 +15,9 @@ export const metadata = {
 
 // --- Komponen Card ---
 function MeetingReportCard({ report }: { report: MeetingReportWithRelations }) {
-  const href = `/admin/muslimun/edit/${report.id}`;
+  // [PERUBAHAN] Tautan sekarang mengarah ke halaman detail konsolidasi
+  // berdasarkan tahun dan bulan laporan, bukan ke halaman edit.
+  const href = `/muslimun/detail/${report.period_year}/${report.period_month}`;
   
   return (
     <DataCard href={href}>
@@ -109,7 +111,7 @@ export default async function MeetingReportsPage() {
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <Breadcrumb pageName="Laporan Muslimun" />
         <Link
-          href="/admin/muslimun/create"
+          href="/muslimun/new"
           className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"
         >
           Buat Laporan Baru

@@ -127,7 +127,7 @@ export async function updateKbmReportAction(
     };
   }
 
-  revalidatePath("/admin/report"); // Revalidasi halaman daftar
-  revalidatePath(`/admin/report/edit/${id}`); // Revalidasi halaman edit ini
+  revalidatePath("/report"); // Revalidasi halaman daftar
+  revalidatePath(`/report/edit/${id}`); // Revalidasi halaman edit ini
   return { success: true, message: "Laporan berhasil diperbarui." };
 }

@@ -164,7 +164,7 @@ export async function getGroupById(id: string) {
  * Mengambil daftar grup berdasarkan village_id.
  * Dibuat khusus untuk form impor admin_desa.
  */
-export async function getGroupsByVillage(villageId: string) {
+export async function getGroupsByVillage(villageId: string | number) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("group")

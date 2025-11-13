@@ -185,7 +185,7 @@ export function MeetingReportForm({
           setError(response.message);
         } else {
           alert(response.message);
-          router.push("/admin/muslimun");
+          router.push("/muslimun");
           router.refresh();
         }
       });

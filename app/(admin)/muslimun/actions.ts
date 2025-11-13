@@ -109,6 +109,6 @@ export async function deleteMeetingReportAction(
     };
   }
 
-  revalidatePath("/admin/muslimun");
+  revalidatePath("/muslimun");
   return { success: true, message: "Laporan Muslimun berhasil dihapus." };
 }

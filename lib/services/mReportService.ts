@@ -67,3 +67,37 @@ export async function getMeetingReportsList({
 
   return data as MeetingReportWithRelations[];
 }
+
+/**
+ * [FUNGSI BARU]
+ * Mengambil SEMUA Laporan Muslimun (MeetingReport) untuk satu desa
+ * dalam periode tertentu.
+ */
+export async function getMeetingReportsByPeriod({
+  villageId,
+  year,
+  month,
+}: {
+  villageId: number | string;
+  year: number;
+  month: number;
+}): Promise<MeetingReportWithRelations[]> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("meeting_reports")
+    .select(`
+      *,
+      group (name),
+      village (name)
+    `)
+    .eq("village_id", villageId)
+    .eq("period_year", year)
+    .eq("period_month", month)
+    .order("group_id");
+
+  if (error) {
+    console.error("Error fetching meeting reports by period:", error.message);
+    return [];
+  }
+  return data as MeetingReportWithRelations[];
+}

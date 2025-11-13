@@ -137,3 +137,37 @@ export async function getAggregatedReportsForVillage(profile: Profile) {
 
   return Array.from(uniquePeriods.values());
 }
+
+/**
+ * [FUNGSI BARU]
+ * Mengambil SEMUA Laporan KBM (KbmReport) untuk satu desa
+ * dalam periode tertentu.
+ */
+export async function getKbmReportsByPeriod({
+  villageId,
+  year,
+  month,
+}: {
+  villageId: number | string;
+  year: number;
+  month: number;
+}): Promise<KbmReportWithCategory[]> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("kbm_reports")
+    .select(`
+      *,
+      category (name)
+    `)
+    .eq("village_id", villageId)
+    .eq("period_year", year)
+    .eq("period_month", month)
+    .order("group_id")
+    .order("category_id");
+
+  if (error) {
+    console.error("Error fetching KBM reports by period:", error.message);
+    return [];
+  }
+  return data as KbmReportWithCategory[];
+}

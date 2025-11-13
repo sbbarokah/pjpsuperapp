@@ -1,12 +1,12 @@
 // Tipe Model dasar (ini mungkin sudah Anda miliki)
 export type VillageModel = {
-  id: string; // atau number, sesuaikan dengan DB Anda
+  id: string | number; // atau number, sesuaikan dengan DB Anda
   name: string;
   description?: string;
 };
 
 export type GroupModel = {
-  id: string; // atau number, sesuaikan dengan DB Anda
+  id: string | number; // atau number, sesuaikan dengan DB Anda
   name: string;
   description?: string;
   village_id?: string;
