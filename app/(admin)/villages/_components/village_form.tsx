@@ -58,7 +58,7 @@ export function VillageForm({ village }: VillageFormProps) {
       if (isUpdateMode) {
         // Mode Update
         response = await updateVillageAction({
-          id: village.id, // 'id' didapat dari prop
+          id: String(village.id), // 'id' didapat dari prop
           ...villageData,
         });
       } else {

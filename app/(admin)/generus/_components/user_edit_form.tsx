@@ -72,8 +72,8 @@ export function EditUserForm({ user, masterData }: EditUserFormProps) {
         full_name: formData.full_name,
         username: formData.username,
         role: formData.role, // Pastikan role juga di-update di profile
-        village_id: formData.village_id || null,
-        group_id: formData.group_id || null,
+        village_id: formData.village_id || "",
+        group_id: formData.group_id || "",
         category_id: formData.category_id || null,
       },
     };

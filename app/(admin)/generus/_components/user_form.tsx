@@ -93,8 +93,8 @@ export function UserForm({
             gender: data.gender || null,
             birth_place: data.birth_place || null,
             birth_date: data.birth_date || null,
-            village_id: data.village_id || null,
-            group_id: data.group_id || null,
+            village_id: data.village_id || "",
+            group_id: data.group_id || "",
             category_id: data.category_id || null,
             school_level: data.school_level || null,
             school_name: data.school_name || null,
@@ -270,14 +270,14 @@ export function UserForm({
           <SelectGroup
             label="Desa"
             name="village_id"
-            defaultValue={user?.village_id || ""}
-            options={villages.map((v) => ({ value: v.id, label: v.name }))}
+            defaultValue={String(user?.village_id || "")}
+            options={villages.map((v) => ({ value: String(v.id), label: v.name }))}
           />
           <SelectGroup
             label="Kelompok"
             name="group_id"
-            defaultValue={user?.group_id || ""}
-            options={groups.map((g) => ({ value: g.id, label: g.name }))}
+            defaultValue={String(user?.group_id || "")}
+            options={groups.map((g) => ({ value: String(g.id), label: g.name }))}
           />
           <SelectGroup
             label="Kelas (Kategori)"

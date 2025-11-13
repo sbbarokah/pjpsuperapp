@@ -1,4 +1,3 @@
-import themeConfig from '@/app/theme.config';
 import { createSlice } from '@reduxjs/toolkit';
 
 // defaultState Anda sudah aman (statis)
@@ -24,27 +23,27 @@ const defaultState = {
 // --- INI BAGIAN YANG DIPERBAIKI ---
 // initialState SEKARANG STATIS. Ia mengambil nilai default dari
 // themeConfig atau defaultState, BUKAN localStorage.
-const initialState = {
-  theme: themeConfig.theme,
-  menu: themeConfig.menu,
-  layout: themeConfig.layout,
-  rtlClass: themeConfig.rtlClass,
-  animation: themeConfig.animation,
-  navbar: themeConfig.navbar,
-  locale: themeConfig.locale,
-  isDarkMode: defaultState.isDarkMode,
-  sidebar: defaultState.sidebar,
-  semidark: themeConfig.semidark,
-  languageList: [
-    { code: 'en', name: 'English' },
-    { code: 'id', name: 'Indonesia' },
-  ],
-};
+// const initialState = {
+//   theme: themeConfig.theme,
+//   menu: themeConfig.menu,
+//   layout: themeConfig.layout,
+//   rtlClass: themeConfig.rtlClass,
+//   animation: themeConfig.animation,
+//   navbar: themeConfig.navbar,
+//   locale: themeConfig.locale,
+//   isDarkMode: defaultState.isDarkMode,
+//   sidebar: defaultState.sidebar,
+//   semidark: themeConfig.semidark,
+//   languageList: [
+//     { code: 'en', name: 'English' },
+//     { code: 'id', name: 'Indonesia' },
+//   ],
+// };
 // --- AKHIR PERBAIKAN INITIALSTATE ---
 
 const themeConfigSlice = createSlice({
   name: 'auth', // Anda mungkin ingin mengganti 'auth' menjadi 'themeConfig'
-  initialState: initialState,
+  initialState: defaultState,
   reducers: {
     // --- SEMUA REDUCER DIBAWAH INI JUGA DIPERBAIKI ---
     // Kita bungkus semua API browser (localStorage, document, window)

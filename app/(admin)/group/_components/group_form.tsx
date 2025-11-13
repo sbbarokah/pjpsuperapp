@@ -68,7 +68,7 @@ export function GroupForm({ group, villages }: GroupFormProps) { // <-- Terima '
       if (isUpdateMode) {
         // Mode Update
         response = await updateGroupAction({
-          id: group.id, // 'id' didapat dari prop
+          id: String(group.id), // 'id' didapat dari prop
           ...groupData,
         });
       } else {

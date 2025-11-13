@@ -10,8 +10,8 @@ export type Profile = {
   gender?: 'L' | 'P';
   birth_place?: string | null;
   birth_date?: string | null;
-  village_id?: string | number | null;
-  group_id?: string | number | null;
+  village_id?: string | number;
+  group_id?: string | number;
   category_id?: string | null;
   school_level?: string | null;
   school_name?: string | null;

@@ -55,7 +55,7 @@ async function VillagesList() {
           // Kita berikan komponen Client 'DeleteitemButton'
           // ke prop 'actions' dari Server Component 'itemCard'.
           actions={
-            <DeleteVillageButton id={item.id} name={item.name} />
+            <DeleteVillageButton id={String(item.id)} name={item.name} />
           }
         />
       ))}

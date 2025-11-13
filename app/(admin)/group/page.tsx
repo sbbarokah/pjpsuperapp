@@ -55,7 +55,7 @@ async function GroupList() {
           // Kita berikan komponen Client 'DeleteitemButton'
           // ke prop 'actions' dari Server Component 'itemCard'.
           actions={
-            <DeleteGroupButton id={item.id} name={item.name} />
+            <DeleteGroupButton id={String(item.id)} name={item.name} />
           }
         />
       ))}
