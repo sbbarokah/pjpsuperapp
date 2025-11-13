@@ -3,9 +3,9 @@
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CategoryModel, GroupModel } from "@/lib/types/master.types";
-import { CreateKbmReportPayload } from "@/lib/types/report.types";
 import { createKbmReportAction } from "../actions";
 import { monthOptions } from "@/lib/constants";
+import { CreateKbmReportDto } from "@/lib/types/report.types";
 
 type AdminProfile = {
   role: string;
@@ -15,6 +15,7 @@ type AdminProfile = {
 
 // --- Tipe Props ---
 interface ReportFormProps {
+  authorId: string;
   admin: AdminProfile; // <-- [TAMBAH] Terima data admin
   groups: GroupModel[];
   categories: CategoryModel[];
@@ -159,8 +160,9 @@ const TextAreaGroup = ({
 );
 
 // --- State Awal Form ---
-const initialState = {
+const baseInitialState = {
   group_id: "",
+  village_id: "",
   period_month: String(new Date().getMonth() + 1), // Default bulan ini
   period_year: String(currentYear), // Default tahun ini
   category_id: "",
@@ -169,7 +171,7 @@ const initialState = {
   count_female: "0",
   count_total: "0", // Akan dihitung otomatis
 
-  attendance_total_students: "0",
+  attendance_total_meetings: "0",
   attendance_present_percentage: "0",
   attendance_permission_percentage: "0",
   attendance_absent_percentage: "0",
@@ -181,6 +183,9 @@ const initialState = {
   achievement_dalil_memorization: "",
   achievement_prayer_memorization: "",
   achievement_tajwid: "",
+  achievement_writing: "",
+  achievement_asmaul_husna: "",
+  achievement_practices: "",
   achievement_character: "",
 
   program_success_info: "",
@@ -188,14 +193,21 @@ const initialState = {
 };
 
 // --- Komponen Form Utama ---
-export function ReportForm({ groups, categories }: ReportFormProps) {
+export function ReportForm({ authorId, admin, groups, categories }: ReportFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   // Gunakan state untuk semua input
-  const [formData, setFormData] = useState(initialState);
+  const [formData, setFormData] = useState(() => ({
+    ...baseInitialState,
+    // Isi village_id berdasarkan admin
+    village_id: admin.village_id || "",
+    // Isi group_id jika dia admin_kelompok
+    group_id: admin.role === "admin_kelompok" ? admin.group_id || "" : "",
+  }));
+
 
   // Handler untuk semua input
   const handleChange = (
@@ -227,22 +239,25 @@ export function ReportForm({ groups, categories }: ReportFormProps) {
     setSuccess(null);
 
     // 1. Konversi state (string) ke payload (number)
-    let payload: CreateKbmReportPayload;
+    let payload: CreateKbmReportDto;
     try {
       const male = parseInt(formData.count_male, 10);
       const female = parseInt(formData.count_female, 10);
       
       payload = {
+        author_user_id: authorId,
         group_id: formData.group_id,
+        category_id: formData.category_id,
+        village_id: formData.village_id,
+
         period_month: parseInt(formData.period_month, 10),
         period_year: parseInt(formData.period_year, 10),
-        category_id: formData.category_id,
 
         count_male: male,
         count_female: female,
         count_total: male + female, // Hitung ulang di sini untuk keamanan
 
-        attendance_total_students: parseInt(formData.attendance_total_students, 10) || 0,
+        attendance_total_meetings: parseInt(formData.attendance_total_meetings, 10) || 0,
         attendance_present_percentage: parseFloat(formData.attendance_present_percentage) || 0,
         attendance_permission_percentage: parseFloat(formData.attendance_permission_percentage) || 0,
         attendance_absent_percentage: parseFloat(formData.attendance_absent_percentage) || 0,
@@ -250,10 +265,13 @@ export function ReportForm({ groups, categories }: ReportFormProps) {
         achievement_quran_meaning: formData.achievement_quran_meaning,
         achievement_hadith_meaning: formData.achievement_hadith_meaning,
         achievement_quran_reading: formData.achievement_quran_reading,
+        achievement_writing: formData.achievement_writing,
         achievement_surah_memorization: formData.achievement_surah_memorization,
         achievement_dalil_memorization: formData.achievement_dalil_memorization,
         achievement_prayer_memorization: formData.achievement_prayer_memorization,
+        achievement_asmaul_husna: formData.achievement_asmaul_husna,
         achievement_tajwid: formData.achievement_tajwid,
+        achievement_practices: formData.achievement_practices,
         achievement_character: formData.achievement_character,
 
         program_success_info: formData.program_success_info,
@@ -276,11 +294,15 @@ export function ReportForm({ groups, categories }: ReportFormProps) {
         setError(response.message || "Terjadi kesalahan.");
       } else {
         setSuccess(response.message || "Laporan berhasil disimpan.");
-        alert("Laporan berhasil disimpan!");
         // Reset form
-        setFormData(initialState);
+        setFormData(() => ({
+          ...baseInitialState,
+          village_id: admin.village_id || "",
+          group_id:
+            admin.role === "admin_kelompok" ? admin.group_id || "" : "",
+        }));
         // Arahkan ke halaman daftar laporan (buat jika perlu)
-        router.push("/reports"); 
+        router.push("/report"); 
       }
     });
   };
@@ -363,11 +385,11 @@ export function ReportForm({ groups, categories }: ReportFormProps) {
       <h4 className="mb-3 mt-6 text-lg font-semibold">2. Info Presentase Kehadiran</h4>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <InputGroup
-          label="Total Santri (di Jenjang ini)"
-          name="attendance_total_students"
+          label="Total Pertemuan"
+          name="attendance_total_meetings"
           type="number"
-          placeholder="Total Santri"
-          value={formData.attendance_total_students}
+          placeholder="Total Pertemuan"
+          value={formData.attendance_total_meetings}
           onChange={handleChange}
           min="0"
         />
@@ -406,8 +428,7 @@ export function ReportForm({ groups, categories }: ReportFormProps) {
       {/* --- Bagian 4: Info Capaian Materi --- */}
       <h4 className="mb-3 mt-6 text-lg font-semibold">3. Info Capaian Materi</h4>
       <p className="mb-4 text-sm text-gray-600">
-        Isi dengan deskripsi, cth: "Rata-rata s.d. Juz 5" atau "7 dari 10 anak
-        lulus".
+        Isi dengan deskripsi
       </p>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <InputGroup
@@ -432,6 +453,14 @@ export function ReportForm({ groups, categories }: ReportFormProps) {
           type="text"
           placeholder="Capaian bacaan Al-Qur'an"
           value={formData.achievement_quran_reading}
+          onChange={handleChange}
+        />
+         <InputGroup
+          label="Menulis"
+          name="achievement_writing"
+          type="text"
+          placeholder="Capaian menulis (pegon atau huruf Arab)"
+          value={formData.achievement_writing}
           onChange={handleChange}
         />
         <InputGroup
@@ -459,11 +488,27 @@ export function ReportForm({ groups, categories }: ReportFormProps) {
           onChange={handleChange}
         />
         <InputGroup
+          label="Asmaul Husna"
+          name="achievement_asmaul_husna"
+          type="text"
+          placeholder="Capaian Asmaul Husna"
+          value={formData.achievement_asmaul_husna}
+          onChange={handleChange}
+        />
+        <InputGroup
           label="Tajwid"
           name="achievement_tajwid"
           type="text"
           placeholder="Capaian tajwid"
           value={formData.achievement_tajwid}
+          onChange={handleChange}
+        />
+        <InputGroup
+          label="Praktik Ibadah"
+          name="achievement_practices"
+          type="text"
+          placeholder="Praktik Ibadah"
+          value={formData.achievement_practices}
           onChange={handleChange}
         />
         <InputGroup

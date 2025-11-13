@@ -12,7 +12,7 @@ export type KbmReportModel = {
   count_male: number;
   count_female: number;
   count_total: number;
-  attendance_total_students: number;
+  attendance_total_meetings: number;
   attendance_present_percentage: number;
   attendance_permission_percentage: number;
   attendance_absent_percentage: number;
@@ -23,6 +23,9 @@ export type KbmReportModel = {
   achievement_dalil_memorization?: string | null;
   achievement_prayer_memorization?: string | null;
   achievement_tajwid?: string | null;
+  achievement_writing?: string | null;
+  achievement_asmaul_husna?: string | null;
+  achievement_practices?: string | null;
   achievement_character?: string | null;
   program_success_info?: string | null;
   challenges_info?: string | null;

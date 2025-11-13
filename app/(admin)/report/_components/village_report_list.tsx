@@ -1,6 +1,7 @@
 import { KbmPeriodCard } from "@/components/cards/kbmPeriodCard";
 import { getAggregatedReportsForVillage } from "@/lib/services/reportService";
 import { Profile } from "@/lib/types/user.types";
+import Link from "next/link";
 
 
 /**
@@ -14,6 +15,12 @@ export async function VillageReportList({ profile }: { profile: Profile }) {
     return (
       <div className="text-center text-gray-600 dark:text-gray-300">
         Belum ada laporan KBM yang terkumpul di desa Anda.
+        <Link
+          href="/report/new" // Arahkan ke halaman 'Buat Laporan'
+          className="text-primary ml-2 hover:underline"
+        >
+          Buat Laporan Baru
+        </Link>
       </div>
     );
   }

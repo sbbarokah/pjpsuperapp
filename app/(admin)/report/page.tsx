@@ -3,6 +3,7 @@ import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
 import { Suspense } from "react";
 import { GroupReportList } from "./_components/group_report_list";
 import { VillageReportList } from "./_components/village_report_list";
+import Link from "next/link";
 
 
 export const metadata = {
@@ -51,10 +52,26 @@ export default async function KbmReportsPage() {
     ReportViewComponent = <VillageReportList profile={profile} />;
   }
 
+  const canCreateReport =
+    profile.role === "admin_kelompok" || profile.role === "admin_desa";
+
   // 3. Render
   return (
     <>
-      <Breadcrumb pageName="Laporan KBM" />
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <Breadcrumb pageName="Laporan KBM" />
+
+        {/* 3. TAMBAHKAN TOMBOL BERDASARKAN KONDISI ROLE */}
+        {canCreateReport && (
+          <Link
+            // Sesuaikan href ke halaman 'create' Anda
+            href="/report/new"
+            className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"
+          >
+            Buat Laporan
+          </Link>
+        )}
+      </div>
       <div className="space-y-10">
         <Suspense fallback={<CardListSkeleton />}>
           {ReportViewComponent ? (

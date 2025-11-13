@@ -50,7 +50,7 @@ export default async function NewKbmReportPage() {
 
   return (
     <>
-      <Breadcrumb pageName="Buat Laporan KBM" />
+      <Breadcrumb pageName="Buat Laporan KBM" showNav={false} />
       <div className="grid grid-cols-1 gap-9">
         <div className="flex flex-col gap-9">
           <div className="rounded-lg border border-stroke bg-white p-6.5 shadow-default dark:border-strokedark dark:bg-boxdark">
@@ -58,6 +58,7 @@ export default async function NewKbmReportPage() {
               Formulir Laporan KBM Kelompok
             </h3>
             <ReportForm
+              authorId={user.id}
               admin={adminProfile}
               groups={groups}
               categories={categories}

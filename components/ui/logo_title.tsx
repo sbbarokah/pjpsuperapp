@@ -17,7 +17,7 @@ export function LogoWTitle() {
           fill
           alt="PJP logo"
           role="presentation"
-          quality={100}
+          quality={75}
         />
       </div>
 

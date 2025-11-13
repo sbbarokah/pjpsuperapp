@@ -16,7 +16,7 @@ export async function GroupReportList({ profile }: { profile: Profile }) {
       <div className="text-center text-gray-600 dark:text-gray-300">
         Anda belum membuat laporan KBM.
         <Link
-          href="/admin/reports/new" // Arahkan ke halaman 'Buat Laporan'
+          href="/report/new" // Arahkan ke halaman 'Buat Laporan'
           className="text-primary ml-2 hover:underline"
         >
           Buat Laporan Baru
