@@ -1,4 +1,4 @@
-import { CategoryModel, VillageModel } from "./master.types";
+import { CategoryModel, GroupModel, VillageModel } from "./master.types";
 
 export type KbmReportModel = {
   id: string; // UUID
@@ -43,5 +43,6 @@ export type UpdateKbmReportDto = Partial<Omit<KbmReportModel, "id" | "created_at
  */
 export type KbmReportWithRelations = KbmReportModel & {
   category: Pick<CategoryModel, "name">;
+  group: Pick<GroupModel, "name">;
   village: Pick<VillageModel, "name">;
 };
