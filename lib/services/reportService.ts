@@ -1,7 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/server_admin";
-import { CreateKbmReportDto, KbmReportModel, KbmReportWithCategory } from "@/lib/types/report.types";
+import { CreateKbmReportDto, KbmReportModel, KbmReportWithRelations } from "@/lib/types/report.types";
 import { Profile } from "../types/user.types";
 import { validateUserRole } from "./authService";
 
@@ -64,7 +64,7 @@ export async function getReportsForGroup(profile: Profile) {
     throw new Error(`Gagal mengambil laporan grup: ${error.message}`);
   }
 
-  return data as KbmReportWithCategory[];
+  return data as KbmReportWithRelations[];
 }
 
 /**
@@ -151,13 +151,14 @@ export async function getKbmReportsByPeriod({
   villageId: number | string;
   year: number;
   month: number;
-}): Promise<KbmReportWithCategory[]> {
+}): Promise<KbmReportWithRelations[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("kbm_reports")
     .select(`
       *,
-      category (name)
+      category (name),
+      village (name)
     `)
     .eq("village_id", villageId)
     .eq("period_year", year)
@@ -169,5 +170,5 @@ export async function getKbmReportsByPeriod({
     console.error("Error fetching KBM reports by period:", error.message);
     return [];
   }
-  return data as KbmReportWithCategory[];
+  return data as KbmReportWithRelations[];
 }

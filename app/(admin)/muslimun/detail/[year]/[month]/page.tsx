@@ -7,11 +7,11 @@ import { GroupModel, CategoryModel, VillageModel } from "@/lib/types/master.type
 import { getMeetingReportsByPeriod } from "@/lib/services/mReportService";
 import { getKbmReportsByPeriod } from "@/lib/services/reportService";
 import { MeetingReportWithRelations } from "@/lib/types/mreport.types";
-import { KbmReportWithCategory } from "@/lib/types/report.types";
+import { KbmReportWithRelations } from "@/lib/types/report.types";
 import { VillageReportTables } from "../../../_components/village_report_table";
 
 export const metadata = {
-  title: "Laporan Konsolidasi Desa | Admin",
+  title: "Laporan MusyaWarah 5 Unsur | Admin",
 };
 
 interface DetailPageProps {
@@ -28,7 +28,7 @@ interface DetailPageProps {
 export type AggregatedGroupData = {
   group: GroupModel;
   meetingReport: MeetingReportWithRelations | null;
-  kbmReports: KbmReportWithCategory[]; // Laporan KBM mentah per kategori
+  kbmReports: KbmReportWithRelations[]; // Laporan KBM mentah per kategori
   
   // Data KBM yang sudah diagregasi (dijumlahkan)
   summary: {
@@ -49,7 +49,7 @@ export type AggregatedGroupData = {
 function aggregateData(
   groups: GroupModel[],
   meetingReports: MeetingReportWithRelations[],
-  kbmReports: KbmReportWithCategory[],
+  kbmReports: KbmReportWithRelations[],
 ): AggregatedGroupData[] {
   
   // 1. Buat Peta (Map) untuk data agregasi

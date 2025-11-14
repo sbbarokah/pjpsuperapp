@@ -1,4 +1,4 @@
-import { CategoryModel } from "./master.types";
+import { CategoryModel, VillageModel } from "./master.types";
 
 export type KbmReportModel = {
   id: string; // UUID
@@ -37,8 +37,11 @@ export type UpdateKbmReportDto = Partial<Omit<KbmReportModel, "id" | "created_at
 
 // export type UpdateKbmReportDto = Partial<CreateKbmReportDto> & { id: string };
 
-// 3. Tipe Kustom untuk Join
-//    Digunakan saat mengambil laporan DENGAN nama kategorinya
-export type KbmReportWithCategory = KbmReportModel & {
+/**
+ * Tipe Kustom untuk Join KBM Report
+ * Sekarang menyertakan relasi Kategori dan Desa
+ */
+export type KbmReportWithRelations = KbmReportModel & {
   category: Pick<CategoryModel, "name">;
+  village: Pick<VillageModel, "name">;
 };
