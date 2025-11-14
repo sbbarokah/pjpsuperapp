@@ -64,3 +64,16 @@ export function formatReportDate(dateString: string): string {
         year: "numeric"
     }).format(date);
 }
+
+export const getNameFallback = (fullName: any) => {
+  if (!fullName) return "";
+  
+  // Pisahkan nama dan hapus spasi kosong (jika ada)
+  const words = fullName.toLowerCase().split(' ').filter(Boolean);
+
+  if (words.length === 0) return "";
+  if (words.length === 1) return words[0]; // "Budi" -> "budi"
+
+  // "Agus Budi Susanto" -> "agussusanto"
+  return words[0] + words[words.length - 1]; 
+};

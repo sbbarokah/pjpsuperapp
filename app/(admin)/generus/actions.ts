@@ -9,6 +9,7 @@ import {
   CreateUserFormPayload,
   UpdateUserFormPayload,
 } from "@/lib/types/user.types";
+import { getNameFallback } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
 // [CATATAN] Konsolidasi path. Gunakan ini di semua action.
@@ -173,7 +174,7 @@ export async function importGenerusAction(
     // Hasilkan username jika kosong
     const username =
       String(row.username || "") ||
-      full_name.toLowerCase().split(" ")[0] || // Ambil kata pertama
+      getNameFallback(full_name) || // <-- Logika baru di sini
       email.split("@")[0];
 
     // Atur password, role, dan village_id
