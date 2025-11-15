@@ -2,7 +2,7 @@
 
 import { CategoryModel } from "@/lib/types/master.types";
 import { AggregatedGroupData } from "../detail/[year]/[month]/page";
-import { KbmReportWithCategory } from "@/lib/types/report.types";
+import { KbmReportWithRelations } from "@/lib/types/report.types";
 
 interface VillageReportTablesProps {
   data: AggregatedGroupData[];
@@ -29,7 +29,7 @@ const AchievementTable = ({
   categories, // Perlu daftar kategori untuk iterasi
 }: {
   data: AggregatedGroupData[];
-  field: keyof KbmReportWithCategory;
+  field: keyof KbmReportWithRelations;
   title: string;
   categories: CategoryModel[];
 }) => {
@@ -135,7 +135,7 @@ export function VillageReportTables({ data, categories }: VillageReportTablesPro
   });
   
   // Daftar bidang capaian yang ingin ditampilkan
-  const achievementFields: (keyof KbmReportWithCategory)[] = [
+  const achievementFields: (keyof KbmReportWithRelations)[] = [
     'achievement_quran_meaning',
     'achievement_hadith_meaning',
     'achievement_quran_reading',

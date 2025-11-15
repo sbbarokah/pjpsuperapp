@@ -1,9 +1,9 @@
-import { KbmReportWithCategory } from "@/lib/types/report.types";
+import { KbmReportWithRelations } from "@/lib/types/report.types";
 import { DataCard } from "./datacard";
 import { formatReportDate } from "@/lib/utils";
 
 type KbmReportCardProps = {
-  report: KbmReportWithCategory;
+  report: KbmReportWithRelations;
 };
 
 export function KbmReportCard({ report }: KbmReportCardProps) {
