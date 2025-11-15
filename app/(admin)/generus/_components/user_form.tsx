@@ -20,6 +20,7 @@ import { genderOptions, roleOptions } from "@/lib/constants";
 type UserFormUser = Partial<Profile> & { email?: string; user_id: string };
 
 interface UserFormProps {
+  admin: Profile;
   user: UserFormUser | null;
   villages: VillageModel[];
   groups: GroupModel[];
@@ -27,6 +28,7 @@ interface UserFormProps {
 }
 
 export function UserForm({
+  admin,
   user,
   villages,
   groups,
@@ -38,6 +40,10 @@ export function UserForm({
   const [success, setSuccess] = useState<string | null>(null);
 
   const isUpdateMode = user !== null;
+
+  const isSuperAdmin = admin.role === 'superadmin' || admin.role === 'super_admin';
+  const isKelompokAdmin = admin.role === 'admin_kelompok';
+  const isDesaAdmin = admin.role === 'admin_desa';
 
   const handleSubmit = (formData: FormData) => {
     setError(null);
@@ -66,17 +72,25 @@ export function UserForm({
     };
 
     // Validasi Sederhana
-    if (!data.email || !data.username || !data.full_name) {
-      setError("Email, Username, dan Nama wajib diisi.");
+    if (!data.full_name) {
+      setError("Nama wajib diisi.");
       return;
     }
-    if (!isUpdateMode && !data.password) {
-      setError("Password wajib diisi untuk pengguna baru.");
-      return;
-    }
-    if (!data.role) {
-      setError("Role wajib dipilih.");
-      return;
+    
+    // Validasi superadmin
+    if (isSuperAdmin) {
+       if (!data.email || !data.username) {
+        setError("Email dan Username wajib diisi oleh Superadmin.");
+        return;
+      }
+      if (!isUpdateMode && !data.password) {
+        setError("Password wajib diisi untuk pengguna baru.");
+        return;
+      }
+      if (!data.role) {
+        setError("Role wajib dipilih.");
+        return;
+      }
     }
 
     startTransition(async () => {
@@ -85,10 +99,11 @@ export function UserForm({
       if (isUpdateMode) {
         // Mode Update
         const updatePayload: UpdateUserFormPayload = {
-          email: data.email,
+          email: isSuperAdmin ? data.email : undefined, // Hanya superadmin bisa ubah email
+          password: (isSuperAdmin && data.password) ? data.password : undefined,
           profileData: {
-            // Masukkan semua data profil di sini
-            username: data.username,
+            username: isSuperAdmin ? data.username : undefined, // Hanya superadmin bisa ubah username
+            role: isSuperAdmin ? data.role : undefined, 
             full_name: data.full_name,
             gender: data.gender || null,
             birth_place: data.birth_place || null,
@@ -109,7 +124,13 @@ export function UserForm({
       } else {
         // Mode Create
         const createPayload: CreateUserFormPayload = {
-          ...data,
+          // Kirim data akun HANYA jika diisi (oleh superadmin)
+          email: data.email || undefined,
+          password: data.password || undefined,
+          username: data.username || undefined,
+          role: data.role || undefined, 
+          
+          // Kirim data profil
           full_name: data.full_name,
           gender: data.gender || undefined,
           birth_place: data.birth_place || undefined,
@@ -128,11 +149,12 @@ export function UserForm({
         response = await createUserAction(createPayload);
       }
 
-      if (!response.success) {
+      if (response.error) { // [FIX] Ganti 'success' check ke 'error' check
         setError(response.error || "Terjadi kesalahan.");
       } else {
         setSuccess(response.message || "Data berhasil disimpan.");
         router.push("/generus"); // <-- Arahkan ke halaman daftar user
+        router.refresh(); // [FIX] Tambahkan refresh
       }
     });
   };
@@ -155,7 +177,7 @@ export function UserForm({
   }) => (
     <div className="mb-4.5">
       <label className="mb-2.5 block font-medium text-black dark:text-white">
-        {label} {required && <span className="text-meta-1">*</span>}
+        {label} {required && <span className="text-meta-1 text-red">*</span>}
       </label>
       <div className="relative z-20 bg-transparent dark:bg-form-input">
         <select
@@ -185,44 +207,47 @@ export function UserForm({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Kolom 1 */}
         <div>
-          <h4 className="mb-3 text-lg font-semibold">Data Akun</h4>
-          <InputGroup
-            label="Email"
-            type="email"
-            name="email"
-            placeholder="Masukkan email"
-            defaultValue={user?.email}
-            required
-            className="mb-4.5"
-          />
-          {!isUpdateMode && (
-            <InputGroup
-              label="Password"
-              type="password"
-              name="password"
-              placeholder="Masukkan password"
-              required
-              className="mb-4.5"
-            />
+          {isSuperAdmin && (
+            <>
+              <h4 className="mb-3 text-lg font-semibold">Data Akun</h4>
+              <InputGroup
+                label="Email"
+                type="email"
+                name="email"
+                placeholder="Masukkan email"
+                defaultValue={user?.email}
+                required
+                className="mb-4.5"
+              />
+              {!isUpdateMode && (
+                <InputGroup
+                  label="Password"
+                  type="password"
+                  name="password"
+                  placeholder="Masukkan password"
+                  required
+                  className="mb-4.5"
+                />
+              )}
+              <InputGroup
+                label="Username"
+                type="text"
+                name="username"
+                placeholder="Masukkan username"
+                defaultValue={user?.username}
+                required
+                className="mb-4.5"
+              />
+              <SelectGroup
+                label="Role"
+                name="role"
+                defaultValue={user?.role}
+                required
+                options={roleOptions}
+              />
+            </>
           )}
-          <InputGroup
-            label="Username"
-            type="text"
-            name="username"
-            placeholder="Masukkan username"
-            defaultValue={user?.username}
-            required
-            className="mb-4.5"
-          />
-          <SelectGroup
-            label="Role"
-            name="role"
-            defaultValue={user?.role}
-            required
-            options={roleOptions}
-          />
-
-          <h4 className="mb-3 mt-6 text-lg font-semibold">Data Diri</h4>
+          <h4 className="mb-3 text-lg font-semibold">Data Diri</h4>
           <InputGroup
             label="Nama Lengkap"
             type="text"
@@ -244,6 +269,7 @@ export function UserForm({
             label="Jenis Kelamin"
             name="gender"
             defaultValue={user?.gender}
+            required
             options={genderOptions}
           />
           <InputGroup
@@ -301,49 +327,51 @@ export function UserForm({
             defaultValue={user?.school_name || ""}
             className="mb-4.5"
           />
-
-          <h4 className="mb-3 mt-6 text-lg font-semibold">Data Orang Tua</h4>
-           <InputGroup
-            label="Nama Ayah"
-            type="text"
-            name="father_name"
-            placeholder="Nama ayah (opsional)"
-            defaultValue={user?.father_name || ""}
-            className="mb-4.5"
-          />
-           <InputGroup
-            label="Pekerjaan Ayah"
-            type="text"
-            name="father_occupation"
-            placeholder="Pekerjaan ayah (opsional)"
-            defaultValue={user?.father_occupation || ""}
-            className="mb-4.5"
-          />
-           <InputGroup
-            label="Nama Ibu"
-            type="text"
-            name="mother_name"
-            placeholder="Nama ibu (opsional)"
-            defaultValue={user?.mother_name || ""}
-            className="mb-4.5"
-          />
-           <InputGroup
-            label="Pekerjaan Ibu"
-            type="text"
-            name="mother_occupation"
-            placeholder="Pekerjaan ibu (opsional)"
-            defaultValue={user?.mother_occupation || ""}
-            className="mb-4.5"
-          />
-          <InputGroup
-            label="Kontak Orang Tua"
-            type="text"
-            name="parent_contact"
-            placeholder="No. HP orang tua (opsional)"
-            defaultValue={user?.parent_contact || ""}
-            className="mb-4.5"
-          />
         </div>
+      </div>
+
+      <div>
+        <h4 className="mb-3 mt-6 text-lg font-semibold">Data Orang Tua</h4>
+          <InputGroup
+          label="Nama Ayah"
+          type="text"
+          name="father_name"
+          placeholder="Nama ayah (opsional)"
+          defaultValue={user?.father_name || ""}
+          className="mb-4.5"
+        />
+          <InputGroup
+          label="Pekerjaan Ayah"
+          type="text"
+          name="father_occupation"
+          placeholder="Pekerjaan ayah (opsional)"
+          defaultValue={user?.father_occupation || ""}
+          className="mb-4.5"
+        />
+          <InputGroup
+          label="Nama Ibu"
+          type="text"
+          name="mother_name"
+          placeholder="Nama ibu (opsional)"
+          defaultValue={user?.mother_name || ""}
+          className="mb-4.5"
+        />
+          <InputGroup
+          label="Pekerjaan Ibu"
+          type="text"
+          name="mother_occupation"
+          placeholder="Pekerjaan ibu (opsional)"
+          defaultValue={user?.mother_occupation || ""}
+          className="mb-4.5"
+        />
+        <InputGroup
+          label="Kontak Orang Tua"
+          type="text"
+          name="parent_contact"
+          placeholder="No. HP orang tua (opsional)"
+          defaultValue={user?.parent_contact || ""}
+          className="mb-4.5"
+        />
       </div>
 
       {/* Pesan Error/Sukses */}

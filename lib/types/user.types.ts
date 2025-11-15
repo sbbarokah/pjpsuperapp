@@ -34,11 +34,11 @@ export type UserAdminView = Profile & {
 
 // Tipe data untuk payload form (membuat user baru)
 export type CreateUserFormPayload = {
-  email: string;
-  password: string;
-  username: string;
+  email?: string;
+  password?: string;
+  username?: string;
+  role?: 'superadmin' | 'admin_desa' | 'admin_kelompok' | 'user';
   full_name: string;
-  role: 'superadmin' | 'admin_desa' | 'admin_kelompok' | 'user'; // DITAMBAHKAN
   gender?: 'L' | 'P';
   birth_place?: string;
   birth_date?: string;
@@ -58,4 +58,5 @@ export type CreateUserFormPayload = {
 export type UpdateUserFormPayload = {
   profileData: Partial<Omit<Profile, 'id' | 'user_id'>>;
   email?: string; // Opsional jika Anda mengizinkan perubahan email
+  password?: string;
 };

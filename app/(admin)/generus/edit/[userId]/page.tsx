@@ -10,6 +10,7 @@ import {
   getCategories,
 } from "@/lib/services/masterService";
 import { UserForm } from "../../_components/user_form";
+import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
 
 export const metadata = {
   title: "Ubah Generus | Admin",
@@ -58,6 +59,15 @@ export default async function EditGenerusPage({
     notFound();
   }
 
+  let user, profile;
+  try {
+    const authData = await getAuthenticatedUserAndProfile();
+    user = authData.user;
+    profile = authData.profile;
+  } catch (error) {
+    notFound();
+  }
+
   return (
     <>
       <Breadcrumb pageName="Ubah Generus" showNav={false} />
@@ -72,6 +82,7 @@ export default async function EditGenerusPage({
 
             <Suspense fallback={<FormSkeleton />}>
               <UserForm
+                admin={profile}
                 user={userData}
                 villages={villages}
                 groups={groups}

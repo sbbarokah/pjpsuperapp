@@ -39,7 +39,7 @@ export function ActivityFeed({ meetingReports, kbmReports }: ActivityFeedProps) 
             {meetingReports.map((report) => (
               <li key={report.id} className="text-sm">
                 <Link
-                  href={`/admin/muslimun/edit/${report.id}`}
+                  href={`/muslimun/edit/${report.id}`}
                   className="hover:text-primary"
                 >
                   <span className="font-medium text-black dark:text-white">
@@ -71,7 +71,7 @@ export function ActivityFeed({ meetingReports, kbmReports }: ActivityFeedProps) 
             {kbmReports.map((report) => (
               <li key={report.id} className="text-sm">
                 <Link
-                  href={`/admin/report/edit/${report.id}`} // Asumsi path edit KBM
+                  href={`/report/edit/${report.id}`} // Asumsi path edit KBM
                   className="hover:text-primary"
                 >
                   <span className="font-medium text-black dark:text-white">

@@ -1,5 +1,6 @@
 "use server";
 
+import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
 import {
   createUser,
   updateUser,
@@ -25,32 +26,74 @@ type AdminProfile = {
  * Server Action untuk membuat pengguna (siswa/admin) baru.
  */
 export async function createUserAction(data: CreateUserFormPayload) {
+  let adminProfile;
   try {
-    // [PERBAIKAN] Service sekarang mengembalikan { success: true, data } atau { error: "..." }
-    const result = await createUser(data);
+    // 1. Dapatkan profil admin yang sedang login
+    const authData = await getAuthenticatedUserAndProfile();
+    adminProfile = authData.profile;
+  } catch (authError: any) {
+    return { success: false, error: "Otentikasi admin gagal: " + authError.message };
+  }
 
-    // [PERBAIKAN] Tangani error yang dikembalikan oleh service secara eksplisit.
-    if (result.error) {
-      return {
-        success: false,
-        message: result.error,
-      };
+  // 2. Siapkan payload
+  const payload = { ...data };
+  const isAdminNonSuper = adminProfile.role === 'admin_desa' || adminProfile.role === 'admin_kelompok';
+  
+  // 3. Terapkan logika auto-generate jika admin BUKAN superadmin
+  if (isAdminNonSuper) {
+    const full_name = String(payload.full_name || "");
+
+    // Hasilkan email jika tidak ada (meskipun fieldnya disembunyikan)
+    if (!payload.email) {
+      const emailName = full_name.toLowerCase().replace(/\s/g, "");
+      payload.email = `${emailName || "user" + Date.now()}@pjp.com`;
     }
 
-    // [PERBAIKAN] Revalidasi HANYA dilakukan jika operasi berhasil.
+    // Hasilkan username jika tidak ada
+    if (!payload.username) {
+      payload.username =
+        getNameFallback(full_name) ||
+        payload.email.split("@")[0];
+    }
+    
+    // Atur password dan role default
+    payload.password = "123456";
+    payload.role = "user";
+    
+    // Paksa penempatan (assignment) berdasarkan role admin
+    payload.village_id = String(adminProfile.village_id);
+    if (adminProfile.role === 'admin_kelompok') {
+      payload.group_id = String(adminProfile.group_id);
+    }
+  } 
+  // 4. Validasi untuk Superadmin (jika data tidak ada)
+  else if (adminProfile.role === 'superadmin') {
+    if (!payload.email) return { success: false, error: "Email wajib diisi oleh Superadmin." };
+    if (!payload.password) return { success: false, error: "Password wajib diisi oleh Superadmin." };
+    if (!payload.role) return { success: false, error: "Role wajib diisi oleh Superadmin." };
+  }
+
+  // 5. Kirim ke service utama
+  try {
+    // Service 'createUser' akan menangani logika signup Supabase
+    const result = await createUser(payload as Required<CreateUserFormPayload>); 
+
+    if (result.error) {
+      return { success: false, error: result.error };
+    }
+
     revalidatePath(ADMIN_USER_PATH);
+
     return {
       success: true,
       message: "Generus berhasil ditambahkan.",
       data: result.data,
     };
   } catch (error: any) {
-    // [CATATAN] Blok catch ini sekarang hanya menangani error runtime tak terduga.
     console.error("createUserAction Error:", error.message);
     return {
       success: false,
-      message: "Gagal menambahkan generus karena kesalahan sistem.",
-      error: error.message,
+      error: error.message || "Gagal menambahkan generus karena kesalahan sistem.",
     };
   }
 }
@@ -63,10 +106,6 @@ export async function updateUserAction(
   data: UpdateUserFormPayload,
 ) {
   try {
-    // [PERBAIKAN KRITIS]
-    // Komentar Anda benar, tapi kodenya salah. 'role' tidak digabung.
-    // Kode ini sekarang *benar-benar* menggabungkan 'role' ke dalam 'profileData'
-    // agar bisa diproses oleh service 'updateUser'.
     const payloadForService: UpdateUserFormPayload = {
       email: data.email,
       profileData: {
