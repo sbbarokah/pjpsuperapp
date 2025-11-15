@@ -20,7 +20,8 @@ export default async function EditKbmReportPage({
   params,
 }: EditReportPageProps) {
   const supabase = await createClient();
-  const reportId = params.id;
+  const { id } = await params;
+  const reportId = id;
 
   const {
     data: { user },
