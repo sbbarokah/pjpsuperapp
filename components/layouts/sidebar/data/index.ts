@@ -29,10 +29,18 @@ export const NAV_DATA = [
         items: [],
       },
       {
-        title: "Laporan KBM",
-        url: "/report",
+        title: "KBM",
         icon: Icons.User,
-        items: [],
+        items: [
+          {
+            title: "Kehadiran KBM",
+            url: "/kbmattendance",
+          },
+          {
+            title: "Laporan KBM",
+            url: "/kbmreport",
+          },
+        ],
       },
       {
         title: "Berkas",
