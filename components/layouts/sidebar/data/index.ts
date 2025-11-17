@@ -17,6 +17,12 @@ export const NAV_DATA = [
         items: [],
       },
       {
+        title: "Kurikulum",
+        url: "/material",
+        icon: Icons.Alphabet,
+        items: [],
+      },
+      {
         title: "Laporan 5 Unsur",
         url: "/muslimun",
         icon: Icons.User,

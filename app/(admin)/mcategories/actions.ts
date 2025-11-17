@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server_user";
 import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
 import { revalidatePath } from "next/cache";
 
-const ADMIN_PATH = "/admin/master/kategori-materi";
+const ADMIN_PATH = "/mcategories";
 
 type ActionResponse = {
   success: boolean;

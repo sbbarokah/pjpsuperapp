@@ -69,7 +69,7 @@ export function MaterialCategoryListClient({ categories }: ListProps) {
               {/* Footer Kartu (Aksi) */}
               <div className="p-4 border-t dark:border-strokedark flex justify-end items-center gap-3">
                 <Link 
-                  href={`/admin/master/kategori-materi/edit/${cat.id}`} 
+                  href={`/mcategories/edit/${cat.id}`} 
                   className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-sm"
                   title="Edit"
                 >

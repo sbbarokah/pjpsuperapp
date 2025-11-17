@@ -46,7 +46,7 @@ export function MaterialListClient({ materials, categories, profile }: ListProps
     } else {
       params.delete("category");
     }
-    router.push(`/admin/materi?${params.toString()}`);
+    router.push(`/material?${params.toString()}`);
   };
 
   return (
@@ -97,7 +97,7 @@ export function MaterialListClient({ materials, categories, profile }: ListProps
               </div>
               {canMutate && (
                 <div className="p-4 border-t dark:border-strokedark flex justify-end items-center gap-3">
-                  <Link href={`/admin/materi/edit/${mat.id}`} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-sm">
+                  <Link href={`/material/edit/${mat.id}`} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-sm">
                     <FaEdit /> Edit
                   </Link>
                   <button

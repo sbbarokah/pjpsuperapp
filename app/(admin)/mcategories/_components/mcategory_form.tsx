@@ -43,7 +43,7 @@ export function MaterialCategoryForm({ initialData = null }: CategoryFormProps) 
         setError(response.message);
       } else {
         alert(response.message);
-        router.push("/admin/master/kategori-materi");
+        router.push("/mcategories");
         router.refresh();
       }
     });

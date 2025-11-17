@@ -21,7 +21,7 @@ async function MaterialCategoryList() {
   return <MaterialCategoryListClient categories={categories} />;
 }
 
-export default async function KategoriMateriPage() {
+export default async function MaterialCategoryPage() {
   let profile;
   try {
     profile = (await getAuthenticatedUserAndProfile()).profile;
@@ -37,7 +37,7 @@ export default async function KategoriMateriPage() {
         <Breadcrumb pageName="Master Kategori Materi" />
         {canCreate && (
           <Link
-            href="/admin/master/kategori-materi/create"
+            href="/mcategories/new"
             className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"
           >
             Tambah Kategori Baru

@@ -31,7 +31,7 @@ async function MaterialList({ categoryId, profile }: { categoryId?: number, prof
   return <MaterialListClient materials={materials} categories={[]} profile={profile} />;
 }
 
-export default async function MateriPage({ searchParams }: MateriPageProps) {
+export default async function MaterialPage({ searchParams }: MateriPageProps) {
   let profile;
   try {
     profile = (await getAuthenticatedUserAndProfile()).profile;
@@ -51,7 +51,7 @@ export default async function MateriPage({ searchParams }: MateriPageProps) {
         <Breadcrumb pageName="Materi Kurikulum" />
         {canCreate && (
           <Link
-            href="/admin/materi/create"
+            href="/material/new"
             className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"
           >
             Tambah Materi Baru

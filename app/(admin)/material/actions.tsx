@@ -5,7 +5,7 @@ import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
 import { revalidatePath } from "next/cache";
 import { CreateMaterialDto } from "@/lib/types/material.types";
 
-const ADMIN_PATH = "/admin/materi";
+const ADMIN_PATH = "/material";
 
 type ActionResponse = {
   success: boolean;

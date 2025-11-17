@@ -48,7 +48,7 @@ export function MaterialForm({ categories, initialData = null }: MaterialFormPro
         setError(response.message);
       } else {
         alert(response.message);
-        router.push("/admin/materi");
+        router.push("/material");
         router.refresh();
       }
     });
