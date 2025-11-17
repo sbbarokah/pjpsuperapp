@@ -98,7 +98,7 @@ export async function CategoryStatsGroup() {
   try {
     profile = (await getAuthenticatedUserAndProfile()).profile;
   } catch (error) {
-    return <p>Gagal memuat statistik pengguna.</p>;
+    return <p>Gagal memuat statistik generus.</p>;
   }
 
   // --- Tampilan untuk Admin Desa ---

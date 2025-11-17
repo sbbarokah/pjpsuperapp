@@ -43,7 +43,7 @@ export async function createVillage(villageData: CreateVillageDto) {
 
 /**
  * Mengambil semua data Village
- * (Asumsi: Boleh dibaca publik/pengguna terotentikasi, jadi TIDAK perlu validasi)
+ * (Asumsi: Boleh dibaca publik/generus terotentikasi, jadi TIDAK perlu validasi)
  */
 export async function getVillages() {
   // TIDAK perlu `validateSuperAdmin()` jika data ini bersifat publik/semi-publik

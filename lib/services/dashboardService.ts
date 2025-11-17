@@ -18,7 +18,7 @@ export type VillageUserStats = {
 };
 
 /**
- * Mengambil statistik pengguna global (per kategori & gender)
+ * Mengambil statistik generus global (per kategori & gender)
  */
 export async function getGlobalUserStats(): Promise<GlobalUserStats[]> {
   const supabase = createAdminClient();
@@ -33,7 +33,7 @@ export async function getGlobalUserStats(): Promise<GlobalUserStats[]> {
 }
 
 /**
- * Mengambil statistik pengguna untuk satu desa (per kelompok, kategori & gender)
+ * Mengambil statistik generus untuk satu desa (per kelompok, kategori & gender)
  */
 export async function getVillageUserStats(villageId: number | string): Promise<VillageUserStats[]> {
   const supabase = createAdminClient();

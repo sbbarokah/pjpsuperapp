@@ -354,8 +354,8 @@ export function UserForm({
         {isPending
           ? "Menyimpan..."
           : isUpdateMode
-          ? "Perbarui Pengguna"
-          : "Simpan Pengguna Baru"}
+          ? "Perbarui Generus"
+          : "Simpan Generus Baru"}
       </button>
     </form>
   );
