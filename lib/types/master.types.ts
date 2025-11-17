@@ -18,6 +18,13 @@ export type CategoryModel = {
   description?: string;
 };
 
+export type MaterialCategoryModel = {
+  id: number;
+  name: string;
+  description?: string | null;
+  created_at: string;
+};
+
 // --- TIPE DTO (DATA TRANSFER OBJECT) ---
 // Tambahkan tipe-tipe di bawah ini
 

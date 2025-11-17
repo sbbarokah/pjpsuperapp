@@ -607,3 +607,64 @@ REFERENCES public.profile(user_id)
 ON DELETE SET NULL;
 
 --> perbaiki juga getDocumentsList (sudah)
+
+
+##### Fitur Materi dan kategori Materi
+/* --- 1. TABEL KATEGORI MATERI (MASTER DATA) --- */
+CREATE TABLE public.material_category (
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  name TEXT NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+/* Aktifkan RLS */
+ALTER TABLE public.material_category ENABLE ROW LEVEL SECURITY;
+
+/* Policies untuk Kategori Materi */
+CREATE POLICY "Allow authenticated read access"
+ON public.material_category
+FOR SELECT USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow admin CUD access"
+ON public.material_category
+FOR ALL USING (
+  (SELECT role FROM public.profile WHERE user_id = auth.uid()) = 'superadmin' OR
+  (SELECT role FROM public.profile WHERE user_id = auth.uid()) = 'admin_desa'
+) WITH CHECK (
+  (SELECT role FROM public.profile WHERE user_id = auth.uid()) = 'superadmin' OR
+  (SELECT role FROM public.profile WHERE user_id = auth.uid()) = 'admin_desa'
+);
+
+
+/* --- 2. TABEL MATERI (FITUR UTAMA) --- */
+CREATE TABLE public.material (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  author_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  
+  material_name TEXT NOT NULL,
+  description TEXT,
+  evaluation TEXT, -- (Penilaian / Evaluasi)
+  
+  /* Relasi ke Kategori */
+  material_category_id BIGINT REFERENCES public.material_category(id) ON DELETE SET NULL
+);
+
+/* Aktifkan RLS */
+ALTER TABLE public.material ENABLE ROW LEVEL SECURITY;
+
+/* Policies untuk Materi */
+CREATE POLICY "Allow authenticated read access"
+ON public.material
+FOR SELECT USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow admin CUD access"
+ON public.material
+FOR ALL USING (
+  (SELECT role FROM public.profile WHERE user_id = auth.uid()) = 'superadmin' OR
+  (SELECT role FROM public.profile WHERE user_id = auth.uid()) = 'admin_desa'
+) WITH CHECK (
+  (SELECT role FROM public.profile WHERE user_id = auth.uid()) = 'superadmin' OR
+  (SELECT role FROM public.profile WHERE user_id = auth.uid()) = 'admin_desa'
+);

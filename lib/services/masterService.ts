@@ -6,6 +6,7 @@ import {
   CreateGroupDto,
   CreateVillageDto,
   GroupModel,
+  MaterialCategoryModel,
   UpdateCategoryDto,
   UpdateGroupDto,
   UpdateVillageDto,
@@ -281,3 +282,43 @@ export async function deleteCategory(id: string) {
   return { message: "Category deleted successfully" };
 }
 
+// ====================================================================
+//
+//                          MATERIAL CATEGORY SERVICE
+//
+// ====================================================================
+
+/**
+ * Mengambil semua kategori materi
+ */
+export async function getMaterialCategories(): Promise<MaterialCategoryModel[]> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("material_category")
+    .select("*")
+    .order("name");
+
+  if (error) {
+    console.error("Error fetching material categories:", error.message);
+    return [];
+  }
+  return data;
+}
+
+/**
+ * Mengambil satu kategori materi berdasarkan ID
+ */
+export async function getMaterialCategoryById(id: number): Promise<MaterialCategoryModel | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("material_category")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    console.error("Error fetching material category by ID:", error.message);
+    return null;
+  }
+  return data;
+}
