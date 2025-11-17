@@ -115,11 +115,14 @@ export function AttendanceRecapForm({
     
     setIsLoadingStudents(true);
     setError(null);
+
+    console.log("isi form data", formData);
     
     const response = await getGenerusForFormAction(
       Number(formData.group_id),
       Number(formData.category_id)
     );
+    console.log("isi response", response);
     
     if (!response.success || !response.data) {
       setError(response.error || "Gagal mengambil data generus.");
@@ -255,13 +258,14 @@ export function AttendanceRecapForm({
             placeholder="cth: 12"
             min="0"
             required
+            className="!mb-0"
           />
           {!isEditMode && (
              <button
               type="button"
               onClick={handleFetchStudents}
               disabled={isLoadingStudents || !formData.group_id || !formData.category_id}
-              className="flex w-full justify-center rounded-lg bg-blue-600 p-3 font-medium text-white hover:bg-opacity-90 disabled:cursor-not-allowed disabled:bg-opacity-50"
+              className="flex w-full justify-center rounded-lg bg-blue-600 py-3 px-5 font-medium text-white hover:bg-opacity-90 disabled:cursor-not-allowed disabled:bg-opacity-50"
             >
               {isLoadingStudents ? "Mencari..." : "Tampilkan Generus"}
             </button>

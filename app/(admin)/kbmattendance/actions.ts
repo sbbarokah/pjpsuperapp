@@ -9,6 +9,7 @@ import {
   UpdateRecapPayload,
 } from "@/lib/types/attendance.types";
 import { Profile } from "@/lib/types/user.types";
+import { createAdminClient } from "@/lib/supabase/server_admin";
 
 const ADMIN_PATH = "/kbmattendance";
 
@@ -195,6 +196,7 @@ type GenerusResponse = {
   data?: Pick<Profile, "user_id" | "full_name">[];
   error?: string;
 };
+
 export async function getGenerusForFormAction(
   groupId: number,
   categoryId: number
@@ -204,7 +206,7 @@ export async function getGenerusForFormAction(
     return { success: false, error: authCheck.message };
   }
   
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
   const { data, error } = await supabase
     .from("profile")
     .select("user_id, full_name")

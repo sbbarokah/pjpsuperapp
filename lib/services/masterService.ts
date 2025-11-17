@@ -229,7 +229,10 @@ export async function createCategory(categoryData: CreateCategoryDto) {
 export async function getCategories() {
   // Asumsi 'get' bisa dilakukan oleh semua user
   const supabase = createAdminClient();
-  const { data, error } = await supabase.from("category").select("*");
+  const { data, error } = await supabase
+    .from("category")
+    .select("*")
+    .order("id"); // [PERUBAIKAN] Ditambahkan order by id
 
   if (error) throw new Error(error.message);
   return data as CategoryModel[];

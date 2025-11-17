@@ -14,18 +14,30 @@ export async function getAttendanceRecapList(filters: {
   groupId?: number;
 }): Promise<AttendanceRecapWithRelations[]> {
   
+  // let query = supabase
+  //   .from("attendance_recap")
+  //   .select(
+  //     `
+  //     id, created_at, author_user_id, group_id, village_id, category_id,
+  //     period_month, period_year, meeting_count, generus_count,
+  //     present_amount, present_percentage,
+  //     permission_amount, permission_percentage,
+  //     absent_amount, absent_percentage, notes,
+      
+  //     author:profile!author_user_id (full_name),
+  //     group (name),
+  //     category (name)
+  //   `
+  //   )
+  //   .eq("village_id", filters.villageId)
+  //   .order("period_year", { ascending: false })
+  //   .order("period_month", { ascending: false });
   let query = supabase
     .from("attendance_recap")
     .select(
-      `
-      id, created_at, author_user_id, group_id, village_id, category_id,
-      period_month, period_year, meeting_count, generus_count,
-      present_amount, present_percentage,
-      permission_amount, permission_percentage,
-      absent_amount, absent_percentage, notes,
-      
-      author:profile!author_user_id (full_name),
+      `*,
       group (name),
+      village (name),
       category (name)
     `
     )
