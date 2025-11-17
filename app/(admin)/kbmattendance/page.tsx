@@ -47,7 +47,7 @@ export default async function AttendanceRecapPage() {
   return (
     <>
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <Breadcrumb pageName="Rekap Presensi KBM" />
+        <Breadcrumb pageName="Rekap Presensi KBM" showNav={false} />
         <Link
           href="/kbmattendance/new"
           className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"

@@ -8,7 +8,7 @@ type KbmPeriodCardProps = {
 
 export function KbmPeriodCard({ period }: KbmPeriodCardProps) {
   // Link ke halaman detail (yang akan Anda buat nanti)
-  const href = `/report/detail/${period.period_year}/${period.period_month}`;
+  const href = `/kbmreport/detail/${period.period_year}/${period.period_month}`;
   
   const monthName = getMonthName(period.period_month);
 

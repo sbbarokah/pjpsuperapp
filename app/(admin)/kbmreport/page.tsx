@@ -65,7 +65,7 @@ export default async function KbmReportsPage() {
         {canCreateReport && (
           <Link
             // Sesuaikan href ke halaman 'create' Anda
-            href="/report/new"
+            href="/kbmreport/new"
             className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"
           >
             Buat Laporan

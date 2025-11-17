@@ -7,7 +7,7 @@ type KbmReportCardProps = {
 };
 
 export function KbmReportCard({ report }: KbmReportCardProps) {
-  const href = `/report/edit/${report.id}`;
+  const href = `/kbmreport/edit/${report.id}`;
   
   return (
     <DataCard href={href}>

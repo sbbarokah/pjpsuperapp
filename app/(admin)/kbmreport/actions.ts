@@ -53,7 +53,7 @@ export async function createKbmReportAction(payload: CreateKbmReportDto) {
     }
 
     // 4. Revalidasi cache jika berhasil
-    revalidatePath("/reports"); // Halaman daftar laporan (jika ada)
+    revalidatePath("/kbmreport"); // Halaman daftar laporan (jika ada)
 
     return {
       success: true,
@@ -127,7 +127,7 @@ export async function updateKbmReportAction(
     };
   }
 
-  revalidatePath("/report"); // Revalidasi halaman daftar
-  revalidatePath(`/report/edit/${id}`); // Revalidasi halaman edit ini
+  revalidatePath("/kbmreport"); // Revalidasi halaman daftar
+  revalidatePath(`/kbmreport/edit/${id}`); // Revalidasi halaman edit ini
   return { success: true, message: "Laporan berhasil diperbarui." };
 }

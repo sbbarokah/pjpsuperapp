@@ -209,7 +209,7 @@ export function ReportForm({ authorId, admin, groups, categories, initialData = 
             `Laporan berhasil ${isEditMode ? "diperbarui" : "disimpan"}.`,
         );
         // Arahkan kembali ke halaman daftar laporan
-        router.push("/report");
+        router.push("/kbmreport");
         router.refresh(); // Refresh data di server
       }
     });
