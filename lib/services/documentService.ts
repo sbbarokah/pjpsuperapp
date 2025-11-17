@@ -20,7 +20,10 @@ export async function getDocumentsList(
     .from("documents")
     .select(`
       *,
-      author:profile (full_name),
+      author:profile!fk_documents_author_profile (
+         username,
+         full_name
+      ),
       group (name),
       village (name)
     `)
@@ -32,7 +35,6 @@ export async function getDocumentsList(
   } else if (filters.villageId) {
     query = query.eq("village_id", filters.villageId);
   }
-  // Superadmin tidak menerapkan filter
 
   const { data, error } = await query;
 

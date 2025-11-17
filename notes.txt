@@ -104,8 +104,7 @@ CREATE TABLE public.profile (
   -- Ini akan dihubungkan ke auth.users.id
  user_id uuid NOT NULL UNIQUE,
   username text NOT NULL UNIQUE,
- front_name text NOT NULL,
- last_name text,
+ full_name text NOT NULL,
  gender text CHECK (gender IN ('L', 'P')),
  birth_place text,
  birth_date date,
@@ -222,8 +221,7 @@ Klik tombol Insert row di bagian atas.
 Sebuah form akan muncul. Isi datanya:
 user_id: WAJIB. Tempel (paste) User ID (UUID) yang Anda salin dari Bagian 2.
 username: "superadmin" (atau apa pun yang Anda inginkan).
-front_name: "Super"
-last_name: "Admin"
+full_name: "Super Admin"
 group_id: Biarkan kosong (null).
 class_id: Biarkan kosong (null).
 village_id: Biarkan kosong (null).
@@ -591,3 +589,21 @@ USING (
   bucket_id = 'documents' 
   AND owner = auth.uid()
 );
+
+
+Terjadi: Error fetching documents list: Could not find a relationship between 'documents' and 'profile' in the schema cache
+SOlusi:
+-- 1. Hapus foreign key lama yang mengarah ke auth.users
+ALTER TABLE public.documents
+DROP CONSTRAINT documents_author_user_id_fkey; 
+-- Catatan: Nama constraint mungkin berbeda, cek di menu Table Editor jika gagal. 
+-- Biasanya formatnya: namatabel_namakolom_fkey
+
+-- 2. Buat foreign key baru yang mengarah ke public.profile(user_id)
+ALTER TABLE public.documents
+ADD CONSTRAINT fk_documents_author_profile
+FOREIGN KEY (author_user_id)
+REFERENCES public.profile(user_id)
+ON DELETE SET NULL;
+
+--> perbaiki juga getDocumentsList (sudah)

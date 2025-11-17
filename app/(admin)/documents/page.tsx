@@ -3,7 +3,7 @@ import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
 import { getDocumentsList } from "@/lib/services/documentService";
 import { Suspense } from "react";
 import Link from "next/link";
-import { DocumentListClient } from "./_components/document_list";
+import { DocumentCardList } from "./_components/document_list_card";
 
 export const metadata = {
   title: "Manajemen Berkas | Admin",
@@ -31,7 +31,7 @@ async function DocumentList({ profile }: { profile: any }) {
 
   const documents = await getDocumentsList(filters);
   
-  return <DocumentListClient documents={documents} profile={profile} />;
+  return <DocumentCardList documents={documents} profile={profile} />;
 }
 
 
@@ -61,7 +61,7 @@ export default async function DocumentsPage() {
         {/* [MODIFIKASI] Tampilkan tombol hanya jika diizinkan */}
         {canCreate && (
           <Link
-            href="/admin/berkas/create"
+            href="/documents/new"
             className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"
           >
             Tambah Berkas Baru

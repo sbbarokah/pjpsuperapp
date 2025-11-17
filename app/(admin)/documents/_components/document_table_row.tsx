@@ -15,12 +15,12 @@ const IconFile = () => <span>&#128196;</span>; // Ikon File
 const IconTrash = () => <span>&#128465;</span>; // Ikon Hapus
 const IconEdit = () => <span>&#9998;</span>; // Ikon Edit
 
-interface DocumentListClientProps {
+interface DocumentTableRowProps {
   documents: DocumentWithRelations[];
   profile: Profile; // [BARU] Menerima profil admin
 }
 
-export function DocumentListClient({ documents, profile }: DocumentListClientProps) {
+export function DocumentTableRow({ documents, profile }: DocumentTableRowProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   // [BARU] State untuk menyimpan URL download
@@ -80,7 +80,16 @@ export function DocumentListClient({ documents, profile }: DocumentListClientPro
   };
 
   if (documents.length === 0) {
-    // ... (kode empty state) ...
+    return (
+      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 p-12 text-center dark:border-gray-700">
+        <h3 className="text-lg font-medium text-black dark:text-white">
+          Belum Ada Berkas
+        </h3>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          Belum ada berkas atau tautan yang ditambahkan.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -94,7 +103,14 @@ export function DocumentListClient({ documents, profile }: DocumentListClientPro
       <div className="max-w-full overflow-x-auto">
         <table className="w-full table-auto">
           <thead>
-            {/* ... (kode thead) ... */}
+            <tr className="bg-gray-2 text-left dark:bg-meta-4">
+              <th className="px-4 py-4 font-medium text-black dark:text-white">Judul Berkas</th>
+              <th className="px-4 py-4 font-medium text-black dark:text-white">Tipe</th>
+              <th className="px-4 py-4 font-medium text-black dark:text-white">Kelompok/Desa</th>
+              <th className="px-4 py-4 font-medium text-black dark:text-white">Pembuat</th>
+              <th className="px-4 py-4 font-medium text-black dark:text-white">Tanggal</th>
+              <th className="px-4 py-4 font-medium text-black dark:text-white">Aksi</th>
+            </tr>
           </thead>
           <tbody>
             {documents.map((doc) => {
@@ -120,7 +136,7 @@ export function DocumentListClient({ documents, profile }: DocumentListClientPro
                   <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
                     {/* Admin bisa klik untuk edit, user biasa klik untuk download/view */}
                     {canEdit ? (
-                      <Link href={`/admin/berkas/edit/${doc.id}`} className="hover:text-primary font-medium">
+                      <Link href={`/documents/edit/${doc.id}`} className="hover:text-primary font-medium">
                         {doc.title}
                       </Link>
                     ) : (
@@ -134,10 +150,13 @@ export function DocumentListClient({ documents, profile }: DocumentListClientPro
                         {doc.title}
                       </a>
                     )}
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{doc.description?.substring(0, 50)}...</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{ doc.description? doc.description?.substring(0, 50) + "..." : ""}</p>
                   </td>
                   <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
-                    {/* ... (kolom tipe) ... */}
+                    <span className="flex items-center gap-2">
+                      {doc.document_type === 'LINK' ? <IconLink /> : <IconFile />}
+                      {doc.document_type}
+                    </span>
                   </td>
                   <td className="border-b border-[#eee] px-4 py-5 dark:border-strokedark">
                     {doc.group?.name || doc.village?.name || "Global"}
@@ -162,7 +181,7 @@ export function DocumentListClient({ documents, profile }: DocumentListClientPro
                       </a>
                       
                       {canEdit && (
-                        <Link href={`/admin/berkas/edit/${doc.id}`} className="text-blue-500 hover:text-blue-700" title="Edit">
+                        <Link href={`/documents/edit/${doc.id}`} className="text-blue-500 hover:text-blue-700" title="Edit">
                           <IconEdit />
                         </Link>
                       )}

@@ -14,10 +14,10 @@ import {
   updateMeetingReportAction,
   deleteMeetingReportAction,
 } from "../actions";
-import { SelectGroup } from "@/components/forms/select_group";
 import { InputGroupV2 } from "@/components/forms/input_group_v2";
 import { Profile } from "@/lib/types/user.types";
 import { TextAreaGroupV2 } from "@/components/forms/text_area_v2";
+import { SelectGroupV2 } from "@/components/forms/select_group_v2";
 
 type AdminProfile = {
   role: string;
@@ -198,7 +198,7 @@ export function MeetingReportForm({
       {/* --- Bagian 1: Info Utama Laporan --- */}
       <h4 className="mb-3 text-lg font-semibold">Info Utama Laporan</h4>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <SelectGroup
+        <SelectGroupV2
           label="Kelompok"
           name="group_id"
           value={formData.group_id}
@@ -216,7 +216,7 @@ export function MeetingReportForm({
           onChange={handleChange}
           required
         />
-        <SelectGroup
+        <SelectGroupV2
           label="Periode Bulan"
           name="period_month"
           value={formData.period_month}
@@ -224,7 +224,7 @@ export function MeetingReportForm({
           required
           options={monthOptions}
         />
-        <SelectGroup
+        <SelectGroupV2
           label="Periode Tahun"
           name="period_year"
           value={formData.period_year}

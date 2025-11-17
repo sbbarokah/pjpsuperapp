@@ -29,6 +29,12 @@ export const NAV_DATA = [
         items: [],
       },
       {
+        title: "Berkas",
+        url: "/documents",
+        icon: Icons.User,
+        items: [],
+      },
+      {
         title: "Master Data",
         icon: Icons.Alphabet,
         items: [
@@ -43,6 +49,10 @@ export const NAV_DATA = [
           {
             title: "Kelas",
             url: "/categories",
+          },
+          {
+            title: "Kategori Materi",
+            url: "/mcategories",
           },
         ],
       },

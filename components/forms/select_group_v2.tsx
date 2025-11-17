@@ -1,5 +1,5 @@
-// 2. SelectGroup (untuk Dropdown)
-export const SelectGroup = ({
+// 2. SelectGroupV2 (untuk Dropdown)
+export const SelectGroupV2 = ({
   label,
   name,
   value,

@@ -15,6 +15,7 @@ import {
 } from "@/lib/types/user.types";
 import { createUserAction, updateUserAction } from "../actions";
 import { genderOptions, roleOptions } from "@/lib/constants";
+import { SelectGroup } from "@/components/forms/InputGroup/select-group";
 
 // Tipe data untuk prop 'user' (untuk mode update)
 type UserFormUser = Partial<Profile> & { email?: string; user_id: string };
@@ -158,48 +159,6 @@ export function UserForm({
       }
     });
   };
-
-  /**
-   * Helper component untuk Dropdown/Select
-   */
-  const SelectGroup = ({
-    label,
-    name,
-    defaultValue,
-    required,
-    options,
-  }: {
-    label: string;
-    name: string;
-    defaultValue?: string;
-    required?: boolean;
-    options: { value: string; label: string }[];
-  }) => (
-    <div className="mb-4.5">
-      <label className="mb-2.5 block font-medium text-black dark:text-white">
-        {label} {required && <span className="text-meta-1 text-red">*</span>}
-      </label>
-      <div className="relative z-20 bg-transparent dark:bg-form-input">
-        <select
-          name={name}
-          defaultValue={defaultValue || ""}
-          required={required}
-          className="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent px-5 py-3 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
-        >
-          <option value="">Pilih {label}</option>
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        {/* Ikon panah dropdown */}
-        <span className="absolute right-4 top-1/2 z-10 -translate-y-1/2">
-          {/* ... (SVG panah dari group_form Anda) ... */}
-        </span>
-      </div>
-    </div>
-  );
 
   return (
     <form id="user-form" action={handleSubmit}>

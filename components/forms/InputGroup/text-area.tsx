@@ -11,6 +11,7 @@ interface PropsType {
   className?: string;
   icon?: React.ReactNode;
   defaultValue?: string;
+  rows?: number;
 }
 
 export function TextAreaGroup({
@@ -23,6 +24,7 @@ export function TextAreaGroup({
   className,
   icon,
   defaultValue,
+  rows = 4,
 }: PropsType) {
   const id = useId();
 
@@ -39,7 +41,7 @@ export function TextAreaGroup({
         <textarea
           id={id}
           name={name} // ⬅️ TAMBAHKAN INI
-          rows={6}
+          rows={rows}
           placeholder={placeholder}
           defaultValue={defaultValue}
           className={cn(
