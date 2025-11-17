@@ -10,7 +10,7 @@ import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
 import { notFound } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: "Tambah Pengguna Baru | Admin",
+  title: "Tambah Generus | Admin",
 };
 
 /**
