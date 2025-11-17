@@ -2,7 +2,7 @@ import Breadcrumb from "@/components/ui/breadcrumb";
 import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
 import { getMaterialCategoryById } from "@/lib/services/masterService";
 import { notFound } from "next/navigation";
-import { CategoryForm } from "../../_components/category_form";
+import { MaterialCategoryForm } from "../../_components/mcategory_form";
 
 export const metadata = {
   title: "Edit Kategori Materi | Admin",
@@ -29,7 +29,7 @@ export default async function EditKategoriMateriPage({ params }: EditPageProps) 
     <>
       <Breadcrumb pageName="Edit Kategori Materi" />
       <div className="rounded-lg border border-stroke bg-white p-6.5 shadow-default dark:border-strokedark dark:bg-boxdark">
-        <CategoryForm initialData={category} />
+        <MaterialCategoryForm initialData={category} />
       </div>
     </>
   );

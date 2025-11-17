@@ -3,7 +3,7 @@ import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
 import { getMaterialCategories } from "@/lib/services/masterService";
 import { Suspense } from "react";
 import Link from "next/link";
-import { CategoryListClient } from "./_components/category_list_client";
+import { MaterialCategoryListClient } from "./_components/mcategory_list_client";
 
 export const metadata = {
   title: "Master Kategori Materi | Admin",
@@ -16,9 +16,9 @@ const ListSkeleton = () => (
   </div>
 );
 
-async function CategoryList() {
+async function MaterialCategoryList() {
   const categories = await getMaterialCategories();
-  return <CategoryListClient categories={categories} />;
+  return <MaterialCategoryListClient categories={categories} />;
 }
 
 export default async function KategoriMateriPage() {
@@ -46,7 +46,7 @@ export default async function KategoriMateriPage() {
       </div>
 
       <Suspense fallback={<ListSkeleton />}>
-        <CategoryList />
+        <MaterialCategoryList />
       </Suspense>
     </>
   );

@@ -11,7 +11,7 @@ interface CategoryFormProps {
   initialData?: MaterialCategoryModel | null;
 }
 
-export function CategoryForm({ initialData = null }: CategoryFormProps) {
+export function MaterialCategoryForm({ initialData = null }: CategoryFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);

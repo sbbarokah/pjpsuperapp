@@ -1,6 +1,6 @@
 import Breadcrumb from "@/components/ui/breadcrumb";
 import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
-import { CategoryForm } from "../_components/category_form";
+import { MaterialCategoryForm } from "../_components/mcategory_form";
 
 export const metadata = {
   title: "Tambah Kategori Materi | Admin",
@@ -20,7 +20,7 @@ export default async function CreateKategoriMateriPage() {
     <>
       <Breadcrumb pageName="Tambah Kategori Materi" />
       <div className="rounded-lg border border-stroke bg-white p-6.5 shadow-default dark:border-strokedark dark:bg-boxdark">
-        <CategoryForm />
+        <MaterialCategoryForm />
       </div>
     </>
   );

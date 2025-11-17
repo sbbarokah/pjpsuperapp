@@ -6,8 +6,8 @@ import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FaEdit, FaTrashAlt, FaBookOpen } from "react-icons/fa";
-import { MaterialWithRelations } from "@/lib/types/material.types";
 import { deleteMaterialAction } from "../actions";
+import { MaterialWithRelations } from "@/lib/types/material.types";
 import { SelectGroupV2 } from "@/components/forms/select_group_v2";
 
 interface ListProps {
@@ -74,6 +74,7 @@ export function MaterialListClient({ materials, categories, profile }: ListProps
           <p>Tidak ada materi ditemukan untuk kategori ini.</p>
         </div>
       ) : (
+        // Ini sudah menggunakan layout grid kartu
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {materials.map((mat) => (
             <div key={mat.id} className="flex flex-col rounded-lg border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
@@ -86,7 +87,7 @@ export function MaterialListClient({ materials, categories, profile }: ListProps
                   {mat.material_name}
                 </h3>
               </div>
-              <div className="p-4 flex-grow">
+              <div className="p-4 flex-grow min-h-[100px]">
                 <p className="text-sm line-clamp-3 mb-2">
                   <strong>Deskripsi:</strong> {mat.description || "-"}
                 </p>
@@ -96,13 +97,13 @@ export function MaterialListClient({ materials, categories, profile }: ListProps
               </div>
               {canMutate && (
                 <div className="p-4 border-t dark:border-strokedark flex justify-end items-center gap-3">
-                  <Link href={`/admin/materi/edit/${mat.id}`} className="text-blue-500 hover:text-blue-700">
+                  <Link href={`/admin/materi/edit/${mat.id}`} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-sm">
                     <FaEdit /> Edit
                   </Link>
                   <button
                     onClick={() => handleDelete(mat.id, mat.material_name)}
                     disabled={isPending}
-                    className="text-red-500 hover:text-red-700 disabled:opacity-50 flex items-center gap-1"
+                    className="text-red-500 hover:text-red-700 disabled:opacity-50 flex items-center gap-1 text-sm"
                   >
                     <FaTrashAlt /> Hapus
                   </button>
