@@ -18,6 +18,7 @@ export function MaterialForm({ categories, initialData = null }: MaterialFormPro
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const isEditMode = !!initialData;
 
@@ -47,7 +48,7 @@ export function MaterialForm({ categories, initialData = null }: MaterialFormPro
       if (!response.success) {
         setError(response.message);
       } else {
-        alert(response.message);
+        setSuccess(response.message || "Materi kurikulum berhasil disimpan.");
         router.push("/material");
         router.refresh();
       }
@@ -91,6 +92,10 @@ export function MaterialForm({ categories, initialData = null }: MaterialFormPro
           <div className="rounded border border-red-500 bg-red-100 p-3 text-sm text-red-700">
             <p>{error}</p>
           </div>
+        )}
+        
+        {success && (
+          <div className="rounded border border-green-500 bg-green-100 p-3 text-sm text-green-700"><p>{success}</p></div>
         )}
 
         <button

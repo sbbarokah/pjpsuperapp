@@ -171,10 +171,10 @@ export function DocumentForm({
 
         {/* --- Pesan Error/Sukses --- */}
         {error && (
-          <div className="my-4 rounded border border-red-500 bg-red-100 p-3 text-sm text-red-700"><p>{error}</p></div>
+          <div className="rounded border border-red-500 bg-red-100 p-3 text-sm text-red-700"><p>{error}</p></div>
         )}
         {success && (
-          <div className="my-4 rounded border border-green-500 bg-green-100 p-3 text-sm text-green-700"><p>{success}</p></div>
+          <div className="rounded border border-green-500 bg-green-100 p-3 text-sm text-green-700"><p>{success}</p></div>
         )}
 
         {/* --- Tombol Submit --- */}

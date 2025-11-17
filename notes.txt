@@ -668,3 +668,9 @@ FOR ALL USING (
   (SELECT role FROM public.profile WHERE user_id = auth.uid()) = 'superadmin' OR
   (SELECT role FROM public.profile WHERE user_id = auth.uid()) = 'admin_desa'
 );
+
+ALTER TABLE public.material
+ADD CONSTRAINT fk_material_author_profile
+FOREIGN KEY (author_user_id)
+REFERENCES public.profile(user_id)
+ON DELETE SET NULL;

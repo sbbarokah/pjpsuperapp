@@ -15,6 +15,7 @@ export function MaterialCategoryForm({ initialData = null }: CategoryFormProps) 
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const isEditMode = !!initialData;
 
@@ -42,7 +43,7 @@ export function MaterialCategoryForm({ initialData = null }: CategoryFormProps) 
       if (!response.success) {
         setError(response.message);
       } else {
-        alert(response.message);
+        setSuccess(response.message || "Kategori materi berhasil disimpan.");
         router.push("/mcategories");
         router.refresh();
       }
@@ -72,6 +73,10 @@ export function MaterialCategoryForm({ initialData = null }: CategoryFormProps) 
           <div className="rounded border border-red-500 bg-red-100 p-3 text-sm text-red-700">
             <p>{error}</p>
           </div>
+        )}
+
+        {success && (
+          <div className="rounded border border-green-500 bg-green-100 p-3 text-sm text-green-700"><p>{success}</p></div>
         )}
 
         <button
