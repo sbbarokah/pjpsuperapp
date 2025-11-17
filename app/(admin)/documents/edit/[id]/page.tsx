@@ -3,10 +3,10 @@ import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
 import { getGroupsByVillage } from "@/lib/services/masterService";
 import { getDocumentById } from "@/lib/services/documentService";
 import { notFound } from "next/navigation";
-import { DocumentForm } from "../_components/document_form";
+import { DocumentForm } from "../../_components/document_form";
 
 export const metadata = {
-  title: "Edit Berkas | Admin",
+  title: "Ubah Berkas | Admin",
 };
 
 interface EditPageProps {
@@ -38,7 +38,7 @@ export default async function EditDocumentPage(propsPromise: Promise<EditPagePro
   if (!canEdit) {
     return (
       <>
-        <Breadcrumb pageName="Akses Ditolak" />
+        <Breadcrumb pageName="Akses Ditolak" showNav={false} />
         <div className="rounded-lg border border-stroke bg-white p-6.5 shadow-default dark:border-strokedark dark:bg-boxdark">
           <p className="text-red-500">
             Anda tidak memiliki izin untuk mengedit berkas ini.
@@ -56,13 +56,13 @@ export default async function EditDocumentPage(propsPromise: Promise<EditPagePro
 
   return (
     <>
-      <Breadcrumb pageName="Edit Berkas" />
+      <Breadcrumb pageName="Ubah Berkas" showNav={false} />
       <div className="grid grid-cols-1 gap-9">
         <div className="flex flex-col gap-9">
           <div className="rounded-lg border border-stroke bg-white p-6.5 shadow-default dark:border-strokedark dark:bg-boxdark">
-            <h3 className="mb-4.5 text-xl font-semibold text-black dark:text-white">
+            {/* <h3 className="mb-4.5 text-xl font-semibold text-black dark:text-white">
               Formulir Edit Berkas
-            </h3>
+            </h3> */}
             <DocumentForm
               admin={profile}
               groups={groups}

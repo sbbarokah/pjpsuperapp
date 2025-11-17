@@ -40,13 +40,13 @@ export default async function NewDocumentPage() {
 
   return (
     <>
-      <Breadcrumb pageName="Tambah Berkas Baru" />
+      <Breadcrumb pageName="Tambah Berkas Baru" showNav={false} />
       <div className="grid grid-cols-1 gap-9">
         <div className="flex flex-col gap-9">
           <div className="rounded-lg border border-stroke bg-white p-6.5 shadow-default dark:border-strokedark dark:bg-boxdark">
-            <h3 className="mb-4.5 text-xl font-semibold text-black dark:text-white">
+            {/* <h3 className="mb-4.5 text-xl font-semibold text-black dark:text-white">
               Formulir Berkas
-            </h3>
+            </h3> */}
             <DocumentForm
               admin={profile}
               groups={groups}
