@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+
 // 2. SelectGroupV2 (untuk Dropdown)
 export const SelectGroupV2 = ({
   label,
@@ -7,6 +9,7 @@ export const SelectGroupV2 = ({
   required,
   options,
   disabled = false,
+  className
 }: {
   label: string;
   name: string;
@@ -15,8 +18,9 @@ export const SelectGroupV2 = ({
   required?: boolean;
   options: { value: string | number; label: string }[];
   disabled?: boolean;
+  className?: string;
 }) => (
-  <div className="mb-4.5">
+  <div className={cn("mb-4.5", className)}>
     <label className="mb-2.5 block font-medium text-black dark:text-white">
       {label} {required && <span className="text-meta-1">*</span>}
     </label>

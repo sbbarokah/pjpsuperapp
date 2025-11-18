@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+
 // 3. TextAreaGroup (untuk Esai)
 export const TextAreaGroupV2 = ({
   label,
@@ -6,6 +8,7 @@ export const TextAreaGroupV2 = ({
   value,
   onChange,
   rows = 4,
+  className
 }: {
   label: string;
   name: string;
@@ -13,8 +16,9 @@ export const TextAreaGroupV2 = ({
   value: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   rows?: number;
+  className?: string;
 }) => (
-  <div className="mb-4.5">
+  <div className={cn("mb-4.5", className)}>
     <label className="mb-2.5 block font-medium text-black dark:text-white">
       {label}
     </label>
