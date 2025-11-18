@@ -86,7 +86,9 @@ export async function createEvaluationAction(
     category_id: payload.category_id,
     period_month: payload.period_month,
     period_year: payload.period_year,
-    notes: payload.notes, // Menggunakan 'notes'
+    challenges: payload.challenges,
+    solutions: payload.solutions,
+    notes: payload.notes,
     raw_data: raw_data,
   };
 

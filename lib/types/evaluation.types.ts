@@ -23,7 +23,9 @@ export type EvaluationRecapModel = {
   category_id: number;
   period_month: number;
   period_year: number;
-  notes?: string | null; // 'evaluation' dihapus
+  challenges?: string | null;
+  solutions?: string | null;
+  notes?: string | null;
   raw_data: EvaluationRawData;
 };
 
@@ -46,6 +48,8 @@ export type CreateEvaluationPayload = {
   category_id: number;
   period_month: number;
   period_year: number;
+  challenges?: string | null;
+  solutions?: string | null;
   notes?: string | null;
   evaluationRows: EvaluationRowState[];
 };

@@ -60,6 +60,8 @@ export function EvaluationRecapForm({
     category_id: String(initialData?.category_id || ""),
     period_month: String(initialData?.period_month || new Date().getMonth() + 1),
     period_year: String(initialData?.period_year || currentYear),
+    challenges: initialData?.challenges || "",
+    solutions: initialData?.solutions || "",
     notes: initialData?.notes || "",
   });
 
@@ -235,8 +237,10 @@ export function EvaluationRecapForm({
       category_id: Number(formData.category_id),
       period_month: Number(formData.period_month),
       period_year: Number(formData.period_year),
-      notes: formData.notes, // Menggunakan 'notes'
-      evaluationRows: evaluationRows, // Kirim state baris
+      challenges: formData.challenges,
+      solutions: formData.solutions,
+      notes: formData.notes,
+      evaluationRows: evaluationRows,
     };
 
     console.log("isi payload", payload);
@@ -319,6 +323,22 @@ export function EvaluationRecapForm({
         <hr className="my-4"/>
         
         {/* --- Bagian 2: Catatan Umum --- */}
+        <TextAreaGroupV2
+          label="Tantangan KBM (Opsional)"
+          name="challenges"
+          value={formData.challenges}
+          onChange={handleFormChange}
+          placeholder="Tuliskan tantangan KBM untuk periode ini..."
+          rows={3}
+        />
+        <TextAreaGroupV2
+          label="Solusi (Opsional)"
+          name="solutions"
+          value={formData.solutions}
+          onChange={handleFormChange}
+          placeholder="Tuliskan solusi atas tantangan pada periode ini (bisa dari hasil muroh PJP, Muslimun, atau usulan pengajar)..."
+          rows={3}
+        />
         <TextAreaGroupV2
           label="Catatan Umum (Opsional)"
           name="notes"

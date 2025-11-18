@@ -54,7 +54,21 @@ akun:
 superadmin@pjpsuperapp.com
 superadmin: pjpsuksesb4r0k4H
 
-Struktur Database:
+
+Mekanisme "Sync" / "Auto-Fill" laporan KBM:
+
+Jika user mengisi Rekap Presensi, sistem otomatis meng-update (atau membuat draft) row di kbm_reports (kolom count_male/female, attendance_%).
+
+Jika user mengisi Rekap Penilaian, sistem otomatis meng-update row di kbm_reports (kolom achievement_... atau program_success).
+
+Jika user Manual, mereka mengedit kbm_reports secara langsung (menimpa data otomatis).
+
+
+
+/********************************
+* Struktur Database:
+********************************/
+
 Ringkasan Arsitektur
 Auth: Kita gunakan tabel auth.users bawaan Supabase.
 Role: Kita simpan role di auth.users.user_metadata (seperti yang kita putuskan).

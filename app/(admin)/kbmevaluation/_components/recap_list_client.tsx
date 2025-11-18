@@ -39,7 +39,7 @@ const RecapCard = ({
       <div className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
         <FaBook className="mt-1 flex-shrink-0" />
         <p className="line-clamp-3">
-          <span className="font-medium">Evaluasi:</span> {recap.notes || "-"}
+          <span className="font-medium">Catatan:</span> {recap.notes || "-"}
         </p>
       </div>
     </div>
