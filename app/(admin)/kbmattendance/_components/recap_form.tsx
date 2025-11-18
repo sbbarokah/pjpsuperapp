@@ -196,7 +196,6 @@ export function AttendanceRecapForm({
         setError(response.message || "Terjadi kesalahan.");
       } else {
         setSuccess(response.message || "Rekap berhasil disimpan.");
-        alert(response.message);
         router.push("/kbmattendance");
         router.refresh();
       }

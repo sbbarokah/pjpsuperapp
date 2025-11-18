@@ -11,7 +11,10 @@ export const metadata = {
 
 interface EditPageProps { params: { id: string } }
 
-export default async function EditRecapPage({ params }: EditPageProps) {
+export default async function EditRecapPage(propsPromise: Promise<EditPageProps>) {
+  const { params } = await propsPromise;
+  const { id } = await params;
+
   let profile;
   try {
     profile = (await getAuthenticatedUserAndProfile()).profile;
@@ -25,7 +28,7 @@ export default async function EditRecapPage({ params }: EditPageProps) {
   }
 
   // Ambil data rekap yang ada
-  const recapData = await getAttendanceRecapById(params.id);
+  const recapData = await getAttendanceRecapById(id);
   if (!recapData) {
     notFound();
   }
