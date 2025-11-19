@@ -62,6 +62,8 @@ export function RecapListClient({ recaps, profile }: ListProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  console.log("RecapListClient recaps:", recaps);
   
   const handleDelete = (id: string, groupName: string, catName: string) => {
     if (window.confirm(`Hapus rekap penilaian ${groupName} - ${catName}?`)) {

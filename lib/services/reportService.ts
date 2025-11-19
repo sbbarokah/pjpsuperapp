@@ -1,9 +1,12 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/server_admin";
-import { CreateKbmReportDto, KbmReportModel, KbmReportWithRelations } from "@/lib/types/report.types";
+import { CreateKbmReportDto, KbmDetailContext, KbmDetailData, KbmReportModel, KbmReportWithRelations } from "@/lib/types/report.types";
 import { Profile } from "../types/user.types";
 import { validateUserRole } from "./authService";
+import { CategoryModel } from "../types/master.types";
+import { AttendanceRecapModel } from "../types/attendance.types";
+import { EvaluationRecapModel } from "../types/evaluation.types";
 
 /**
  * Membuat Laporan KBM baru di database.
@@ -171,4 +174,153 @@ export async function getKbmReportsByPeriod({
     return [];
   }
   return data as KbmReportWithRelations[];
+}
+
+/**
+ * Mengambil daftar BULAN & TAHUN yang memiliki aktivitas apa pun
+ * (baik itu Laporan Manual, Presensi, atau Penilaian).
+ */
+export async function getAvailableReportPeriods(
+  villageId: number,
+  groupId?: number // Opsional: Jika admin_kelompok, kita filter lebih spesifik
+): Promise<AggregatedPeriod[]> {
+  const supabase = createAdminClient();
+
+  // Helper untuk query standar
+  const getPeriods = async (table: string) => {
+    let query = supabase
+      .from(table)
+      .select("period_month, period_year")
+      .eq("village_id", villageId); // Filter Desa Wajib
+
+    if (groupId) {
+      query = query.eq("group_id", groupId); // Filter Kelompok Opsional
+    }
+    
+    // Kita tidak perlu data banyak, cukup distinct rows jika memungkinkan
+    // (Supabase JS client tidak punya .distinct() langsung yg mudah, jadi kita filter di JS)
+    return query;
+  };
+
+  // 1. Jalankan 3 Query secara Paralel (Efisien)
+  const [kbmRes, attRes, evalRes] = await Promise.all([
+    getPeriods("kbm_reports"),
+    getPeriods("attendance_recap"),
+    getPeriods("evaluation_recap"),
+  ]);
+
+  // Cek error (log only)
+  if (kbmRes.error) console.error("Error fetching KBM periods:", kbmRes.error);
+  if (attRes.error) console.error("Error fetching Attendance periods:", attRes.error);
+  if (evalRes.error) console.error("Error fetching Evaluation periods:", evalRes.error);
+
+  // 2. Gabungkan semua hasil
+  const allData = [
+    ...(kbmRes.data || []),
+    ...(attRes.data || []),
+    ...(evalRes.data || []),
+  ];
+
+  if (allData.length === 0) {
+    return [];
+  }
+
+  // 3. De-duplikasi (Hanya ambil kombinasi bulan-tahun unik)
+  const uniquePeriodsMap = new Map<string, AggregatedPeriod>();
+  
+  allData.forEach((item) => {
+    // Kunci unik: "2025-10"
+    const key = `${item.period_year}-${item.period_month}`;
+    if (!uniquePeriodsMap.has(key)) {
+      uniquePeriodsMap.set(key, {
+        period_month: item.period_month,
+        period_year: item.period_year,
+      });
+    }
+  });
+
+  // 4. Urutkan (Terbaru di atas)
+  const sortedPeriods = Array.from(uniquePeriodsMap.values()).sort((a, b) => {
+    if (a.period_year !== b.period_year) {
+      return b.period_year - a.period_year; // Tahun descending
+    }
+    return b.period_month - a.period_month; // Bulan descending
+  });
+
+  return sortedPeriods;
+}
+
+/**
+ * New for handle kbm report from attendance and evaluation recap and report table
+ * get detail kbm report
+ */
+
+export async function getKbmGroupDetailData(
+  groupId: number,
+  month: number,
+  year: number
+): Promise<KbmDetailContext> {
+  const supabase = createAdminClient();
+  
+  // 1. Fetch Data Utama (Paralel)
+  const [
+    groupRes,
+    categoriesRes,
+    studentsRes,
+    materialsRes,
+    matCatsRes,
+    attRes,
+    evalRes,
+    kbmRes
+  ] = await Promise.all([
+    supabase.from("group").select("name").eq("id", groupId).single(),
+    supabase.from("category").select("*").order("id"),
+    supabase.from("profile").select("user_id, full_name").eq("group_id", groupId).eq("role", "user"),
+    supabase.from("material").select("id, material_name"),
+    supabase.from("material_category").select("id, name"),
+    
+    // Data Transaksional
+    supabase.from("attendance_recap").select("*").eq("group_id", groupId).eq("period_month", month).eq("period_year", year),
+    supabase.from("evaluation_recap").select("*").eq("group_id", groupId).eq("period_month", month).eq("period_year", year),
+    supabase.from("kbm_reports").select("*").eq("group_id", groupId).eq("period_month", month).eq("period_year", year),
+  ]);
+
+  console.log("isi attendance", attRes);
+  console.log("isi evaluation", evalRes);
+  console.log("isi kbm report", kbmRes);
+
+  // 2. Mapping Helper (ID -> Nama) untuk lookup cepat di UI
+  const studentsMap = new Map<string, string>();
+  studentsRes.data?.forEach(s => studentsMap.set(s.user_id, s.full_name));
+
+  const materialsMap = new Map<string, string>();
+  materialsRes.data?.forEach(m => materialsMap.set(m.id, m.material_name));
+
+  const matCatsMap = new Map<string, string>();
+  matCatsRes.data?.forEach(mc => matCatsMap.set(String(mc.id), mc.name));
+
+  // 3. Susun Data per Kategori
+  const categories = categoriesRes.data as CategoryModel[] || [];
+  const attendanceRecaps = attRes.data as AttendanceRecapModel[] || [];
+  const evaluationRecaps = evalRes.data as EvaluationRecapModel[] || [];
+  const kbmReports = kbmRes.data as KbmReportModel[] || [];
+
+  const combinedData: KbmDetailData[] = categories.map(cat => {
+    return {
+      category: cat,
+      attendance: attendanceRecaps.find(a => a.category_id.toString() === cat.id.toString()),
+      evaluation: evaluationRecaps.find(e => e.category_id.toString() === cat.id.toString()),
+      manualReport: kbmReports.find(k => k.category_id === cat.id),
+    };
+  });
+
+  console.log("isi combinedData", combinedData);
+
+  return {
+    groupName: groupRes.data?.name || "Kelompok",
+    students: studentsMap,
+    materials: materialsMap,
+    materialCategories: matCatsMap,
+    data: combinedData
+  };
 }

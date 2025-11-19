@@ -1,3 +1,5 @@
+import { AttendanceRecapModel } from "./attendance.types";
+import { EvaluationRawData, EvaluationRecapModel } from "./evaluation.types";
 import { CategoryModel, GroupModel, VillageModel } from "./master.types";
 
 export type KbmReportModel = {
@@ -16,19 +18,10 @@ export type KbmReportModel = {
   attendance_present_percentage: number;
   attendance_permission_percentage: number;
   attendance_absent_percentage: number;
-  achievement_quran_meaning?: string | null;
-  achievement_hadith_meaning?: string | null;
-  achievement_quran_reading?: string | null;
-  achievement_surah_memorization?: string | null;
-  achievement_dalil_memorization?: string | null;
-  achievement_prayer_memorization?: string | null;
-  achievement_tajwid?: string | null;
-  achievement_writing?: string | null;
-  achievement_asmaul_husna?: string | null;
-  achievement_practices?: string | null;
-  achievement_character?: string | null;
+  raw_data: EvaluationRawData;
   program_success_info?: string | null;
   challenges_info?: string | null;
+  solution_info?: string | null;
 };
 
 // 2. Tipe DTO (Data Transfer Object)
@@ -45,4 +38,23 @@ export type KbmReportWithRelations = KbmReportModel & {
   category: Pick<CategoryModel, "name">;
   group: Pick<GroupModel, "name">;
   village: Pick<VillageModel, "name">;
+};
+
+/**
+ * Untuk detail laporan KBM dengan relasi lengkap
+ */
+
+export type KbmDetailData = {
+  category: CategoryModel;
+  attendance?: AttendanceRecapModel | null;
+  evaluation?: EvaluationRecapModel | null;
+  manualReport?: KbmReportModel | null;
+};
+
+export type KbmDetailContext = {
+  groupName: string;
+  students: Map<string, string>; // ID -> Name
+  materials: Map<string, string>; // ID -> Name
+  materialCategories: Map<string, string>; // ID -> Name
+  data: KbmDetailData[];
 };

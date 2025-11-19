@@ -89,19 +89,15 @@ export function EvaluationRecapForm({
         if (matCatResponse.success) setMaterialCategories(matCatResponse.data || []);
 
         // 3. De-pivot raw_data ke state form
-        const rowsFromData = Object.entries(initialData.raw_data).map(
-          ([material_id, data]) => {
-            // Cari kategori materi dari materi yang sudah di-fetch
-            const material = (materialResponse.data || []).find(m => m.id === material_id);
-            return {
-              temp_id: crypto.randomUUID(),
-              material_category_id: String(material?.material_category_id || ""),
-              material_id: material_id,
-              scores: data.scores,
-              evaluation_note: data.evaluation_note,
-            };
-          }
-        );
+        const rowsFromData: EvaluationRowState[] = initialData.raw_data.map((item) => ({
+          temp_id: crypto.randomUUID(), // Buat ID sementara baru untuk React key
+          material_category_id: item.material_category_id,
+          material_category_name: item.material_category_name,
+          material_id: item.material_id,
+          material_name: item.material_name,
+          scores: item.scores,
+          evaluation_note: item.evaluation_note,
+        }));
         setEvaluationRows(rowsFromData);
         setIsLoading(false);
       }
@@ -172,8 +168,10 @@ export function EvaluationRecapForm({
       ...prev,
       {
         temp_id: crypto.randomUUID(),
-        material_category_id: "", // [BARU]
+        material_category_id: "",
+        material_category_name: "",
         material_id: "",
+        material_name: "",
         scores: {},
         evaluation_note: "",
       }

@@ -2,14 +2,26 @@ import { CategoryModel, GroupModel, VillageModel } from "./master.types";
 import { Profile } from "./user.types";
 
 /**
- * [REVISI] Struktur data mentah yang disimpan di JSONB
- * Key 1: material_id
+ * 
  */
-export type EvaluationRawDataEntry = {
-  scores: Record<string, string>; // Key 2: user_id, Value: score
-  evaluation_note: string;         // Catatan evaluasi per materi
+export type EvaluationEntry = {
+  material_id: string;
+  material_name: string;
+  material_category_id: string; // [PENTING] Untuk grouping laporan nanti
+  material_category_name: string;
+  scores: Record<string, string>; 
+  evaluation_note: string;
 };
-export type EvaluationRawData = Record<string, EvaluationRawDataEntry>;
+
+export type EvaluationRawData = EvaluationEntry[];
+
+// export type EvaluationRawDataEntry = {
+//   material_category_id: string;   // ID kategori materi
+//   material_id: string;            // ID materi
+//   scores: Record<string, string>; // Key 2: user_id, Value: score
+//   evaluation_note: string;         // Catatan evaluasi per materi
+// };
+// export type EvaluationRawData = Record<string, EvaluationRawDataEntry>;
 
 /**
  * [REVISI] Model data dari tabel evaluation_recap
@@ -35,7 +47,9 @@ export type EvaluationRecapModel = {
 export type EvaluationRowState = {
   temp_id: string; // ID unik sementara
   material_id: string; // ID dari tabel 'material'
+  material_name: string;
   material_category_id: string; // ID dari tabel 'material category'
+  material_category_name: string;
   scores: Record<string, string>; // { "user_id_1": "A", "user_id_2": "B" }
   evaluation_note: string; // [BARU] Catatan evaluasi per baris
 };

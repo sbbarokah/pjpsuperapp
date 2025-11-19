@@ -751,6 +751,12 @@ FOR ALL USING (
   (SELECT role FROM public.profile WHERE user_id = auth.uid()) = 'admin_kelompok'
 );
 
+ALTER TABLE public.attendance_recap
+ADD CONSTRAINT fk_attendance_author_profile
+FOREIGN KEY (author_user_id)
+REFERENCES public.profile(user_id)
+ON DELETE SET NULL;
+
 /****************************
 * STUDENT EVALUATION REPORT MODULE
 *****************************/
@@ -795,3 +801,31 @@ FOR ALL USING (
   (SELECT role FROM public.profile WHERE user_id = auth.uid()) = 'admin_desa' OR
   (SELECT role FROM public.profile WHERE user_id = auth.uid()) = 'admin_kelompok'
 );
+
+ALTER TABLE public.evaluation_recap
+ADD CONSTRAINT fk_evaluation_author_profile
+FOREIGN KEY (author_user_id)
+REFERENCES public.profile(user_id)
+ON DELETE SET NULL;
+
+## Penyesuaian table report : 
+menghilangkan achievement_*, diganti dengan raw_data
+
+/* Hapus kolom-kolom lama */
+ALTER TABLE public.kbm_reports 
+DROP COLUMN IF EXISTS achievement_quran_meaning,
+DROP COLUMN IF EXISTS achievement_hadith_meaning,
+DROP COLUMN IF EXISTS achievement_quran_reading,
+DROP COLUMN IF EXISTS achievement_writing,
+DROP COLUMN IF EXISTS achievement_surah_memorization,
+DROP COLUMN IF EXISTS achievement_dalil_memorization,
+DROP COLUMN IF EXISTS achievement_prayer_memorization,
+DROP COLUMN IF EXISTS achievement_asmaul_husna,
+DROP COLUMN IF EXISTS achievement_tajwid,
+DROP COLUMN IF EXISTS achievement_practices,
+DROP COLUMN IF EXISTS achievement_character;
+
+/* Tambahkan kolom raw_data */
+/* Struktur: { "material_id": "Catatan pencapaian..." } */
+ALTER TABLE public.kbm_reports 
+ADD COLUMN IF NOT EXISTS raw_data JSONB DEFAULT '{}'::jsonb;

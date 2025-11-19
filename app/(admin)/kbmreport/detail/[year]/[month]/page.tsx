@@ -1,131 +1,128 @@
 import Breadcrumb from "@/components/ui/breadcrumb";
 import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
-import { getGroupsByVillage, getCategories } from "@/lib/services/masterService";
-import { notFound } from "next/navigation";
-import { GroupModel, CategoryModel } from "@/lib/types/master.types";
-import { getKbmReportsByPeriod } from "@/lib/services/reportService";
-import { KbmReportWithRelations } from "@/lib/types/report.types";
-import { KbmReportTables } from "../../../_components/kbm_report_table";
+import { notFound, redirect } from "next/navigation";
+import { getGroupsByVillage } from "@/lib/services/masterService";
+import { monthOptions } from "@/lib/constants";
+import { GroupSelector } from "./_components/group_selector";
+import { GroupModel } from "@/lib/types/master.types";
+import { getKbmGroupDetailData } from "@/lib/services/reportService";
+import { KbmCategorySection } from "../../../_components/kbm_category_section";
 
 export const metadata = {
-  title: "Laporan Konsolidasi KBM | Admin",
+  title: "Detail Laporan KBM | Admin",
 };
 
-interface DetailPageProps {
-  params: {
+interface PageProps {
+  params: Promise<{
     year: string;
     month: string;
-  };
+  }>;
+  searchParams: Promise<{
+    groupId?: string;
+    group_id?: string; // Handle kemungkinan snake_case dari url manual
+  }>;
 }
 
-/**
- * Tipe data agregasi yang disederhanakan, HANYA untuk KBM.
- */
-export type AggregatedKbmGroupData = {
-  group: GroupModel;
-  kbmReports: KbmReportWithRelations[]; // Laporan KBM mentah per kategori
-};
-
-// --- LOGIKA AGREGASI (Sederhana) ---
-function aggregateKbmData(
-  groups: GroupModel[],
-  kbmReports: KbmReportWithRelations[],
-): AggregatedKbmGroupData[] {
-  
-  const dataMap = new Map<number | string, AggregatedKbmGroupData>();
-
-  // 1. Inisialisasi Peta dengan semua kelompok di desa
-  for (const group of groups) {
-    dataMap.set(group.id, {
-      group: group,
-      kbmReports: [],
-    });
-  }
-
-  // 2. Masukkan KBM Reports ke Peta
-  for (const report of kbmReports) {
-    const groupId = parseInt(String(report.group_id), 10); 
-    const data = dataMap.get(groupId);
-    
-    if (data) {
-      data.kbmReports.push(report); // Tambah ke daftar mentah
-    }
-  }
-
-  // 3. Konversi Peta kembali ke Array
-  return Array.from(dataMap.values());
-}
-
-// --- Komponen Halaman Utama ---
-export default async function KbmReportDetailPage({ params }: DetailPageProps) {
-  const { year, month } = await params;
-
-  const yearParam = parseInt(year, 10);
-  const monthParam = parseInt(month, 10);
-  const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-  const periodLabel = `${monthNames[monthParam - 1]} ${yearParam}`;
-
-  if (isNaN(yearParam) || isNaN(monthParam)) {
-    notFound();
-  }
-
+export default async function GroupKbmDetailPage({ params, searchParams }: PageProps) {
+  // 1. Validasi User
   let profile;
   try {
     const authData = await getAuthenticatedUserAndProfile();
     profile = authData.profile;
   } catch (error) {
-    notFound();
+    return <Breadcrumb pageName="Akses Ditolak" />;
   }
 
-  if (profile.role !== "admin_desa" || !profile.village_id) {
-    return (
-      <>
-        <Breadcrumb pageName="Akses Ditolak" />
-        <p>Hanya Admin Desa yang dapat mengakses halaman ini.</p>
-      </>
-    );
+  const { year: yearStr, month: monthStr } = await params;
+  const awaitedSearchParams = await searchParams;
+  
+  // Ambil groupId dari searchParams (dukung camelCase 'groupId' atau snake_case 'group_id')
+  const groupIdStr = awaitedSearchParams.groupId || awaitedSearchParams.group_id;
+
+  const year = parseInt(yearStr);
+  const month = parseInt(monthStr);
+  
+  if (isNaN(year) || isNaN(month)) notFound();
+
+  const isAdminDesa = profile.role === 'admin_desa';
+  const isAdminKelompok = profile.role === 'admin_kelompok';
+  
+  let targetGroupId = 0;
+  let availableGroups: GroupModel[] = [];
+
+  // 2. Logika Penentuan Group ID
+  if (isAdminKelompok) {
+    // Admin Kelompok HANYA boleh melihat grupnya sendiri
+    targetGroupId = Number(profile.group_id);
+    
+    // Validasi: Jika dia coba ganti groupId di URL, kita bisa redirect atau abaikan
+    if (groupIdStr && parseInt(groupIdStr) !== targetGroupId) {
+        // Opsional: Redirect paksa untuk membersihkan URL agar tidak membingungkan
+        // redirect(`/admin/report/detail-group/${year}/${month}`);
+    }
+  } 
+  else if (isAdminDesa && profile.village_id) {
+    // Admin Desa: Ambil semua grup
+    availableGroups = await getGroupsByVillage(profile.village_id);
+    
+    if (availableGroups.length === 0) {
+        return <div className="p-6">Tidak ada kelompok di desa ini.</div>;
+    }
+
+    // Cek apakah ada groupId di URL (dari dropdown)
+    const paramGroupId = groupIdStr ? parseInt(groupIdStr) : null;
+
+    if (paramGroupId && availableGroups.some(g => g.id === paramGroupId)) {
+        // Jika valid dan ada di daftar, gunakan itu
+        targetGroupId = paramGroupId;
+    } else {
+        // Default: Ambil index ke-0 jika tidak ada param atau param salah
+        targetGroupId = Number(availableGroups[0].id);
+    }
+  } else {
+     return <Breadcrumb pageName="Akses Ditolak" />;
   }
 
-  const villageId = profile.village_id;
+  // 3. Ambil Data Lengkap
+  const context = await getKbmGroupDetailData(targetGroupId, month, year);
+  const monthName = monthOptions.find(m => m.value.toString() == String(month))?.label || month;
 
-  // 1. Ambil data mentah (TANPA meetingReports)
-  const [
-    groups,
-    categories,
-    kbmReports,
-  ] = await Promise.all([
-    getGroupsByVillage(villageId),
-    getCategories(),
-    getKbmReportsByPeriod({ villageId, year: yearParam, month: monthParam }),
-  ]);
-
-  // 2. Lakukan Agregasi Data
-  const aggregatedData = aggregateKbmData(groups, kbmReports);
-  console.log("isi kbm", kbmReports[0]);
-
-  // 3. Ambil Nama Desa
-  // Ambil dari profil karena kita tidak mengambil data relasi desa
-  const villageName = kbmReports[0]?.village?.name || `Desa (ID: ${profile.village_id})`;
-  // const villageName = aggregatedData[0]?.meetingReport?.village?.name || "Desa";
+  console.log("isi context", context);
 
   return (
     <>
-      <Breadcrumb pageName={`Laporan KBM: ${villageName}`} />
-      <div className="rounded-lg border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark">
-        <h2 className="mb-2 text-2xl font-semibold text-black dark:text-white">
-          Laporan KBM Desa {villageName}
+      <Breadcrumb pageName={`Laporan KBM: ${context.groupName}`} />
+      
+      {/* Dropdown Seleksi Grup (Hanya Admin Desa) */}
+      {isAdminDesa && availableGroups.length > 0 && (
+        <GroupSelector 
+          groups={availableGroups} 
+          selectedGroupId={targetGroupId} 
+          year={year} 
+          month={month} 
+        />
+      )}
+      
+      <div className="mb-6 rounded-lg border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark">
+        <h2 className="text-2xl font-bold text-black dark:text-white">
+          Laporan Kegiatan Belajar Mengajar
         </h2>
-        <p className="text-lg font-medium">
-          Periode: <span className="text-primary">{periodLabel}</span>
+        <p className="text-lg text-gray-600 dark:text-gray-400 mt-1">
+          Periode: <span className="font-medium text-primary">{monthName} {year}</span>
+        </p>
+        <p className="text-sm text-gray-500 mt-2">
+          Kelompok: <span className="font-semibold text-black dark:text-white">{context.groupName}</span>
         </p>
       </div>
 
-      {/* Kirim data ke komponen Tampilan KBM */}
-      <div className="mt-8">
-        <KbmReportTables 
-          data={aggregatedData}
-          categories={categories}
-        />
+      <div className="flex flex-col gap-10">
+        {context.data.map((item) => (
+          <KbmCategorySection 
+            key={item.category.id} 
+            data={item} 
+            context={context}
+          />
+        ))}
       </div>
     </>
   );

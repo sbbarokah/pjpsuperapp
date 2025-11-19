@@ -1,40 +1,77 @@
 import Breadcrumb from "@/components/ui/breadcrumb";
 import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
 import { Suspense } from "react";
-import { GroupReportList } from "./_components/group_report_list";
-import { VillageReportList } from "./_components/village_report_list";
 import Link from "next/link";
-
+import { getAvailableReportPeriods } from "@/lib/services/reportService";
+import { KbmPeriodCard } from "@/components/cards/kbmPeriodCard"; // Pastikan path ini benar
 
 export const metadata = {
   title: "Laporan KBM | Admin",
 };
 
-// Buat skeleton sederhana untuk 'loading state'
-// Anda bisa pindahkan ini ke file sendiri jika mau
 function CardListSkeleton() {
-   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="h-28 w-full rounded-lg bg-gray-100 dark:bg-boxdark-2 animate-pulse"></div>
+        <div key={i} className="h-32 w-full rounded-lg bg-gray-100 dark:bg-boxdark-2 animate-pulse"></div>
       ))}
     </div>
   );
 }
 
 /**
- * Halaman ini bertindak sebagai 'router' berdasarkan peran pengguna.
- * Ia akan memvalidasi pengguna dan kemudian me-render
- * komponen daftar yang sesuai.
+ * Komponen Server untuk menampilkan list
  */
+async function ReportPeriodList({ profile }: { profile: any }) {
+  const villageId = Number(profile.village_id);
+  // Jika admin kelompok, kita kirim groupId agar list hanya menampilkan bulan dimana kelompoknya aktif
+  const groupId = profile.role === 'admin_kelompok' ? Number(profile.group_id) : undefined;
+
+  if (!villageId) return <div className="text-red-500">Data profil tidak lengkap (Desa hilang).</div>;
+
+  // [PANGGIL FUNGSI BARU]
+  const periods = await getAvailableReportPeriods(villageId, groupId);
+
+  if (periods.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 p-12 text-center dark:border-gray-700">
+        <h3 className="text-lg font-medium text-black dark:text-white">
+          Belum Ada Data Laporan
+        </h3>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
+          Belum ada aktivitas presensi, penilaian, atau laporan manual yang tercatat.
+        </p>
+        {/* Tombol Call to Action */}
+        <Link
+            href="/admin/kbmreport/new" // Atau arahkan ke /admin/presensi/create jika ingin mendorong presensi dulu
+            className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90"
+          >
+            Mulai Buat Laporan
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      {periods.map((period) => (
+        <KbmPeriodCard
+          key={`${period.period_year}-${period.period_month}`}
+          period={period}
+          // Kita bisa pass role jika Card butuh logic href yang berbeda
+          // userRole={profile.role} 
+        />
+      ))}
+    </div>
+  );
+}
+
 export default async function KbmReportsPage() {
   let profile;
   try {
-    // 1. Validasi pengguna
     const authData = await getAuthenticatedUserAndProfile();
     profile = authData.profile;
   } catch (error: any) {
-    // Tangani jika tidak login
     return (
       <>
         <Breadcrumb pageName="Akses Ditolak" />
@@ -42,46 +79,28 @@ export default async function KbmReportsPage() {
       </>
     );
   }
-
-  // 2. Tentukan komponen yang akan di-render
-  let ReportViewComponent = null;
-
-  if (profile.role === "admin_kelompok") {
-    ReportViewComponent = <GroupReportList profile={profile} />;
-  } else if (profile.role === "admin_desa") {
-    ReportViewComponent = <VillageReportList profile={profile} />;
+  
+  const canAccess = profile.role === "admin_kelompok" || profile.role === "admin_desa";
+  if (!canAccess) {
+      return <p>Akses Ditolak</p>;
   }
 
-  const canCreateReport =
-    profile.role === "admin_kelompok" || profile.role === "admin_desa";
-
-  // 3. Render
   return (
     <>
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <Breadcrumb pageName="Laporan KBM" />
-
-        {/* 3. TAMBAHKAN TOMBOL BERDASARKAN KONDISI ROLE */}
-        {canCreateReport && (
-          <Link
-            // Sesuaikan href ke halaman 'create' Anda
-            href="/kbmreport/new"
-            className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"
-          >
-            Buat Laporan
-          </Link>
-        )}
+        
+        <Link
+          href="/admin/report/create" // Pastikan ini mengarah ke Form Manual (jika itu yang diinginkan)
+          className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"
+        >
+          + Input Manual
+        </Link>
       </div>
+      
       <div className="space-y-10">
         <Suspense fallback={<CardListSkeleton />}>
-          {ReportViewComponent ? (
-            ReportViewComponent
-          ) : (
-            <p>
-              Peran Anda ({profile.role}) tidak memiliki akses untuk melihat
-              laporan.
-            </p>
-          )}
+           <ReportPeriodList profile={profile} />
         </Suspense>
       </div>
     </>

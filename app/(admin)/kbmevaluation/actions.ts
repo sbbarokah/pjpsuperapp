@@ -51,12 +51,30 @@ async function checkAuth(
 function processAndBuildJson(
   rows: EvaluationRowState[]
 ): EvaluationRawData {
-  const rawData: EvaluationRawData = {};
+  // Filter baris yang kosong (tanpa materi), lalu map ke struktur baru
+  return rows
+    .filter(row => row.material_id && row.material_category_id)
+    .map(row => ({
+      material_id: row.material_id,
+      material_name: row.material_name,
+      material_category_id: row.material_category_id, // Simpan ini!
+      material_category_name: row.material_category_name,
+      scores: row.scores,
+      evaluation_note: row.evaluation_note || "",
+    }));
+}
+
+function processAndBuildJson2(
+  rows: EvaluationRowState[]
+): EvaluationRawData {
+  const rawData: any = {};
   
   for (const row of rows) {
     // Hanya proses jika material_id dipilih
     if (row.material_id) {
       rawData[row.material_id] = {
+        material_category_id: row.material_category_id,
+        material_id: row.material_id,
         scores: row.scores,
         evaluation_note: row.evaluation_note || "", // Pastikan ada string kosong
       };
