@@ -35,6 +35,7 @@ export function KbmCategorySection({
         <div className="mt-1 text-sm text-gray-600 dark:text-gray-400 flex gap-4">
            <span>Pertemuan: {attendance?.meeting_count || manualReport?.attendance_total_meetings || 0} kali</span>
            <span>Jumlah Generus: {attendance?.generus_count || manualReport?.count_total || 0} orang</span>
+           <span>(L: {attendance?.raw_data.count_male || manualReport?.count_male || 0}; P: {attendance?.raw_data.count_female || manualReport?.count_female || 0})</span>
         </div>
       </div>
 
@@ -60,7 +61,7 @@ export function KbmCategorySection({
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(attendance!.raw_data).map(([userId, stats]: [string, StudentAttendanceData]) => {
+                  {Object.entries(attendance!.raw_data.attendances).map(([userId, stats]: [string, StudentAttendanceData]) => {
                     const total = stats.p + stats.i + stats.a;
                     const percent = total > 0 ? (stats.p / total) * 100 : 0;
                     return (

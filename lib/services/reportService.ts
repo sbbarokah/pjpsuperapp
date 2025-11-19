@@ -389,6 +389,8 @@ export async function getVillageDetailData(
     updateCell(att.category_id, att.group_id, (prev) => ({
       ...prev,
       // Sensus dari Recap (jika belum ada manual)
+      count_male: att.raw_data?.count_male || 0,
+      count_female: att.raw_data?.count_female || 0,
       count_total: att.generus_count, 
       // Presensi dari Recap
       avg_present: att.present_percentage,
