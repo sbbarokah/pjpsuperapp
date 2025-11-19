@@ -7,6 +7,8 @@ import { GroupSelector } from "./_components/group_selector";
 import { GroupModel } from "@/lib/types/master.types";
 import { getKbmGroupDetailData } from "@/lib/services/reportService";
 import { KbmCategorySection } from "../../../_components/kbm_category_section";
+import Link from "next/link";
+import { FaBuilding } from "react-icons/fa";
 
 export const metadata = {
   title: "Detail Laporan KBM | Admin",
@@ -91,7 +93,19 @@ export default async function GroupKbmDetailPage({ params, searchParams }: PageP
 
   return (
     <>
-      <Breadcrumb pageName={`Laporan KBM: ${context.groupName}`} />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <Breadcrumb pageName={`Laporan KBM: ${context.groupName}`} />
+        
+        {isAdminDesa && (
+           <Link 
+             href={`/kbmreport/detail-village/${year}/${month}`}
+             className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 shadow-md"
+           >
+             <FaBuilding />
+             Lihat Rekap Desa (Matrix)
+           </Link>
+        )}
+      </div>
       
       {/* Dropdown Seleksi Grup (Hanya Admin Desa) */}
       {isAdminDesa && availableGroups.length > 0 && (

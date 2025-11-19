@@ -1,6 +1,6 @@
 import { AttendanceRecapModel } from "./attendance.types";
-import { EvaluationRawData, EvaluationRecapModel } from "./evaluation.types";
-import { CategoryModel, GroupModel, VillageModel } from "./master.types";
+import { EvaluationEntry, EvaluationRawData, EvaluationRecapModel } from "./evaluation.types";
+import { CategoryModel, GroupModel, MaterialCategoryModel, VillageModel } from "./master.types";
 
 export type KbmReportModel = {
   id: string; // UUID
@@ -57,4 +57,40 @@ export type KbmDetailContext = {
   materials: Map<string, string>; // ID -> Name
   materialCategories: Map<string, string>; // ID -> Name
   data: KbmDetailData[];
+};
+
+
+/**
+ * Types data untuk report admin_desa
+ * 
+ */
+
+// Tipe Data Normalized untuk UI
+export type VillageDataPoint = {
+  // Sensus
+  count_male: number;
+  count_female: number;
+  count_total: number;
+  
+  // Kehadiran (Rata-rata %)
+  avg_present: number;
+  avg_permission: number;
+  avg_absent: number;
+  
+  // Deskriptif
+  materials: EvaluationEntry[]; // Gabungan dari manual & recap
+  challenges: string;
+  solutions: string;
+  success_notes: string;
+};
+
+// Struktur Matriks: Map<CategoryId, Map<GroupId, DataPoint>>
+export type VillageMatrixData = Map<number, Map<number, VillageDataPoint>>;
+
+export type VillageDetailContext = {
+  villageName: string;
+  groups: GroupModel[];
+  categories: CategoryModel[];
+  materialCategories: MaterialCategoryModel[]; // Untuk label materi
+  matrix: VillageMatrixData;
 };

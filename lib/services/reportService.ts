@@ -1,12 +1,12 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/server_admin";
-import { CreateKbmReportDto, KbmDetailContext, KbmDetailData, KbmReportModel, KbmReportWithRelations } from "@/lib/types/report.types";
+import { CreateKbmReportDto, KbmDetailContext, KbmDetailData, KbmReportModel, KbmReportWithRelations, VillageDataPoint, VillageDetailContext, VillageMatrixData } from "@/lib/types/report.types";
 import { Profile } from "../types/user.types";
 import { validateUserRole } from "./authService";
 import { CategoryModel } from "../types/master.types";
 import { AttendanceRecapModel } from "../types/attendance.types";
-import { EvaluationRecapModel } from "../types/evaluation.types";
+import { EvaluationEntry, EvaluationRecapModel } from "../types/evaluation.types";
 
 /**
  * Membuat Laporan KBM baru di database.
@@ -260,7 +260,7 @@ export async function getKbmGroupDetailData(
   month: number,
   year: number
 ): Promise<KbmDetailContext> {
-  const supabase = createAdminClient();
+  const supabase = await createAdminClient();
   
   // 1. Fetch Data Utama (Paralel)
   const [
@@ -314,13 +314,137 @@ export async function getKbmGroupDetailData(
     };
   });
 
-  console.log("isi combinedData", combinedData);
-
   return {
     groupName: groupRes.data?.name || "Kelompok",
     students: studentsMap,
     materials: materialsMap,
     materialCategories: matCatsMap,
     data: combinedData
+  };
+}
+
+/***
+ * Service untuk memperoleh data laporan untuk desa
+ * 
+ */
+
+export async function getVillageDetailData(
+  villageId: number,
+  month: number,
+  year: number
+): Promise<VillageDetailContext> {
+  const supabase = await createAdminClient();
+  
+  // 1. Fetch Master Data & Transactional Data Paralel
+  const [
+    villageRes,
+    groupsRes,
+    categoriesRes,
+    matCatsRes,
+    // Data Transaksi
+    attRes,
+    evalRes,
+    kbmRes
+  ] = await Promise.all([
+    supabase.from("village").select("name").eq("id", villageId).single(),
+    supabase.from("group").select("*").eq("village_id", villageId).order("id"),
+    supabase.from("category").select("*").order("id"),
+    supabase.from("material_category").select("*").order("id"),
+    
+    supabase.from("attendance_recap").select("*").eq("village_id", villageId).eq("period_month", month).eq("period_year", year),
+    supabase.from("evaluation_recap").select("*").eq("village_id", villageId).eq("period_month", month).eq("period_year", year),
+    supabase.from("kbm_reports").select("*").eq("village_id", villageId).eq("period_month", month).eq("period_year", year),
+  ]);
+
+  // 2. Inisialisasi Matriks Kosong
+  const matrix: VillageMatrixData = new Map();
+  const categories = categoriesRes.data || [];
+  const groups = groupsRes.data || [];
+
+  categories.forEach(cat => {
+    const groupMap = new Map<number, VillageDataPoint>();
+    groups.forEach(grp => {
+      groupMap.set(grp.id, {
+        count_male: 0, count_female: 0, count_total: 0,
+        avg_present: 0, avg_permission: 0, avg_absent: 0,
+        materials: [], challenges: "", solutions: "", success_notes: ""
+      });
+    });
+    matrix.set(cat.id, groupMap);
+  });
+
+  // 3. Isi Data (Prioritas: Manual Report > Recap)
+  
+  // Helper untuk update cell
+  const updateCell = (catId: number, groupId: number, updater: (prev: VillageDataPoint) => VillageDataPoint) => {
+    const groupMap = matrix.get(catId);
+    if (groupMap && groupMap.has(groupId)) {
+      const prev = groupMap.get(groupId)!;
+      groupMap.set(groupId, updater(prev));
+    }
+  };
+
+  // A. Isi dari Attendance Recap (Presensi)
+  attRes.data?.forEach(att => {
+    updateCell(att.category_id, att.group_id, (prev) => ({
+      ...prev,
+      // Sensus dari Recap (jika belum ada manual)
+      count_total: att.generus_count, 
+      // Presensi dari Recap
+      avg_present: att.present_percentage,
+      avg_permission: att.permission_percentage,
+      avg_absent: att.absent_percentage
+    }));
+  });
+
+  // B. Isi dari Evaluation Recap (Nilai & Esai)
+  evalRes.data?.forEach(ev => {
+    updateCell(ev.category_id, ev.group_id, (prev) => ({
+      ...prev,
+      // Materi (Raw Data Array)
+      materials: ev.raw_data as EvaluationEntry[], 
+      // Esai
+      challenges: ev.challenges || "", // Note: Sesuaikan nama kolom di DB (challenges vs challenges_info)
+      solutions: ev.solutions || "",
+      success_notes: ev.notes || ""
+    }));
+  });
+
+  // C. Isi dari KBM Reports (Manual - Override)
+  // Jika ada laporan manual, biasanya datanya lebih final/akurat
+  kbmRes.data?.forEach(kbm => {
+    updateCell(kbm.category_id, kbm.group_id, (prev) => {
+      // Konversi raw_data manual (Record<string, string>) ke format EvaluationEntry[]
+      // Masalah: Manual report raw_data tidak punya category_id. 
+      // Kita harus akali atau terima raw_data apa adanya. 
+      // Di sini kita asumsikan manual report hanya punya notes string tanpa kategori materi detil
+      // atau kita skip materi manual jika strukturnya beda.
+      
+      return {
+        ...prev,
+        // Sensus (Override)
+        count_male: kbm.count_male,
+        count_female: kbm.count_female,
+        count_total: kbm.count_total,
+        
+        // Presensi (Override)
+        avg_present: kbm.attendance_present_percentage,
+        avg_permission: kbm.attendance_permission_percentage,
+        avg_absent: kbm.attendance_absent_percentage,
+        
+        // Esai (Override/Append)
+        challenges: kbm.challenges_info || prev.challenges,
+        success_notes: kbm.program_success_info || prev.success_notes,
+        // solutions biasanya tidak ada di kbm_report manual standard, pakai prev
+      };
+    });
+  });
+
+  return {
+    villageName: villageRes.data?.name || "Desa",
+    groups,
+    categories,
+    materialCategories: matCatsRes.data || [],
+    matrix
   };
 }
