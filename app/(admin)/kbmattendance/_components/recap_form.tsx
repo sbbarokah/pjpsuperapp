@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
+  AttendanceRawData,
   AttendanceRecapModel,
   CreateRecapPayload,
   StudentAttendanceData,
@@ -59,17 +60,25 @@ export function AttendanceRecapForm({
   
   const [students, setStudents] = useState<Generus[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
+
+  // State untuk menyimpan hitungan gender
+  const [genderCounts, setGenderCounts] = useState({ m: 0, f: 0, t: 0 });
   
   // State untuk input dinamis per siswa
-  const [attendanceData, setAttendanceData] = useState<Record<string, StudentAttendanceData>>(
-    initialData?.raw_data || {}
-  );
+  const [attendanceData, setAttendanceData] = useState<Record<string, StudentAttendanceData>>({});
 
   // --- Efek untuk memuat siswa jika mode Edit ---
   useEffect(() => {
     if (isEditMode && initialData) {
-      // Di mode edit, kita harus mengambil daftar siswa
-      // yang terkait dengan rekap yang ada
+      setAttendanceData(initialData.raw_data.attendances);
+      
+      // Populate gender counts dari raw_data
+      setGenderCounts({
+        m: initialData.raw_data.count_male,
+        f: initialData.raw_data.count_female,
+        t: initialData.raw_data.count_total
+      });
+
       handleFetchStudents();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -86,6 +95,7 @@ export function AttendanceRecapForm({
     if (name === "group_id" || name === "category_id") {
       setStudents([]);
       setAttendanceData({});
+      setGenderCounts({ m: 0, f: 0, t: 0 });
     }
   };
 
@@ -107,37 +117,50 @@ export function AttendanceRecapForm({
   /**
    * Mengambil daftar generus dari server action
    */
-  const handleFetchStudents = async () => {
+  const handleFetchStudents = async (isInitialLoad = false) => {
     if (!formData.group_id || !formData.category_id) {
-      setError("Harap pilih Kelompok dan Kategori terlebih dahulu.");
+      if (!isInitialLoad) setError("Harap pilih Kelompok dan Kategori terlebih dahulu.");
       return;
     }
     
     setIsLoadingStudents(true);
     setError(null);
 
-    console.log("isi form data", formData);
-    
     const response = await getGenerusForFormAction(
       Number(formData.group_id),
       Number(formData.category_id)
     );
-    console.log("isi response", response);
     
     if (!response.success || !response.data) {
       setError(response.error || "Gagal mengambil data generus.");
       setStudents([]);
-      setAttendanceData({});
+      if (!isInitialLoad) {
+        setAttendanceData({});
+        setGenderCounts({ m: 0, f: 0, t: 0 });
+      }
     } else {
-      setStudents(response.data);
-      // Inisialisasi/Pertahankan state presensi
-      setAttendanceData((prev) => {
-        const newData: Record<string, StudentAttendanceData> = {};
-        for (const student of response.data!) {
-          newData[student.user_id] = prev[student.user_id] || { p: 0, i: 0, a: 0 };
-        }
-        return newData;
+      const fetchedStudents = response.data as Generus[];
+      setStudents(fetchedStudents);
+
+      // Hitung Gender dari data profil yang di-fetch
+      let m = 0;
+      let f = 0;
+      fetchedStudents.forEach((s: any) => {
+        if (s.gender === 'L') m++;
+        else if (s.gender === 'P') f++;
       });
+      setGenderCounts({ m, f, t: fetchedStudents.length });
+
+      // Inisialisasi state presensi (Hanya jika bukan initial load edit)
+      if (!isInitialLoad) {
+        setAttendanceData((prev) => {
+          const newData: Record<string, StudentAttendanceData> = {};
+          for (const student of fetchedStudents) {
+            newData[student.user_id] = prev[student.user_id] || { p: 0, i: 0, a: 0 };
+          }
+          return newData;
+        });
+      }
     }
     setIsLoadingStudents(false);
   };
@@ -150,7 +173,6 @@ export function AttendanceRecapForm({
     setError(null);
     setSuccess(null);
 
-    // --- Validasi Klien ---
     const meetingCount = parseInt(formData.meeting_count, 10);
     if (isNaN(meetingCount) || meetingCount <= 0) {
       setError("Jumlah Pertemuan harus diisi (lebih dari 0).");
@@ -161,10 +183,13 @@ export function AttendanceRecapForm({
       return;
     }
     
-    // Validasi per siswa
     for (const student of students) {
       const data = attendanceData[student.user_id];
-      const totalInput = (data.p || 0) + (data.i || 0) + (data.a || 0);
+      const safeP = data?.p || 0;
+      const safeI = data?.i || 0;
+      const safeA = data?.a || 0;
+
+      const totalInput = safeP + safeI + safeA;
       if (totalInput !== meetingCount) {
         setError(
           `Data ${student.full_name} tidak valid. Total (H+I+A = ${totalInput}) tidak sama dengan Jumlah Pertemuan (${meetingCount}).`
@@ -173,14 +198,21 @@ export function AttendanceRecapForm({
       }
     }
 
-    // --- Siapkan Payload ---
+    // Siapkan raw_data dengan struktur baru (termasuk sensus)
+    const rawDataPayload: AttendanceRawData = {
+      count_male: genderCounts.m,
+      count_female: genderCounts.f,
+      count_total: genderCounts.t,
+      attendances: attendanceData
+    };
+
     const payload: CreateRecapPayload = {
       group_id: Number(formData.group_id),
       category_id: Number(formData.category_id),
       period_month: Number(formData.period_month),
       period_year: Number(formData.period_year),
       meeting_count: meetingCount,
-      raw_data: attendanceData,
+      raw_data: rawDataPayload,
     };
 
     startTransition(async () => {
@@ -262,7 +294,7 @@ export function AttendanceRecapForm({
           {!isEditMode && (
              <button
               type="button"
-              onClick={handleFetchStudents}
+              onClick={() => handleFetchStudents(false)}
               disabled={isLoadingStudents || !formData.group_id || !formData.category_id}
               className="flex w-full justify-center rounded-lg bg-blue-600 py-3 px-5 font-medium text-white hover:bg-opacity-90 disabled:cursor-not-allowed disabled:bg-opacity-50"
             >

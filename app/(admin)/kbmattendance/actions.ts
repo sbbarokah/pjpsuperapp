@@ -67,7 +67,7 @@ function calculateRecap(
   let permission_amount = 0;
   let absent_amount = 0;
 
-  for (const studentData of Object.values(payload.raw_data)) {
+  for (const studentData of Object.values(payload.raw_data.attendances)) {
     present_amount += studentData.p;
     permission_amount += studentData.i;
     absent_amount += studentData.a;
@@ -209,7 +209,7 @@ export async function getGenerusForFormAction(
   const supabase = await createAdminClient();
   const { data, error } = await supabase
     .from("profile")
-    .select("user_id, full_name")
+    .select("user_id, full_name, gender")
     .eq("role", "user") // Hanya ambil generus
     .eq("group_id", groupId)
     .eq("category_id", categoryId)

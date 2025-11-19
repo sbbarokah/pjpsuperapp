@@ -43,7 +43,7 @@ async function ReportPeriodList({ profile }: { profile: any }) {
         </p>
         {/* Tombol Call to Action */}
         <Link
-            href="/admin/kbmreport/new" // Atau arahkan ke /admin/presensi/create jika ingin mendorong presensi dulu
+            href="/kbmreport/new" // Atau arahkan ke /admin/presensi/create jika ingin mendorong presensi dulu
             className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90"
           >
             Mulai Buat Laporan
@@ -91,7 +91,7 @@ export default async function KbmReportsPage() {
         <Breadcrumb pageName="Laporan KBM" />
         
         <Link
-          href="/admin/report/create" // Pastikan ini mengarah ke Form Manual (jika itu yang diinginkan)
+          href="/kbmreport/new" // Pastikan ini mengarah ke Form Manual (jika itu yang diinginkan)
           className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"
         >
           + Input Manual

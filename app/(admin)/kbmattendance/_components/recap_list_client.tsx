@@ -1,8 +1,10 @@
 "use client";
 
+import { useState, useTransition } from "react";
+import Swal from "sweetalert2";
+
 import { AttendanceRecapWithRelations } from "@/lib/types/attendance.types";
 import { Profile } from "@/lib/types/user.types";
-import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { FaEdit, FaTrashAlt, FaUsers, FaCalendarAlt } from "react-icons/fa";
@@ -77,17 +79,55 @@ export function RecapListClient({ recaps, profile }: ListProps) {
   const [error, setError] = useState<string | null>(null);
   
   const handleDelete = (id: string, groupName: string, catName: string) => {
-    if (window.confirm(`Hapus rekap presensi ${groupName} - ${catName}?`)) {
-      startTransition(async () => {
-        setError(null);
-        const response = await deleteRecapAction(id);
-        if (!response.success) {
-          setError(response.message);
-        } else {
-          router.refresh();
-        }
-      });
-    }
+    // [MODIFIKASI] Menggunakan SweetAlert2
+    Swal.fire({
+      title: 'Apakah Anda yakin?',
+      text: `Anda akan menghapus rekap presensi ${groupName} - ${catName}. Data yang dihapus tidak dapat dikembalikan!`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33', // Warna merah untuk konfirmasi hapus
+      cancelButtonColor: '#3085d6', // Warna biru untuk batal
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Jalankan server action jika user menekan "Ya"
+        startTransition(async () => {
+          setError(null);
+          
+          // Tampilkan loading (opsional, tapi bagus untuk UX)
+          Swal.fire({
+            title: 'Menghapus...',
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            }
+          });
+
+          const response = await deleteRecapAction(id);
+          
+          if (!response.success) {
+            setError(response.message);
+            // Tampilkan Error
+            Swal.fire({
+              icon: 'error',
+              title: 'Gagal!',
+              text: response.message,
+            });
+          } else {
+            router.refresh();
+            // Tampilkan Sukses
+            Swal.fire({
+              icon: 'success',
+              title: 'Terhapus!',
+              text: 'Rekap presensi berhasil dihapus.',
+              timer: 2000,
+              showConfirmButton: false
+            });
+          }
+        });
+      }
+    });
   };
 
   if (recaps.length === 0) {

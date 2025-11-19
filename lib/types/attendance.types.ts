@@ -10,6 +10,13 @@ export type StudentAttendanceData = {
   a: number; // Absent (Alpa)
 };
 
+export type AttendanceRawData = {
+  count_male: number;
+  count_female: number;
+  count_total: number;
+  attendances: Record<string, StudentAttendanceData>;
+};
+
 /**
  * Model data dari tabel attendance_recap
  */
@@ -22,7 +29,7 @@ export type AttendanceRecapModel = {
   category_id: number;
   period_month: number;
   period_year: number;
-  raw_data: Record<string, StudentAttendanceData>; // JSONB (key adalah user_id)
+  raw_data: AttendanceRawData; // JSONB (key adalah user_id)
   meeting_count: number;
   generus_count: number;
   present_amount: number;
@@ -43,7 +50,7 @@ export type CreateRecapPayload = {
   period_month: number;
   period_year: number;
   meeting_count: number;
-  raw_data: Record<string, StudentAttendanceData>;
+  raw_data: AttendanceRawData;
 };
 
 export type UpdateRecapPayload = CreateRecapPayload & { id: string };

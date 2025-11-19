@@ -133,21 +133,6 @@ export function VillageReportTables({ data, categories }: VillageReportTablesPro
     if (a.report.category.name > b.report.category.name) return 1;
     return 0;
   });
-  
-  // Daftar bidang capaian yang ingin ditampilkan
-  const achievementFields: (keyof KbmReportWithRelations)[] = [
-    'achievement_quran_meaning',
-    'achievement_hadith_meaning',
-    'achievement_quran_reading',
-    'achievement_writing',
-    'achievement_surah_memorization',
-    'achievement_dalil_memorization',
-    'achievement_prayer_memorization',
-    'achievement_asmaul_husna',
-    'achievement_tajwid',
-    'achievement_practices',
-    'achievement_character',
-  ];
 
   // Label untuk bidang capaian
   const achievementLabels: Record<string, string> = {
@@ -303,15 +288,7 @@ export function VillageReportTables({ data, categories }: VillageReportTablesPro
       <h2 className="text-2xl font-semibold text-black dark:text-white">
         Detail Laporan Pencapaian KBM
       </h2>
-      {achievementFields.map(field => (
-        <AchievementTable 
-          key={field}
-          data={data}
-          field={field}
-          title={`Rekap Capaian: ${achievementLabels[field] || field}`}
-          categories={categories} // <-- Berikan daftar kategori
-        />
-      ))}
+      
       
       {/* --- 5. Program Sukses --- */}
       <h2 className="text-2xl font-semibold text-black dark:text-white">
