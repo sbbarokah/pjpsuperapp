@@ -94,3 +94,10 @@ export type VillageDetailContext = {
   materialCategories: MaterialCategoryModel[]; // Untuk label materi
   matrix: VillageMatrixData;
 };
+
+export type ReportRowState = {
+  temp_id: string; // ID unik sementara untuk key React (biasanya UUID dari crypto.randomUUID())
+  material_category_id: string; // ID kategori materi (untuk filter dropdown materi)
+  material_id: string; // ID materi yang dipilih
+  notes: string; // Isi capaian atau evaluasi (string bebas)
+};

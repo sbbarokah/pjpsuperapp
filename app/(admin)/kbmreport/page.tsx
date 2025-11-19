@@ -39,15 +39,18 @@ async function ReportPeriodList({ profile }: { profile: any }) {
           Belum Ada Data Laporan
         </h3>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Belum ada aktivitas presensi, penilaian, atau laporan manual yang tercatat.
+          Belum ada aktivitas presensi atau penilaian yang tercatat.
         </p>
+        {/* <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
+          Belum ada aktivitas presensi, penilaian, atau laporan manual yang tercatat.
+        </p> */}
         {/* Tombol Call to Action */}
-        <Link
+        {/* <Link
             href="/kbmreport/new" // Atau arahkan ke /admin/presensi/create jika ingin mendorong presensi dulu
             className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90"
           >
             Mulai Buat Laporan
-        </Link>
+        </Link> */}
       </div>
     );
   }
@@ -90,12 +93,12 @@ export default async function KbmReportsPage() {
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <Breadcrumb pageName="Laporan KBM" />
         
-        <Link
-          href="/kbmreport/new" // Pastikan ini mengarah ke Form Manual (jika itu yang diinginkan)
+        {/* <Link
+          href="/kbmreport/new"
           className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"
         >
           + Input Manual
-        </Link>
+        </Link> */}
       </div>
       
       <div className="space-y-10">
