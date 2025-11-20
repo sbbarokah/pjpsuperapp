@@ -5,7 +5,7 @@ import { Profile } from "@/lib/types/user.types";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { FaEdit, FaTrashAlt, FaBook, FaCalendarAlt } from "react-icons/fa";
+import { FaEdit, FaTrashAlt, FaBook, FaCalendarAlt, FaUser } from "react-icons/fa";
 import { deleteEvaluationRecapAction } from "../actions";
 import { monthOptions } from "@/lib/constants";
 
@@ -35,6 +35,10 @@ const RecapCard = ({
       <div className="flex items-center gap-2 mb-2 text-sm text-gray-700 dark:text-gray-300">
         <FaCalendarAlt />
         <span>Periode: {monthOptions.find(m => m.value == recap.period_month)?.label} {recap.period_year}</span>
+      </div>
+      <div className="flex items-center gap-2 mb-2 text-sm text-gray-700 dark:text-gray-300">
+        <FaUser />
+        <span>Author: {recap.author?.full_name}</span>
       </div>
       <div className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
         <FaBook className="mt-1 flex-shrink-0" />

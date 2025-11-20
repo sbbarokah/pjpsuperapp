@@ -21,6 +21,7 @@ export async function getEvaluationRecapList(filters: {
     .select(
       `
       *,
+      author:profile!fk_evaluation_author_profile (full_name),
       group (name),
       category (name)
     `

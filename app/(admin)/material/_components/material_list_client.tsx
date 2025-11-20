@@ -87,14 +87,14 @@ export function MaterialListClient({ materials, categories, profile }: ListProps
                   {mat.material_name}
                 </h3>
               </div>
-              <div className="p-4 flex-grow min-h-[100px]">
+              {/* <div className="p-4 flex-grow min-h-[100px]">
                 <p className="text-sm line-clamp-3 mb-2">
                   <strong>Deskripsi:</strong> {mat.description || "-"}
                 </p>
                 <p className="text-sm line-clamp-3">
                   <strong>Evaluasi:</strong> {mat.evaluation || "-"}
                 </p>
-              </div>
+              </div> */}
               {canMutate && (
                 <div className="p-4 border-t dark:border-strokedark flex justify-end items-center gap-3">
                   <Link href={`/material/edit/${mat.id}`} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-sm">

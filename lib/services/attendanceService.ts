@@ -36,6 +36,7 @@ export async function getAttendanceRecapList(filters: {
     .from("attendance_recap")
     .select(
       `*,
+      author:profile!fk_attendance_author_profile (full_name),
       group (name),
       village (name),
       category (name)

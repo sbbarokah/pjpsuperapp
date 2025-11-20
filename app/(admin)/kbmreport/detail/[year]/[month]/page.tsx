@@ -9,6 +9,7 @@ import { getKbmGroupDetailData } from "@/lib/services/reportService";
 import { KbmCategorySection } from "../../../_components/kbm_category_section";
 import Link from "next/link";
 import { FaBuilding } from "react-icons/fa";
+import { GroupKbmReportPrintView } from "./_components/group_kbm_print_view";
 
 export const metadata = {
   title: "Detail Laporan KBM | Admin",
@@ -89,11 +90,9 @@ export default async function GroupKbmDetailPage({ params, searchParams }: PageP
   const context = await getKbmGroupDetailData(targetGroupId, month, year);
   const monthName = monthOptions.find(m => m.value.toString() == String(month))?.label || month;
 
-  console.log("isi context", context);
-
   return (
     <>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 print:hidden">
         <Breadcrumb pageName={`Laporan KBM: ${context.groupName}`} />
         
         {isAdminDesa && (
@@ -107,37 +106,73 @@ export default async function GroupKbmDetailPage({ params, searchParams }: PageP
         )}
       </div>
       
-      {/* Dropdown Seleksi Grup (Hanya Admin Desa) */}
-      {isAdminDesa && availableGroups.length > 0 && (
-        <GroupSelector 
-          groups={availableGroups} 
-          selectedGroupId={targetGroupId} 
-          year={year} 
-          month={month} 
-        />
-      )}
+      {/* Dropdown Seleksi Grup (Hanya Admin Desa) - Sembunyikan saat Print */}
+      <div className="print:hidden">
+        {isAdminDesa && availableGroups.length > 0 && (
+            <GroupSelector 
+            groups={availableGroups} 
+            selectedGroupId={targetGroupId} 
+            year={year} 
+            month={month} 
+            />
+        )}
+      </div>
       
-      <div className="mb-6 rounded-lg border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark">
-        <h2 className="text-2xl font-bold text-black dark:text-white">
-          Laporan Kegiatan Belajar Mengajar
-        </h2>
-        <p className="text-lg text-gray-600 dark:text-gray-400 mt-1">
-          Periode: <span className="font-medium text-primary">{monthName} {year}</span>
-        </p>
-        <p className="text-sm text-gray-500 mt-2">
-          Kelompok: <span className="font-semibold text-black dark:text-white">{context.groupName}</span>
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-10">
-        {context.data.map((item) => (
-          <KbmCategorySection 
-            key={item.category.id} 
-            data={item} 
-            context={context}
-          />
-        ))}
-      </div>
+      {/* [MODIFIKASI] Pindahkan rendering konten ke komponen Print View */}
+      <GroupKbmReportPrintView 
+        context={context}
+        monthName={monthName as string}
+        year={year}
+      />
     </>
   );
+
+  // return (
+  //   <>
+  //     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+  //       <Breadcrumb pageName={`Laporan KBM: ${context.groupName}`} />
+        
+  //       {isAdminDesa && (
+  //          <Link 
+  //            href={`/kbmreport/detail-village/${year}/${month}`}
+  //            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 shadow-md"
+  //          >
+  //            <FaBuilding />
+  //            Lihat Rekap Desa (Matrix)
+  //          </Link>
+  //       )}
+  //     </div>
+      
+  //     {isAdminDesa && availableGroups.length > 0 && (
+  //       <GroupSelector 
+  //         groups={availableGroups} 
+  //         selectedGroupId={targetGroupId} 
+  //         year={year} 
+  //         month={month} 
+  //       />
+  //     )}
+      
+  //     <div className="mb-6 rounded-lg border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark">
+  //       <h2 className="text-2xl font-bold text-black dark:text-white">
+  //         Laporan Kegiatan Belajar Mengajar
+  //       </h2>
+  //       <p className="text-lg text-gray-600 dark:text-gray-400 mt-1">
+  //         Periode: <span className="font-medium text-primary">{monthName} {year}</span>
+  //       </p>
+  //       <p className="text-sm text-gray-500 mt-2">
+  //         Kelompok: <span className="font-semibold text-black dark:text-white">{context.groupName}</span>
+  //       </p>
+  //     </div>
+
+  //     <div className="flex flex-col gap-10">
+  //       {context.data.map((item) => (
+  //         <KbmCategorySection 
+  //           key={item.category.id} 
+  //           data={item} 
+  //           context={context}
+  //         />
+  //       ))}
+  //     </div>
+  //   </>
+  // );
 }

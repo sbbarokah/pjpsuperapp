@@ -119,6 +119,21 @@ body.dark, .dark body {
   background: var(--surface);
 }
 
+@media print {
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Opsional: Sembunyikan elemen navigasi sidebar/header default admin panel jika bocor */
+  nav, aside, header {
+    display: none !important;
+  }
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
 /* Avoid overly-specific rules here — gunakan Tailwind di komponen */
 
 /* ------------------------

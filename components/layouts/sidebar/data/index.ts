@@ -1,36 +1,44 @@
-import * as Icons from "../icons";
+import { 
+  LuLayoutDashboard, 
+  LuUsers, 
+  LuBookOpen, 
+  LuFileText, 
+  LuDatabase, 
+  LuSchool 
+} from "react-icons/lu";
+import { FaMosque } from "react-icons/fa6";
 
 export const NAV_DATA = [
   {
-    label: "",
+    label: "MENU UTAMA", // Saya tambahkan label agar terlihat rapi
     items: [
       {
         title: "Dasbor",
         url: "/",
-        icon: Icons.HomeIcon,
+        icon: LuLayoutDashboard, // Ganti Icons.HomeIcon
         items: [],
       },
       {
         title: "Generus",
         url: "/generus",
-        icon: Icons.User,
+        icon: LuUsers, // Ganti Icons.User
         items: [],
       },
       {
         title: "Kurikulum",
         url: "/material",
-        icon: Icons.Alphabet,
+        icon: LuBookOpen, // Ganti Icons.Alphabet
         items: [],
       },
       {
         title: "Laporan 5 Unsur",
         url: "/muslimun",
-        icon: Icons.User,
+        icon: FaMosque, // Ikon Masjid untuk Muslimun
         items: [],
       },
       {
         title: "KBM",
-        icon: Icons.User,
+        icon: LuSchool, // Ikon Sekolah untuk KBM
         items: [
           {
             title: "Kehadiran KBM",
@@ -49,12 +57,12 @@ export const NAV_DATA = [
       {
         title: "Berkas",
         url: "/documents",
-        icon: Icons.User,
+        icon: LuFileText, // Ganti Icons.User
         items: [],
       },
       {
         title: "Master Data",
-        icon: Icons.Alphabet,
+        icon: LuDatabase, // Ganti Icons.Alphabet
         items: [
           {
             title: "Desa",

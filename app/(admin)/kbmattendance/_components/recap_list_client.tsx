@@ -7,7 +7,7 @@ import { AttendanceRecapWithRelations } from "@/lib/types/attendance.types";
 import { Profile } from "@/lib/types/user.types";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { FaEdit, FaTrashAlt, FaUsers, FaCalendarAlt } from "react-icons/fa";
+import { FaEdit, FaTrashAlt, FaUsers, FaCalendarAlt, FaUser } from "react-icons/fa";
 import { deleteRecapAction } from "../actions";
 import { monthOptions } from "@/lib/constants";
 
@@ -41,6 +41,10 @@ const RecapCard = ({
       <div className="flex items-center gap-2 mb-2 text-sm text-gray-700 dark:text-gray-300">
         <FaUsers />
         <span>{recap.generus_count} Generus, {recap.meeting_count} Pertemuan</span>
+      </div>
+      <div className="flex items-center gap-2 mb-2 text-sm text-gray-700 dark:text-gray-300">
+        <FaUser />
+        <span>Author: {recap.author?.full_name}</span>
       </div>
       
       <div className="mt-4 grid grid-cols-3 gap-2 text-center">
