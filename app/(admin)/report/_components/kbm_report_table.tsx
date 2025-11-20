@@ -119,19 +119,19 @@ export function KbmReportTables({ data, categories }: KbmReportTablesProps) {
   });
   
   // Daftar bidang capaian (sama)
-  const achievementFields: (keyof KbmReportWithRelations)[] = [
-    'achievement_quran_meaning',
-    'achievement_hadith_meaning',
-    'achievement_quran_reading',
-    'achievement_writing',
-    'achievement_surah_memorization',
-    'achievement_dalil_memorization',
-    'achievement_prayer_memorization',
-    'achievement_asmaul_husna',
-    'achievement_tajwid',
-    'achievement_practices',
-    'achievement_character',
-  ];
+  // const achievementFields: (keyof KbmReportWithRelations)[] = [
+  //   'achievement_quran_meaning',
+  //   'achievement_hadith_meaning',
+  //   'achievement_quran_reading',
+  //   'achievement_writing',
+  //   'achievement_surah_memorization',
+  //   'achievement_dalil_memorization',
+  //   'achievement_prayer_memorization',
+  //   'achievement_asmaul_husna',
+  //   'achievement_tajwid',
+  //   'achievement_practices',
+  //   'achievement_character',
+  // ];
 
   // Label untuk bidang capaian (perbaikan typo)
   const achievementLabels: Record<string, string> = {
@@ -245,7 +245,7 @@ export function KbmReportTables({ data, categories }: KbmReportTablesProps) {
       <h2 className="text-2xl font-semibold text-black dark:text-white">
         Detail Laporan Pencapaian KBM
       </h2>
-      {achievementFields.map(field => (
+      {/* {achievementFields.map(field => (
         <AchievementTable 
           key={field}
           data={data}
@@ -253,7 +253,7 @@ export function KbmReportTables({ data, categories }: KbmReportTablesProps) {
           title={`Rekap Capaian: ${achievementLabels[field] || field}`}
           categories={categories}
         />
-      ))}
+      ))} */}
       
       {/* --- 5. Program Sukses --- */}
       <h2 className="text-2xl font-semibold text-black dark:text-white">

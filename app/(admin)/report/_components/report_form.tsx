@@ -195,6 +195,7 @@ export function ReportForm({ authorId, admin, groups, categories, initialData = 
         // --- MODE CREATE ---
         const createPayload: CreateKbmReportDto = {
           ...basePayload,
+          raw_data: [],
           author_user_id: authorId, // <-- Tambahkan authorId untuk create
         };
         response = await createKbmReportAction(createPayload);
