@@ -59,7 +59,7 @@ async function checkAuth(
 function calculateRecap(
   payload: CreateRecapPayload
 ): Omit<AttendanceRecapModel, "id" | "created_at" | "author_user_id" | "village_id"> {
-  const generus_count = Object.keys(payload.raw_data).length;
+  const generus_count = payload.raw_data.count_total;
   const meeting_count = payload.meeting_count;
   const total_possible_attendance = meeting_count * generus_count;
 
