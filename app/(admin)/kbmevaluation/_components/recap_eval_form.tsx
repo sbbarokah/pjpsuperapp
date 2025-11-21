@@ -241,8 +241,6 @@ export function EvaluationRecapForm({
       evaluationRows: evaluationRows,
     };
 
-    console.log("isi payload", payload);
-
     startTransition(async () => {
       let response;
       if (isEditMode && initialData) {

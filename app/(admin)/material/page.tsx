@@ -11,9 +11,9 @@ export const metadata = {
 };
 
 interface MateriPageProps {
-  params: {
+  searchParams: Promise<{
     category?: string;
-  };
+  }>;
 }
 
 const ListSkeleton = () => (
@@ -32,7 +32,7 @@ async function MaterialList({ categoryId, profile }: { categoryId?: number, prof
   return <MaterialListClient materials={materials} categories={categories} profile={profile} />;
 }
 
-export default async function MaterialPage(searchParams: Promise<MateriPageProps>) {
+export default async function MaterialPage(awaitedParams: Promise<MateriPageProps>) {
   let profile;
   try {
     profile = (await getAuthenticatedUserAndProfile()).profile;
@@ -41,13 +41,10 @@ export default async function MaterialPage(searchParams: Promise<MateriPageProps
   }
   
   const canCreate = profile.role === 'superadmin' || profile.role === 'admin_desa';
-  const { params } = await searchParams;
+  const { searchParams } = await awaitedParams;
+  const params = await searchParams;
   const categoryId = params.category ? Number(params.category) : undefined;
-  // const categoryId = searchParams.category ? Number(searchParams.category) : undefined;
-
-  // Ambil daftar kategori untuk dropdown filter
-  const categories = await getMaterialCategories();
-
+  
   return (
     <>
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">

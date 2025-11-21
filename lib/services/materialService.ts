@@ -19,10 +19,6 @@ export async function getMaterialsList(
     .from("material")
     .select(`
       *,
-      author:profile!fk_material_author_profile (
-         username,
-         full_name
-      ),
       material_category (name)
     `)
     .order("material_name");

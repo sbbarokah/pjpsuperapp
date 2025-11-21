@@ -11,7 +11,10 @@ export const metadata = {
 
 interface EditPageProps { params: { id: string } }
 
-export default async function EditMaterialPage({ params }: EditPageProps) {
+export default async function EditMaterialPage(propsPromise: Promise<EditPageProps>) {
+  const { params } = await propsPromise;
+  const { id } = await params;
+
   try {
     const { profile } = await getAuthenticatedUserAndProfile();
     const canEdit = profile.role === 'superadmin' || profile.role === 'admin_desa';
@@ -21,7 +24,7 @@ export default async function EditMaterialPage({ params }: EditPageProps) {
   }
 
   const [material, categories] = await Promise.all([
-    getMaterialById(params.id),
+    getMaterialById(id),
     getMaterialCategories()
   ]);
   

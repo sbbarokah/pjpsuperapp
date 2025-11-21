@@ -101,7 +101,6 @@ export default async function KbmReportDetailPage({ params }: DetailPageProps) {
 
   // 2. Lakukan Agregasi Data
   const aggregatedData = aggregateKbmData(groups, kbmReports);
-  console.log("isi kbm", kbmReports[0]);
 
   // 3. Ambil Nama Desa
   // Ambil dari profil karena kita tidak mengambil data relasi desa

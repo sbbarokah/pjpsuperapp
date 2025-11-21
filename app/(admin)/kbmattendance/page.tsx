@@ -21,7 +21,6 @@ async function RecapList({ profile }: { profile: Profile }) {
     villageId: profile.village_id as number,
     groupId: profile.role === 'admin_kelompok' ? (profile.group_id as number) : undefined,
   });
-  console.log("isi recaps", recaps);
   
   return <RecapListClient recaps={recaps} profile={profile} />;
 }

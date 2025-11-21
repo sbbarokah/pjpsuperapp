@@ -285,9 +285,9 @@ export async function getKbmGroupDetailData(
     supabase.from("kbm_reports").select("*").eq("group_id", groupId).eq("period_month", month).eq("period_year", year),
   ]);
 
-  console.log("isi attendance", attRes);
-  console.log("isi evaluation", evalRes);
-  console.log("isi kbm report", kbmRes);
+  // console.log("isi attendance", attRes);
+  // console.log("isi evaluation", evalRes);
+  // console.log("isi kbm report", kbmRes);
 
   // 2. Mapping Helper (ID -> Nama) untuk lookup cepat di UI
   const studentsMap = new Map<string, string>();
