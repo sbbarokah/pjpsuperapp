@@ -10,6 +10,7 @@ import { LogOutIcon, SettingsIcon, UserIcon } from "./icons";
 import { createClient } from "@/lib/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Dropdown, DropdownContent, DropdownTrigger } from "@/components/ui/dropdown";
+import { FaUserCircle } from "react-icons/fa";
 
 function UserInfoSkeleton() {
   return (
@@ -66,13 +67,16 @@ export function UserInfo() {
         <span className="sr-only">Akun Saya</span>
 
         <figure className="flex items-center gap-3">
-          <Image
+          {/* <Image
             src={userImg} // Gunakan data dinamis
             className="size-12 rounded-full" // Tambahkan rounded-full
             alt={`Avatar of ${userName}`}
             role="presentation"
             width={200} // Sesuaikan dengan size-12
             height={200} // Sesuaikan dengan size-12
+          /> */}
+          <FaUserCircle 
+            className="size-12 text-gray-400" // size-12 untuk ukuran, text-gray untuk warna
           />
           <figcaption className="flex items-center gap-1 font-medium text-dark dark:text-dark-6 max-[1024px]:sr-only">
             <span>{userName}</span>
@@ -93,16 +97,19 @@ export function UserInfo() {
         className="border border-stroke bg-white shadow-md dark:border-dark-3 dark:bg-gray-dark min-[230px]:min-w-[17.5rem]"
         align="end"
       >
-        <h2 className="sr-only">User information</h2>
+        <h2 className="sr-only">Informasi</h2>
 
         <figure className="flex items-center gap-2.5 px-5 py-3.5">
-          <Image
+          {/* <Image
             src={userImg}
             className="size-12"
             alt={`Avatar for ${userName}`}
             role="presentation"
             width={200}
             height={200}
+          /> */}
+          <FaUserCircle 
+            className="size-12 text-gray-400" // size-12 untuk ukuran, text-gray untuk warna
           />
 
           <figcaption className="space-y-1 text-base font-medium">
