@@ -116,6 +116,7 @@ export function KbmCategorySection({
               {evaluation!.raw_data.map((item, idx) => {
                 const matName = context.materials.get(item.material_id) || "Materi Tidak Dikenal";
                 const matCatName = context.materialCategories.get(item.material_category_id) || "Kategori Lain";
+                const showDetails = item.show_details ?? false;
                 
                 return (
                   <div key={idx} className="border border-stroke rounded-lg p-4 dark:border-strokedark">
@@ -125,18 +126,20 @@ export function KbmCategorySection({
                     </div>
 
                     {/* Tabel Nilai Siswa */}
-                    <div className="mb-4">
-                      <table className="w-full text-sm">
-                        <tbody>
-                          {Object.entries(item.scores).map(([userId, score]) => (
-                            <tr key={userId} className="border-b border-dashed border-gray-200 last:border-0">
-                              <td className="py-1 w-1/2 text-gray-600 dark:text-gray-300">{getStudentName(userId)}</td>
-                              <td className="py-1 w-1/2 font-medium text-black dark:text-white">{score}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    {showDetails && (
+                      <div className="mb-4">
+                        <table className="w-full text-sm">
+                          <tbody>
+                            {Object.entries(item.scores).map(([userId, score]) => (
+                              <tr key={userId} className="border-b border-dashed border-gray-200 last:border-0 dark:border-gray-700">
+                                <td className="py-1 w-1/2 text-gray-600 dark:text-gray-300">{getStudentName(userId)}</td>
+                                <td className="py-1 w-1/2 font-medium text-black dark:text-white">{score}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                     
                     {/* Box Evaluasi Materi */}
                     <div className="bg-blue-50 dark:bg-boxdark-2 p-3 rounded border border-blue-100 dark:border-strokedark text-sm">

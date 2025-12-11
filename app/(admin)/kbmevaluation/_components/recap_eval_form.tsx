@@ -33,6 +33,7 @@ interface RecapFormProps {
 }
 
 type Generus = Pick<Profile, "user_id" | "full_name">;
+type RowChangeValue = string | boolean;
 
 const currentYear = new Date().getFullYear();
 const yearOptions = [
@@ -97,6 +98,7 @@ export function EvaluationRecapForm({
           material_name: item.material_name,
           scores: item.scores,
           evaluation_note: item.evaluation_note,
+          show_details: item.show_details ?? true,
         }));
         setEvaluationRows(rowsFromData);
         setIsLoading(false);
@@ -174,6 +176,7 @@ export function EvaluationRecapForm({
         material_name: "",
         scores: {},
         evaluation_note: "",
+        show_details: true,
       }
     ]);
   };
@@ -192,13 +195,18 @@ export function EvaluationRecapForm({
   };
 
   // [REVISI] Update field di baris (material_id atau evaluation_note)
-  const handleRowChange = (temp_id: string, field: 'material_id' | 'material_category_id' | 'evaluation_note', value: string) => {
+  const handleRowChange = (
+    temp_id: string, 
+    field: 'material_id' | 'material_category_id' | 'evaluation_note' | 'show_details', 
+    value: RowChangeValue
+  ) => {
     setEvaluationRows(prev => prev.map(row => {
       if (row.temp_id === temp_id) {
-        // Jika Kategori Materi berubah, reset Materi yang dipilih
         if (field === 'material_category_id') {
-          return { ...row, [field]: value, material_id: "", scores: {} };
+          // Reset materi dan nilai jika kategori berubah
+          return { ...row, [field]: value as string, material_id: "", scores: {} };
         }
+        // Value otomatis masuk sesuai tipe (string atau boolean)
         return { ...row, [field]: value };
       }
       return row;
@@ -416,7 +424,7 @@ const EvaluationRowInput = ({
   materialCategories: MaterialCategoryModel[];
   allMaterials: MaterialWithRelations[];
   onScoreChange: (temp_id: string, userId: string, score: string) => void;
-  onRowChange: (temp_id: string, field: 'material_id' | 'material_category_id' | 'evaluation_note', value: string) => void;
+  onRowChange: (temp_id: string, field: 'material_id' | 'material_category_id' | 'evaluation_note' | 'show_details', value: RowChangeValue) => void;
   onRemove: (temp_id: string) => void;
 }) => {
 
@@ -431,73 +439,99 @@ const EvaluationRowInput = ({
   }, [row.material_category_id, allMaterials]);
 
   return (
-    <div className="rounded-lg border-2 border-stroke bg-white p-4 dark:border-strokedark dark:bg-boxdark">
+    <div className="rounded-lg border-2 border-stroke bg-white p-4 dark:border-strokedark dark:bg-boxdark transition-all duration-300">
+    
       {/* Header Baris (Pilih Materi & Hapus) */}
-      <div className="flex justify-between items-start gap-4 mb-4">
-        {/* [BARU] Wrapper untuk 2 dropdown */}
-        <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4">
-          <SelectGroupV2
-            label="Kategori Materi"
-            name={`material_cat_${row.temp_id}`}
-            value={row.material_category_id}
-            onChange={(e) => onRowChange(row.temp_id, 'material_category_id', e.target.value)}
-            options={materialCategories.map(m => ({ value: String(m.id), label: m.name }))}
-            required
-            className="!mb-0"
-          />
-          <SelectGroupV2
-            label="Materi yang Dinilai"
-            name={`material_${row.temp_id}`}
-            value={row.material_id}
-            onChange={(e) => onRowChange(row.temp_id, 'material_id', e.target.value)}
-            options={availableMaterials.map(m => ({ value: m.id, label: m.material_name }))}
-            required
-            disabled={!row.material_category_id || availableMaterials.length === 0} // Nonaktifkan jika kategori belum dipilih
-            className="!mb-0"
-          />
+      <div className="flex flex-col gap-4 mb-4">
+        {/* Baris 1: Dropdown & Delete */}
+        <div className="flex justify-between items-start gap-4">
+          <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SelectGroupV2
+              label="Kategori Materi"
+              name={`material_cat_${row.temp_id}`}
+              value={row.material_category_id}
+              onChange={(e) => onRowChange(row.temp_id, 'material_category_id', e.target.value)}
+              options={materialCategories.map(m => ({ value: String(m.id), label: m.name }))}
+              required
+              className="!mb-0"
+            />
+            <SelectGroupV2
+              label="Materi yang Dinilai"
+              name={`material_${row.temp_id}`}
+              value={row.material_id}
+              onChange={(e) => onRowChange(row.temp_id, 'material_id', e.target.value)}
+              options={availableMaterials.map(m => ({ value: m.id, label: m.material_name }))}
+              required
+              disabled={!row.material_category_id || availableMaterials.length === 0}
+              className="!mb-0"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => onRemove(row.temp_id)}
+            className="p-2 text-red-500 hover:text-red-700 mt-8"
+            title="Hapus baris materi ini"
+          >
+            <FaTrash />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => onRemove(row.temp_id)}
-          className="p-2 text-red-500 hover:text-red-700 mt-8" // mt-8 untuk sejajar dengan label
-          title="Hapus baris materi ini"
-        >
-          <FaTrash />
-        </button>
+
+        {/* Baris 2: Toggle Switch (Nilai Show Details dari DB/State) */}
+        <div className="flex items-center justify-end gap-3 border-b border-stroke pb-2 dark:border-strokedark">
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            {row.show_details ? "Sembunyikan" : "Tampilkan"} Penilaian Siswa
+          </span>
+          <button
+            type="button"
+            // [PENTING] Memanggil onRowChange untuk update state di parent -> nanti disimpan ke DB
+            onClick={() => onRowChange(row.temp_id, 'show_details', !row.show_details)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+              row.show_details ? "bg-primary" : "bg-gray-300 dark:bg-form-input"
+            }`}
+          >
+            <span
+              className={`${
+                row.show_details ? "translate-x-6" : "translate-x-1"
+              } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+            />
+          </button>
+        </div>
       </div>
       
       {/* Tabel Penilaian Siswa (Sama seperti sebelumnya) */}
-      <div className="max-w-full overflow-x-auto">
-        <table className="w-full table-auto">
-          <thead>
-            <tr className="bg-gray-2 text-left dark:bg-meta-4">
-              <th className="px-4 py-3 font-medium text-black dark:text-white w-12">No.</th>
-              <th className="px-4 py-3 font-medium text-black dark:text-white min-w-[200px]">Nama Generus</th>
-              <th className="px-4 py-3 font-medium text-black dark:text-white min-w-[200px] w-2/5">Nilai (Deskriptif)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {students.map((student, index) => (
-              <tr key={student.user_id}>
-                <td className="border-b border-stroke px-4 py-2 dark:border-strokedark text-center">{index + 1}</td>
-                <td className="border-b border-stroke px-4 py-2 dark:border-strokedark">
-                  <p className="font-medium text-black dark:text-white">{student.full_name}</p>
-                </td>
-                <td className="border-b border-stroke px-4 py-2 dark:border-strokedark">
-                  <textarea
-                    name={`score_${row.temp_id}_${student.user_id}`}
-                    value={row.scores[student.user_id] || ""}
-                    onChange={(e) => onScoreChange(row.temp_id, student.user_id, e.target.value)}
-                    placeholder="Tuliskan nilai deskriptif..."
-                    rows={2}
-                    className="w-full rounded border border-stroke bg-transparent px-3 py-2 text-black outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
-                  />
-                </td>
+      {row.show_details && (
+        <div className="max-w-full overflow-x-auto mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <table className="w-full table-auto">
+            <thead>
+              <tr className="bg-gray-2 text-left dark:bg-meta-4">
+                <th className="px-4 py-3 font-medium text-black dark:text-white w-12">No.</th>
+                <th className="px-4 py-3 font-medium text-black dark:text-white min-w-[200px]">Nama Generus</th>
+                <th className="px-4 py-3 font-medium text-black dark:text-white min-w-[200px] w-2/5">Nilai (Deskriptif)</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {students.map((student, index) => (
+                <tr key={student.user_id}>
+                  <td className="border-b border-stroke px-4 py-2 dark:border-strokedark text-center">{index + 1}</td>
+                  <td className="border-b border-stroke px-4 py-2 dark:border-strokedark">
+                    <p className="font-medium text-black dark:text-white">{student.full_name}</p>
+                  </td>
+                  <td className="border-b border-stroke px-4 py-2 dark:border-strokedark">
+                    <textarea
+                      name={`score_${row.temp_id}_${student.user_id}`}
+                      value={row.scores[student.user_id] || ""}
+                      onChange={(e) => onScoreChange(row.temp_id, student.user_id, e.target.value)}
+                      placeholder="Tuliskan nilai deskriptif..."
+                      rows={2}
+                      className="w-full rounded border border-stroke bg-transparent px-3 py-2 text-black outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       
       {/* Input Evaluasi per Materi (Sama seperti sebelumnya) */}
       <div className="mt-4">

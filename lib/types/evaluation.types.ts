@@ -11,6 +11,7 @@ export type EvaluationEntry = {
   material_category_name: string;
   scores: Record<string, string>; 
   evaluation_note: string;
+  show_details?: boolean;
 };
 
 export type EvaluationRawData = EvaluationEntry[];
@@ -52,6 +53,7 @@ export type EvaluationRowState = {
   material_category_name: string;
   scores: Record<string, string>; // { "user_id_1": "A", "user_id_2": "B" }
   evaluation_note: string; // [BARU] Catatan evaluasi per baris
+  show_details: boolean; // [BARU] Tampilkan detail skor atau tidak
 };
 
 /**

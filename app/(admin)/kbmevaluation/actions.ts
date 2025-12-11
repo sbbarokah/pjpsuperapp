@@ -61,6 +61,7 @@ function processAndBuildJson(
       material_category_name: row.material_category_name,
       scores: row.scores,
       evaluation_note: row.evaluation_note || "",
+      show_details: row.show_details || false,
     }));
 }
 
