@@ -43,12 +43,25 @@ export function UserForm({
   const isUpdateMode = user !== null;
 
   const isSuperAdmin = admin.role === 'superadmin' || admin.role === 'super_admin';
-  const isKelompokAdmin = admin.role === 'admin_kelompok';
-  const isDesaAdmin = admin.role === 'admin_desa';
+  const isGroupAdmin = admin.role === 'admin_kelompok';
+  const isVillageAdmin = admin.role === 'admin_desa';
 
   const handleSubmit = (formData: FormData) => {
     setError(null);
     setSuccess(null);
+
+    let finalVillageId = formData.get("village_id") as string;
+    let finalGroupId = formData.get("group_id") as string;
+
+    if (isGroupAdmin) {
+      // Admin Kelompok: Kunci Desa & Kelompok sesuai profilnya
+      finalVillageId = String(admin.village_id);
+      finalGroupId = String(admin.group_id);
+    } else if (isVillageAdmin) {
+      // Admin Desa: Kunci Desa sesuai profilnya, Kelompok dari input form
+      finalVillageId = String(admin.village_id);
+      // finalGroupId tetap dari formData
+    }
 
     // Membaca semua data dari form
     const data = {
@@ -60,8 +73,10 @@ export function UserForm({
       gender: formData.get("gender") as "L" | "P",
       birth_place: formData.get("birth_place") as string,
       birth_date: formData.get("birth_date") as string,
-      village_id: formData.get("village_id") as string,
-      group_id: formData.get("group_id") as string,
+      
+      village_id: finalVillageId,
+      group_id: finalGroupId,
+
       category_id: formData.get("category_id") as string,
       school_level: formData.get("school_level") as string,
       school_name: formData.get("school_name") as string,
@@ -255,20 +270,27 @@ export function UserForm({
           <SelectGroup
             label="Desa"
             name="village_id"
-            defaultValue={String(user?.village_id || "")}
+            // defaultValue={String(user?.village_id || "")}
+            defaultValue={String(user?.village_id || (!isSuperAdmin ? admin.village_id : "") || "")}
             options={villages.map((v) => ({ value: String(v.id), label: v.name }))}
+            required
+            disabled={!isSuperAdmin} 
           />
           <SelectGroup
             label="Kelompok"
             name="group_id"
-            defaultValue={String(user?.group_id || "")}
+            // defaultValue={String(user?.group_id || "")}
+            defaultValue={String(user?.group_id || (isGroupAdmin ? admin.group_id : "") || "")}
             options={groups.map((g) => ({ value: String(g.id), label: g.name }))}
+            required
+            disabled={isGroupAdmin}
           />
           <SelectGroup
             label="Kelas (Kategori)"
             name="category_id"
             defaultValue={user?.category_id || ""}
             options={categories.map((c) => ({ value: c.id, label: c.name }))}
+            required
           />
           <InputGroup
             label="Jenjang Sekolah"
@@ -291,7 +313,7 @@ export function UserForm({
 
       <div>
         <h4 className="mb-3 mt-6 text-lg font-semibold">Data Orang Tua</h4>
-          <InputGroup
+        <InputGroup
           label="Nama Ayah"
           type="text"
           name="father_name"
@@ -299,7 +321,7 @@ export function UserForm({
           defaultValue={user?.father_name || ""}
           className="mb-4.5"
         />
-          <InputGroup
+        <InputGroup
           label="Pekerjaan Ayah"
           type="text"
           name="father_occupation"
@@ -307,7 +329,7 @@ export function UserForm({
           defaultValue={user?.father_occupation || ""}
           className="mb-4.5"
         />
-          <InputGroup
+        <InputGroup
           label="Nama Ibu"
           type="text"
           name="mother_name"
@@ -315,7 +337,7 @@ export function UserForm({
           defaultValue={user?.mother_name || ""}
           className="mb-4.5"
         />
-          <InputGroup
+        <InputGroup
           label="Pekerjaan Ibu"
           type="text"
           name="mother_occupation"
