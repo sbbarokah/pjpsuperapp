@@ -96,6 +96,7 @@ export function EvaluationRecapForm({
           material_category_name: item.material_category_name,
           material_id: item.material_id,
           material_name: item.material_name,
+          // scores: item.scores,
           scores: item.scores,
           evaluation_note: item.evaluation_note,
           show_details: item.show_details ?? true,
@@ -186,10 +187,10 @@ export function EvaluationRecapForm({
   };
   
   // Update satu sel nilai siswa
-  const handleScoreChange = (temp_id: string, userId: string, score: string) => {
+  const handleScoreChange = (temp_id: string, userId: string, name: string, score: string) => {
     setEvaluationRows(prev => prev.map(row => 
       row.temp_id === temp_id
-        ? { ...row, scores: { ...row.scores, [userId]: score } }
+        ? { ...row, scores: { ...row.scores, [userId]: {name, score} } }
         : row
     ));
   };
@@ -423,7 +424,7 @@ const EvaluationRowInput = ({
   students: Generus[];
   materialCategories: MaterialCategoryModel[];
   allMaterials: MaterialWithRelations[];
-  onScoreChange: (temp_id: string, userId: string, score: string) => void;
+  onScoreChange: (temp_id: string, userId: string, name: string, score: string) => void;
   onRowChange: (temp_id: string, field: 'material_id' | 'material_category_id' | 'evaluation_note' | 'show_details', value: RowChangeValue) => void;
   onRemove: (temp_id: string) => void;
 }) => {
@@ -519,8 +520,8 @@ const EvaluationRowInput = ({
                   <td className="border-b border-stroke px-4 py-2 dark:border-strokedark">
                     <textarea
                       name={`score_${row.temp_id}_${student.user_id}`}
-                      value={row.scores[student.user_id] || ""}
-                      onChange={(e) => onScoreChange(row.temp_id, student.user_id, e.target.value)}
+                      value={row.scores[student.user_id].score || ""}
+                      onChange={(e) => onScoreChange(row.temp_id, student.user_id, student.full_name, e.target.value)}
                       placeholder="Tuliskan nilai deskriptif..."
                       rows={2}
                       className="w-full rounded border border-stroke bg-transparent px-3 py-2 text-black outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
@@ -600,7 +601,7 @@ const EvaluationRowInput2 = ({
             label={student.full_name}
             type="text"
             name={`score_${row.temp_id}_${student.user_id}`}
-            value={row.scores[student.user_id] || ""}
+            value={row.scores[student.user_id].score || ""}
             onChange={(e) => onScoreChange(row.temp_id, student.user_id, e.target.value)}
             placeholder="Nilai (cth: A, B, 80)"
             className="!mb-0"

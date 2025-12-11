@@ -210,7 +210,7 @@ export async function getGenerusForFormAction(
   const { data, error } = await supabase
     .from("profile")
     .select("user_id, full_name, gender")
-    .eq("role", "user") // Hanya ambil generus
+    // .eq("role", "user") // Hanya ambil generus
     .eq("group_id", groupId)
     .eq("category_id", categoryId)
     .order("full_name");

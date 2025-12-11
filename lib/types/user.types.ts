@@ -20,6 +20,7 @@ export type Profile = {
   mother_name?: string | null;
   mother_occupation?: string | null;
   parent_contact?: string | null;
+  is_active?: boolean;
 };
 
 // Tipe data gabungan untuk tampilan di Admin Panel

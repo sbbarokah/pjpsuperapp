@@ -206,7 +206,7 @@ export async function getGenerusForFormAction(
   const supabase = await createAdminClient();
 
   const { data, error } = await supabase.from("profile").select("user_id, full_name")
-    .eq("role", "user")
+    // .eq("role", "user")
     .eq("group_id", String(groupId))
     .eq("category_id", String(categoryId))
     .order("full_name");

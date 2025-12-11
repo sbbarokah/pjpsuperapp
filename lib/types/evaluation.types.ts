@@ -1,6 +1,11 @@
 import { CategoryModel, GroupModel, VillageModel } from "./master.types";
 import { Profile } from "./user.types";
 
+
+export type ScoreItem = {
+  name: string;  // Snapshot Nama Lengkap
+  score: string; // Nilai (A, B, 80, dll)
+};
 /**
  * 
  */
@@ -9,7 +14,7 @@ export type EvaluationEntry = {
   material_name: string;
   material_category_id: string; // [PENTING] Untuk grouping laporan nanti
   material_category_name: string;
-  scores: Record<string, string>; 
+  scores: Record<string, ScoreItem>; 
   evaluation_note: string;
   show_details?: boolean;
 };
@@ -51,7 +56,7 @@ export type EvaluationRowState = {
   material_name: string;
   material_category_id: string; // ID dari tabel 'material category'
   material_category_name: string;
-  scores: Record<string, string>; // { "user_id_1": "A", "user_id_2": "B" }
+  scores: Record<string, ScoreItem>; // { "user_id_1": "A", "user_id_2": "B" }
   evaluation_note: string; // [BARU] Catatan evaluasi per baris
   show_details: boolean; // [BARU] Tampilkan detail skor atau tidak
 };

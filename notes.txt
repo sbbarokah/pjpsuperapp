@@ -425,8 +425,6 @@ BEGIN
      profile p
    LEFT JOIN
      category c ON p.category_id::BIGINT = c.id
-   WHERE
-     p.role = 'user'
    GROUP BY
      c.name, p.gender
    ORDER BY

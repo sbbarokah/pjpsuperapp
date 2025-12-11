@@ -130,10 +130,17 @@ export function KbmCategorySection({
                       <div className="mb-4">
                         <table className="w-full text-sm">
                           <tbody>
-                            {Object.entries(item.scores).map(([userId, score]) => (
+                            {/* {Object.entries(item.scores).map(([userId, score]) => ( */}
+                            {Object.entries(item.scores).map(([userId, scoreData]: [string, any]) => (  
                               <tr key={userId} className="border-b border-dashed border-gray-200 last:border-0 dark:border-gray-700">
-                                <td className="py-1 w-1/2 text-gray-600 dark:text-gray-300">{getStudentName(userId)}</td>
-                                <td className="py-1 w-1/2 font-medium text-black dark:text-white">{score}</td>
+                                {/* <td className="py-1 w-1/2 text-gray-600 dark:text-gray-300">{getStudentName(userId)}</td>
+                                <td className="py-1 w-1/2 font-medium text-black dark:text-white">{score}</td> */}
+                                <td className="py-1 w-1/2 text-gray-600 dark:text-gray-300">
+                                  {scoreData.name} 
+                                </td>
+                                <td className="py-1 w-1/2 font-medium text-black dark:text-white">
+                                  {scoreData.score}
+                                </td>
                               </tr>
                             ))}
                           </tbody>
