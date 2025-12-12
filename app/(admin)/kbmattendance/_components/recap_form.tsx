@@ -27,7 +27,9 @@ interface RecapFormProps {
   initialData?: AttendanceRecapModel | null;
 }
 
-type Generus = Pick<Profile, "user_id" | "full_name">;
+type Generus = Pick<Profile, "user_id" | "full_name" | "gender"> & {
+  is_deleted?: boolean; // Flag penanda siswa histori
+};
 
 const currentYear = new Date().getFullYear();
 const yearOptions = [
@@ -102,20 +104,29 @@ export function AttendanceRecapForm({
   const handleStudentDataChange = (
     userId: string,
     field: 'p' | 'i' | 'a',
-    value: string
+    value: string,
+    studentName: string 
   ) => {
     const numValue = parseInt(value, 10) || 0;
-    setAttendanceData((prev) => ({
-      ...prev,
-      [userId]: {
-        ...(prev[userId] || { p: 0, i: 0, a: 0 }), // Inisialisasi jika belum ada
-        [field]: numValue,
-      },
-    }));
+    
+    setAttendanceData((prev) => {
+      const prevData = prev[userId] || { p: 0, i: 0, a: 0 };
+      
+      return {
+        ...prev,
+        [userId]: {
+          ...prevData,
+          name: studentName, // Pastikan nama selalu ter-set / ter-update
+          [field]: numValue,
+        },
+      };
+    });
   };
   
   /**
    * Mengambil daftar generus dari server action
+   * Menginisialisasi attendanceData dengan menyertakan nama siswa
+   * Mengambil data siswa aktif DAN mempertahankan siswa histori (yang sudah dihapus)
    */
   const handleFetchStudents = async (isInitialLoad = false) => {
     if (!formData.group_id || !formData.category_id) {
@@ -126,6 +137,7 @@ export function AttendanceRecapForm({
     setIsLoadingStudents(true);
     setError(null);
 
+    // 1. Ambil Siswa Aktif dari Server
     const response = await getGenerusForFormAction(
       Number(formData.group_id),
       Number(formData.category_id)
@@ -133,34 +145,74 @@ export function AttendanceRecapForm({
     
     if (!response.success || !response.data) {
       setError(response.error || "Gagal mengambil data generus.");
-      setStudents([]);
-      if (!isInitialLoad) {
-        setAttendanceData({});
-        setGenderCounts({ m: 0, f: 0, t: 0 });
-      }
+      setStudents([]); 
     } else {
-      const fetchedStudents = response.data as Generus[];
-      setStudents(fetchedStudents);
+      const activeStudents = response.data as Generus[];
+      
+      // 2. Logic Mempertahankan "Ghost Students" (Siswa Terhapus)
+      // Hanya berjalan jika kita punya data lama (attendanceData/initialData)
+      let combinedStudents = [...activeStudents];
+      
+      // Ambil daftar ID siswa yang aktif untuk pengecekan cepat
+      const activeStudentIds = new Set(activeStudents.map(s => s.user_id));
 
-      // Hitung Gender dari data profil yang di-fetch
-      let m = 0;
-      let f = 0;
-      fetchedStudents.forEach((s: any) => {
+      // Loop keys dari data presensi yang sedang dipegang (state atau initial)
+      // Kita gunakan 'attendanceData' state karena itu sumber kebenaran saat ini
+      const currentAttendanceIds = Object.keys(attendanceData);
+      
+      currentAttendanceIds.forEach((existingId) => {
+        // Jika ada ID di data presensi TAPI tidak ada di daftar aktif
+        if (!activeStudentIds.has(existingId)) {
+          const ghostData = attendanceData[existingId];
+          
+          // Buat object Generus 'palsu' berdasarkan data snapshot
+          const ghostStudent: Generus = {
+            user_id: existingId,
+            full_name: ghostData.name || "Siswa Terhapus / Tanpa Nama",
+            gender: 'L', // Default karena kita tdk tau gendernya dr snapshot (opsional: simpan gender di snapshot jg)
+            is_deleted: true, // Tandai sebagai terhapus
+          };
+          
+          // Masukkan ke daftar tampilan
+          combinedStudents.push(ghostStudent);
+        }
+      });
+
+      // Sort agar rapi (opsional, misal yang terhapus ditaruh paling bawah atau urut abjad)
+      combinedStudents.sort((a, b) => a.full_name.localeCompare(b.full_name));
+
+      // 3. Update State Students dengan daftar gabungan
+      setStudents(combinedStudents);
+
+      // Hitung Gender (hanya dari yang aktif atau semua? biasanya sensus hanya yg aktif)
+      let m = 0; let f = 0;
+      activeStudents.forEach((s) => {
         if (s.gender === 'L') m++;
         else if (s.gender === 'P') f++;
       });
-      setGenderCounts({ m, f, t: fetchedStudents.length });
+      // Jika ingin menghitung total termasuk yg terhapus, loop combinedStudents
+      setGenderCounts({ m, f, t: activeStudents.length }); // Sensus biasanya snapshot realtime yg aktif
 
-      // Inisialisasi state presensi (Hanya jika bukan initial load edit)
-      if (!isInitialLoad) {
-        setAttendanceData((prev) => {
-          const newData: Record<string, StudentAttendanceData> = {};
-          for (const student of fetchedStudents) {
-            newData[student.user_id] = prev[student.user_id] || { p: 0, i: 0, a: 0 };
-          }
-          return newData;
+      // 4. Update/Perbaiki Attendance Data
+      setAttendanceData((prev) => {
+        const newData: Record<string, StudentAttendanceData> = { ...prev };
+        
+        // Update nama siswa AKTIF (jika ada koreksi nama di master)
+        activeStudents.forEach(student => {
+            const existing = prev[student.user_id];
+            newData[student.user_id] = {
+                name: student.full_name, // Selalu refresh nama dari master
+                p: existing?.p || 0,
+                i: existing?.i || 0,
+                a: existing?.a || 0,
+            };
         });
-      }
+        
+        // Siswa GHOST tidak perlu di-update namanya (karena master data ga punya),
+        // biarkan pakai nama yang ada di `prev` (snapshot lama).
+        
+        return newData;
+      });
     }
     setIsLoadingStudents(false);
   };
@@ -218,7 +270,7 @@ export function AttendanceRecapForm({
     startTransition(async () => {
       let response;
       if (isEditMode && initialData) {
-        const updatePayload: UpdateRecapPayload = { ...payload, id: initialData.id };
+        const updatePayload: UpdateRecapPayload = { ...payload, id: initialData?.id || "" };
         response = await updateRecapAction(updatePayload);
       } else {
         response = await createRecapAction(payload);
@@ -314,9 +366,17 @@ export function AttendanceRecapForm({
               Isi Presensi ({students.length} Generus)
             </h4>
             {students.map((student, index) => (
-              <div key={student.user_id} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center rounded border border-stroke p-3 dark:border-strokedark">
+              <div 
+                key={student.user_id} 
+                className={`grid grid-cols-1 md:grid-cols-4 gap-4 items-center rounded border border-stroke p-3 dark:border-strokedark ${
+                  student.is_deleted ? "bg-red-50 dark:bg-red-900/20 border-red-200" : ""
+                }`}
+              >
                 <div className="md:col-span-1">
-                  <p className="font-medium text-black dark:text-white">{index + 1}. {student.full_name}</p>
+                  <p className={`font-medium ${student.is_deleted ? "text-red-500" : "text-black dark:text-white"}`}>
+                    {index + 1}. {student.full_name} 
+                    {student.is_deleted && <span className="text-xs ml-2 italic">(Data Lama/Terhapus)</span>}
+                  </p>
                 </div>
                 <InputGroupV2
                   label="Hadir (P)"
@@ -324,7 +384,7 @@ export function AttendanceRecapForm({
                   type="number"
                   name={`p_${student.user_id}`}
                   value={attendanceData[student.user_id]?.p || 0}
-                  onChange={(e) => handleStudentDataChange(student.user_id, 'p', e.target.value)}
+                  onChange={(e) => handleStudentDataChange(student.user_id, 'p', e.target.value, student.full_name)}
                   min="0"
                   max={formData.meeting_count}
                 />
@@ -334,7 +394,7 @@ export function AttendanceRecapForm({
                   type="number"
                   name={`i_${student.user_id}`}
                   value={attendanceData[student.user_id]?.i || 0}
-                  onChange={(e) => handleStudentDataChange(student.user_id, 'i', e.target.value)}
+                  onChange={(e) => handleStudentDataChange(student.user_id, 'i', e.target.value, student.full_name)}
                   min="0"
                   max={formData.meeting_count}
                 />
@@ -344,7 +404,7 @@ export function AttendanceRecapForm({
                   type="number"
                   name={`a_${student.user_id}`}
                   value={attendanceData[student.user_id]?.a || 0}
-                  onChange={(e) => handleStudentDataChange(student.user_id, 'a', e.target.value)}
+                  onChange={(e) => handleStudentDataChange(student.user_id, 'a', e.target.value, student.full_name)}
                   min="0"
                   max={formData.meeting_count}
                 />

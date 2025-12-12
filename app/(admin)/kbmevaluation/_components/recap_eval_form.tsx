@@ -7,6 +7,7 @@ import {
   EvaluationRowState,
   CreateEvaluationPayload,
   UpdateEvaluationPayload,
+  ScoreItem,
 } from "@/lib/types/evaluation.types";
 import { Profile } from "@/lib/types/user.types";
 import { GroupModel, CategoryModel, MaterialCategoryModel } from "@/lib/types/master.types";
@@ -32,7 +33,9 @@ interface RecapFormProps {
   initialData?: EvaluationRecapModel | null;
 }
 
-type Generus = Pick<Profile, "user_id" | "full_name">;
+type Generus = Pick<Profile, "user_id" | "full_name"> & {
+  is_deleted?: boolean; 
+};
 type RowChangeValue = string | boolean;
 
 const currentYear = new Date().getFullYear();
@@ -71,7 +74,8 @@ export function EvaluationRecapForm({
   const [materialCategories, setMaterialCategories] = useState<MaterialCategoryModel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [evaluationRows, setEvaluationRows] = useState<EvaluationRowState[]>([]);
-  
+
+  // --- Efek untuk memuat data di Mode Edit ---
   // --- Efek untuk memuat data di Mode Edit ---
   useEffect(() => {
     const loadEditData = async () => {
@@ -80,27 +84,112 @@ export function EvaluationRecapForm({
         // 1. Ambil semua data master
         const [studentResponse, materialResponse, matCatResponse] = await Promise.all([
           getGenerusForFormAction(initialData.group_id, initialData.category_id),
-          getAllMaterialsForFormAction(), // Ambil SEMUA materi
-          getMaterialCategoriesForFormAction() // Ambil SEMUA kategori materi
+          getAllMaterialsForFormAction(),
+          getMaterialCategoriesForFormAction()
         ]);
         
-        // 2. Set state master
-        if (studentResponse.success) setStudents(studentResponse.data || []);
+        // 2. Set state master (Materi & Kategori)
         if (materialResponse.success) setAllAvailableMaterials(materialResponse.data || []);
         if (matCatResponse.success) setMaterialCategories(matCatResponse.data || []);
 
-        // 3. De-pivot raw_data ke state form
-        const rowsFromData: EvaluationRowState[] = initialData.raw_data.map((item) => ({
-          temp_id: crypto.randomUUID(), // Buat ID sementara baru untuk React key
-          material_category_id: item.material_category_id,
-          material_category_name: item.material_category_name,
-          material_id: item.material_id,
-          material_name: item.material_name,
-          // scores: item.scores,
-          scores: item.scores,
-          evaluation_note: item.evaluation_note,
-          show_details: item.show_details ?? true,
-        }));
+        // 3. LOGIC MERGE SISWA (Handle Deleted Students)
+        let finalStudents: Generus[] = [];
+        const activeStudents = (studentResponse.success && studentResponse.data) ? studentResponse.data : [];
+
+        // Buat Set ID siswa aktif untuk lookup cepat
+        const activeStudentIds = new Set(activeStudents.map(s => s.user_id));
+        
+        // Cari "Ghost Students" (Ada di history tapi tidak di master aktif)
+        const ghostStudents: Generus[] = [];
+        const processedGhostIds = new Set<string>();
+
+        // Loop data lama untuk mencari Ghost Students
+        initialData.raw_data.forEach(row => {
+          if (row.scores) {
+            Object.keys(row.scores).forEach(studentId => {
+              // Jika ID ini TIDAK ada di daftar aktif DAN belum diproses
+              if (!activeStudentIds.has(studentId) && !processedGhostIds.has(studentId)) {
+                
+                // [FIX 1] Handle Legacy Data untuk Ghost Name
+                const val = row.scores[studentId];
+                let snapshotName = "Siswa Terhapus / Tanpa Nama";
+                
+                // Cek apakah data lama (string) atau data baru (object)
+                if (typeof val === 'object' && val !== null && 'name' in val) {
+                   // @ts-ignore
+                   snapshotName = val.name; 
+                } else {
+                   // Jika legacy (string), kita tidak punya snapshot nama. 
+                   // Beri label generic atau biarkan default.
+                   snapshotName = "Siswa Terhapus (Legacy)";
+                }
+
+                ghostStudents.push({
+                  user_id: studentId,
+                  full_name: snapshotName,
+                  is_deleted: true 
+                });
+                processedGhostIds.add(studentId);
+              }
+            });
+          }
+        });
+
+        // Gabungkan Aktif + Ghost
+        finalStudents = [...activeStudents, ...ghostStudents];
+        finalStudents.sort((a, b) => a.full_name.localeCompare(b.full_name));
+        
+        setStudents(finalStudents);
+
+        // 4. Mapping raw_data ke state form dengan NAME CORRECTION & LEGACY SUPPORT
+        const rawDataArray = initialData.raw_data;
+        
+        const rowsFromData: EvaluationRowState[] = rawDataArray.map((item) => {
+          
+          const smartScores: Record<string, ScoreItem> = {};
+          
+          if (item.scores) {
+            Object.entries(item.scores).forEach(([uid, val]) => {
+              // Cari data siswa di Master Terbaru
+              const masterStudent = activeStudents.find(s => s.user_id === uid);
+              
+              // [FIX 2] Deteksi format nilai (String vs Object)
+              let scoreValue = "";
+              let storedName = "";
+
+              if (typeof val === 'string') {
+                // KASUS DATA LAMA: val adalah string nilai langsung
+                scoreValue = val;
+                storedName = ""; // Tidak ada nama tersimpan di data lama
+              } else if (typeof val === 'object' && val !== null) {
+                // KASUS DATA BARU: val adalah object { score, name }
+                // @ts-ignore
+                scoreValue = val.score;
+                // @ts-ignore
+                storedName = val.name;
+              }
+
+              smartScores[uid] = {
+                score: scoreValue, 
+                // Jika master ada, pakai master. Jika tidak (ghost), pakai storedName.
+                // Jika storedName kosong (kasus ghost legacy), pakai fallback.
+                name: masterStudent ? masterStudent.full_name : (storedName || "Siswa Terhapus")
+              };
+            });
+          }
+
+          return {
+            temp_id: crypto.randomUUID(),
+            material_category_id: item.material_category_id,
+            material_category_name: item.material_category_name,
+            material_id: item.material_id,
+            material_name: item.material_name,
+            scores: smartScores, 
+            evaluation_note: item.evaluation_note,
+            show_details: item.show_details ?? true,
+          };
+        });
+
         setEvaluationRows(rowsFromData);
         setIsLoading(false);
       }
@@ -187,10 +276,16 @@ export function EvaluationRecapForm({
   };
   
   // Update satu sel nilai siswa
-  const handleScoreChange = (temp_id: string, userId: string, name: string, score: string) => {
+  const handleScoreChange = (temp_id: string, userId: string, scoreValue: string, studentName: string) => {
     setEvaluationRows(prev => prev.map(row => 
       row.temp_id === temp_id
-        ? { ...row, scores: { ...row.scores, [userId]: {name, score} } }
+        ? { 
+            ...row, 
+            scores: { 
+              ...row.scores, 
+              [userId]: { name: studentName, score: scoreValue } 
+            } 
+          }
         : row
     ));
   };
@@ -203,11 +298,30 @@ export function EvaluationRecapForm({
   ) => {
     setEvaluationRows(prev => prev.map(row => {
       if (row.temp_id === temp_id) {
+        
+        // Logic khusus: Saat Kategori dipilih, simpan juga Nama Kategori & Reset Materi
         if (field === 'material_category_id') {
-          // Reset materi dan nilai jika kategori berubah
-          return { ...row, [field]: value as string, material_id: "", scores: {} };
+          const selectedCat = materialCategories.find(c => String(c.id) === value);
+          return { 
+            ...row, 
+            [field]: value as string,
+            material_category_name: selectedCat ? selectedCat.name : "",
+            material_id: "", 
+            material_name: "",
+            scores: {} 
+          };
         }
-        // Value otomatis masuk sesuai tipe (string atau boolean)
+
+        // Logic khusus: Saat Materi dipilih, simpan juga Nama Materi
+        if (field === 'material_id') {
+          const selectedMat = allAvailableMaterials.find(m => m.id === value);
+          return {
+            ...row,
+            [field]: value as string,
+            material_name: selectedMat ? selectedMat.material_name : "",
+          };
+        }
+
         return { ...row, [field]: value };
       }
       return row;
@@ -253,7 +367,8 @@ export function EvaluationRecapForm({
     startTransition(async () => {
       let response;
       if (isEditMode && initialData) {
-        const updatePayload: UpdateEvaluationPayload = { ...payload, id: initialData.id };
+        const updatePayload: UpdateEvaluationPayload = { ...payload, id: initialData?.id || "" };
+        // console.log("Payload dikirim ke server:", updatePayload);
         response = await updateEvaluationAction(updatePayload);
       } else {
         response = await createEvaluationAction(payload);
@@ -408,14 +523,13 @@ export function EvaluationRecapForm({
 }
 
 /**
- * [REVISI] Sub-komponen untuk satu baris materi
- * Menggunakan layout tabel untuk daftar siswa
+ * [SUB-KOMPONEN] Baris Input Materi
  */
 const EvaluationRowInput = ({
   row,
   students,
-  materialCategories, // Master list Kategori Materi (Aqidah, Fiqih)
-  allMaterials,       // Master list SEMUA materi (Iman, Wudhu, Sholat)
+  materialCategories,
+  allMaterials,
   onScoreChange,
   onRowChange,
   onRemove,
@@ -424,16 +538,18 @@ const EvaluationRowInput = ({
   students: Generus[];
   materialCategories: MaterialCategoryModel[];
   allMaterials: MaterialWithRelations[];
-  onScoreChange: (temp_id: string, userId: string, name: string, score: string) => void;
-  onRowChange: (temp_id: string, field: 'material_id' | 'material_category_id' | 'evaluation_note' | 'show_details', value: RowChangeValue) => void;
+  // Update Signature: Menerima studentName
+  onScoreChange: (temp_id: string, userId: string, score: string, studentName: string) => void;
+  onRowChange: (
+    temp_id: string, 
+    field: 'material_id' | 'material_category_id' | 'evaluation_note' | 'show_details', 
+    value: RowChangeValue
+  ) => void;
   onRemove: (temp_id: string) => void;
 }) => {
 
-  // [BARU] Filter materi yang tersedia berdasarkan kategori yang dipilih
   const availableMaterials = useMemo(() => {
-    if (!row.material_category_id) {
-      return []; // Jika tidak ada kategori, tidak ada materi
-    }
+    if (!row.material_category_id) return [];
     return allMaterials.filter(
       (m) => String(m.material_category_id) === String(row.material_category_id)
     );
@@ -441,10 +557,11 @@ const EvaluationRowInput = ({
 
   return (
     <div className="rounded-lg border-2 border-stroke bg-white p-4 dark:border-strokedark dark:bg-boxdark transition-all duration-300">
-    
-      {/* Header Baris (Pilih Materi & Hapus) */}
+      
+      {/* Wrapper Header */}
       <div className="flex flex-col gap-4 mb-4">
-        {/* Baris 1: Dropdown & Delete */}
+        
+        {/* Dropdowns */}
         <div className="flex justify-between items-start gap-4">
           <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4">
             <SelectGroupV2
@@ -467,6 +584,7 @@ const EvaluationRowInput = ({
               className="!mb-0"
             />
           </div>
+          
           <button
             type="button"
             onClick={() => onRemove(row.temp_id)}
@@ -477,14 +595,13 @@ const EvaluationRowInput = ({
           </button>
         </div>
 
-        {/* Baris 2: Toggle Switch (Nilai Show Details dari DB/State) */}
+        {/* Toggle Switch */}
         <div className="flex items-center justify-end gap-3 border-b border-stroke pb-2 dark:border-strokedark">
           <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
             {row.show_details ? "Sembunyikan" : "Tampilkan"} Penilaian Siswa
           </span>
           <button
             type="button"
-            // [PENTING] Memanggil onRowChange untuk update state di parent -> nanti disimpan ke DB
             onClick={() => onRowChange(row.temp_id, 'show_details', !row.show_details)}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
               row.show_details ? "bg-primary" : "bg-gray-300 dark:bg-form-input"
@@ -499,7 +616,7 @@ const EvaluationRowInput = ({
         </div>
       </div>
       
-      {/* Tabel Penilaian Siswa (Sama seperti sebelumnya) */}
+      {/* Tabel Penilaian Siswa */}
       {row.show_details && (
         <div className="max-w-full overflow-x-auto mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
           <table className="w-full table-auto">
@@ -512,19 +629,28 @@ const EvaluationRowInput = ({
             </thead>
             <tbody>
               {students.map((student, index) => (
-                <tr key={student.user_id}>
+                // [UPDATE] Penanda visual jika siswa sudah dihapus
+                <tr key={student.user_id} className={student.is_deleted ? "bg-red-50 dark:bg-red-900/10" : ""}>
                   <td className="border-b border-stroke px-4 py-2 dark:border-strokedark text-center">{index + 1}</td>
                   <td className="border-b border-stroke px-4 py-2 dark:border-strokedark">
-                    <p className="font-medium text-black dark:text-white">{student.full_name}</p>
+                    <p className={`font-medium ${student.is_deleted ? "text-red-600" : "text-black dark:text-white"}`}>
+                      {student.full_name}
+                      {student.is_deleted && <span className="text-xs ml-2 italic font-normal text-red-400">(Data Lama/Terhapus)</span>}
+                    </p>
                   </td>
                   <td className="border-b border-stroke px-4 py-2 dark:border-strokedark">
                     <textarea
                       name={`score_${row.temp_id}_${student.user_id}`}
-                      value={row.scores[student.user_id].score || ""}
-                      onChange={(e) => onScoreChange(row.temp_id, student.user_id, student.full_name, e.target.value)}
+                      value={row.scores[student.user_id]?.score || ""}
+                      onChange={(e) => onScoreChange(row.temp_id, student.user_id, e.target.value, student.full_name)}
                       placeholder="Tuliskan nilai deskriptif..."
                       rows={2}
-                      className="w-full rounded border border-stroke bg-transparent px-3 py-2 text-black outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                      disabled={student.is_deleted} // Opsional: disable jika siswa terhapus (atau biarkan enabled jika ingin koreksi nilai)
+                      className={`w-full rounded border bg-transparent px-3 py-2 text-black outline-none transition dark:text-white 
+                        ${student.is_deleted 
+                          ? "border-red-200 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10" 
+                          : "border-stroke focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
+                        }`}
                     />
                   </td>
                 </tr>
@@ -534,8 +660,8 @@ const EvaluationRowInput = ({
         </div>
       )}
       
-      {/* Input Evaluasi per Materi (Sama seperti sebelumnya) */}
-      <div className="mt-4">
+      {/* Input Evaluasi per Materi */}
+      <div className="mt-2">
         <TextAreaGroupV2
           label="Catatan Evaluasi Materi Ini (akan dimunculkan di laporan KBM)"
           name={`eval_${row.temp_id}`}

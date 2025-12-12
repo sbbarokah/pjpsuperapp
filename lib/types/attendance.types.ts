@@ -5,6 +5,7 @@ import { Profile } from "./user.types";
  * Data mentah untuk satu siswa
  */
 export type StudentAttendanceData = {
+  name: string; // Snapshot Nama Lengkap
   p: number; // Present (Hadir)
   i: number; // Permission (Izin)
   a: number; // Absent (Alpa)
