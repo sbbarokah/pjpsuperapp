@@ -66,7 +66,8 @@ export function KbmCategorySection({
                     const percent = total > 0 ? (stats.p / total) * 100 : 0;
                     return (
                       <tr key={userId} className="border-b border-stroke dark:border-strokedark">
-                        <td className="px-4 py-3 text-black dark:text-white">{getStudentName(userId)}</td>
+                        {/* <td className="px-4 py-3 text-black dark:text-white">{getStudentName(userId)}</td> */}
+                        <td className="px-4 py-3 text-black dark:text-white">{stats.name}</td>
                         <td className="px-4 py-3 text-center">{stats.p}</td>
                         <td className="px-4 py-3 text-center">{stats.i}</td>
                         <td className="px-4 py-3 text-center">{stats.a}</td>
