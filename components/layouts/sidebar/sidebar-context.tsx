@@ -34,11 +34,22 @@ export function SidebarProvider({
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (isMobile) {
-      setIsOpen(false);
-    } else {
-      setIsOpen(true);
-    }
+    // Fungsi untuk handle resize dan initial load
+    const handleResize = () => {
+      if (!isMobile) {
+        setIsOpen(true);
+      } else {
+        setIsOpen(false);
+      }
+    };
+
+    // Jalankan sekali saat component mount (Initial Load)
+    handleResize();
+
+    // Jalankan setiap kali window di-resize
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
   }, [isMobile]);
 
   function toggleSidebar() {
