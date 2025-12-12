@@ -13,10 +13,9 @@ interface EditReportPageProps {
   params: { id: string };
 }
 
-export default async function EditMeetingReportPage({
-  params,
-}: EditReportPageProps) {
-  const reportId = params.id;
+export default async function EditMeetingReportPage(propsPromise: Promise<EditReportPageProps>) {
+  const { params } = await propsPromise;
+  const { id } = await params;
 
   let user, profile;
   try {
@@ -34,7 +33,7 @@ export default async function EditMeetingReportPage({
   // Ambil data master DAN data laporan yang ada
   const [groups, report] = await Promise.all([
     getGroupsByVillage(profile.village_id),
-    getMeetingReportById(reportId),
+    getMeetingReportById(id),
   ]);
 
   // Validasi 1: Laporan tidak ditemukan
