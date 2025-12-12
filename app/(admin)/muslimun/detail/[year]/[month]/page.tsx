@@ -71,7 +71,7 @@ export default async function MuslimunReportDetailPage({ params }: DetailPagePro
 
   // Helper Data
   const monthName = monthOptions.find(m => m.value.toString() == String(month))?.label || month;
-  const villageName = displayedGroups[0]?.village?.name || "Desa";
+  const villageName = displayedReports[0]?.village?.name || `Desa (ID: ${profile.village_id})`;
 
   return (
     <>

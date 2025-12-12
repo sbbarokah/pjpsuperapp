@@ -827,3 +827,91 @@ DROP COLUMN IF EXISTS achievement_character;
 /* Struktur: { "material_id": "Catatan pencapaian..." } */
 ALTER TABLE public.kbm_reports 
 ADD COLUMN IF NOT EXISTS raw_data JSONB DEFAULT '{}'::jsonb;
+
+
+/***********************************************************************/
+
+/* -------------------------------------------------------------------------
+   POLICY 1: SELECT (Membaca Data)
+   Izinkan semua user yang sudah login (authenticated) untuk melihat laporan.
+   (Anda bisa membatasinya lebih ketat jika perlu, misal hanya melihat desa sendiri)
+------------------------------------------------------------------------- */
+DROP POLICY IF EXISTS "Enable read access for authenticated users" ON public.meeting_reports;
+
+CREATE POLICY "Enable read access for authenticated users"
+ON public.meeting_reports FOR SELECT
+TO authenticated
+USING (true);
+
+/* -------------------------------------------------------------------------
+   POLICY 2: INSERT (Menambah Data)
+   - Admin Desa boleh insert jika village_id di laporan = village_id di profilnya.
+   - Admin Kelompok boleh insert jika group_id di laporan = group_id di profilnya.
+------------------------------------------------------------------------- */
+DROP POLICY IF EXISTS "Enable insert for admins" ON public.meeting_reports;
+
+CREATE POLICY "Enable insert for admins"
+ON public.meeting_reports FOR INSERT
+TO authenticated
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.profile
+    WHERE profile.user_id = auth.uid()
+    AND (
+      -- Aturan untuk Admin Desa
+      (profile.role = 'admin_desa' AND profile.village_id = meeting_reports.village_id) 
+      OR
+      -- Aturan untuk Admin Kelompok
+      (profile.role = 'admin_kelompok' AND profile.group_id = meeting_reports.group_id)
+    )
+  )
+);
+
+/* -------------------------------------------------------------------------
+   POLICY 3: UPDATE (Mengedit Data)
+   Sama seperti insert, pastikan mereka hanya mengedit wilayah wewenangnya.
+------------------------------------------------------------------------- */
+DROP POLICY IF EXISTS "Enable update for admins" ON public.meeting_reports;
+
+CREATE POLICY "Enable update for admins"
+ON public.meeting_reports FOR UPDATE
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM public.profile
+    WHERE profile.user_id = auth.uid()
+    AND (
+      (profile.role = 'admin_desa' AND profile.village_id = meeting_reports.village_id) OR
+      (profile.role = 'admin_kelompok' AND profile.group_id = meeting_reports.group_id)
+    )
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.profile
+    WHERE profile.user_id = auth.uid()
+    AND (
+      (profile.role = 'admin_desa' AND profile.village_id = meeting_reports.village_id) OR
+      (profile.role = 'admin_kelompok' AND profile.group_id = meeting_reports.group_id)
+    )
+  )
+);
+
+/* -------------------------------------------------------------------------
+   POLICY 4: DELETE (Menghapus Data)
+------------------------------------------------------------------------- */
+DROP POLICY IF EXISTS "Enable delete for admins" ON public.meeting_reports;
+
+CREATE POLICY "Enable delete for admins"
+ON public.meeting_reports FOR DELETE
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM public.profile
+    WHERE profile.user_id = auth.uid()
+    AND (
+      (profile.role = 'admin_desa' AND profile.village_id = meeting_reports.village_id) OR
+      (profile.role = 'admin_kelompok' AND profile.group_id = meeting_reports.group_id)
+    )
+  )
+);
