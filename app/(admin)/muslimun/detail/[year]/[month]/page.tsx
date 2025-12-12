@@ -78,7 +78,7 @@ export default async function MuslimunReportDetailPage({ params }: DetailPagePro
       {/* Header & Navigasi */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
-             <Link href="/admin/muslimun" className="text-gray-500 hover:text-primary transition-colors">
+             <Link href="/muslimun" className="text-gray-500 hover:text-primary transition-colors">
                 <FaArrowLeft />
              </Link>
              <Breadcrumb pageName={`Laporan Musyawarah`} />
@@ -87,7 +87,7 @@ export default async function MuslimunReportDetailPage({ params }: DetailPagePro
         {/* [FITUR BARU] Link Cross-Reference ke Laporan KBM (Hanya Admin Desa) */}
         {isAdminDesa && (
            <Link 
-             href={`/admin/report/detail-village/${year}/${month}`}
+             href={`/kbmreport/detail-village/${year}/${month}`}
              className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 shadow-md transition"
            >
              <FaBuilding />
