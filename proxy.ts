@@ -100,20 +100,26 @@ export async function proxy(request: NextRequest) {
   // Ambil pathname dari URL yang diminta
   const { pathname } = request.nextUrl;
 
+  // Daftar rute yang bisa diakses tanpa login (Public)
+  const publicRoutes = ["/login", "/privacy-policy"];
+  
+  // Daftar rute yang tidak boleh diakses jika sudah login (Auth Only)
+  const authRoutes = ["/login"];
+
   // LOGIKA PERLINDUNGAN RUTE:
-  // 1. Jika user BELUM login dan mencoba mengakses rute admin (semua rute KECUALI /login)
-  if (!user && pathname !== "/login") {
-    // Redirect ke halaman login
+
+  // 1. Jika user BELUM login
+  // Cek apakah pathname saat ini TIDAK ada di dalam publicRoutes
+  if (!user && !publicRoutes.includes(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
   // 2. Jika user SUDAH login dan mencoba mengakses rute auth (seperti /login)
-  if (user && pathname === "/login") {
-    // Redirect ke halaman dashboard admin (sesuai struktur Anda, '/' adalah /app/(admin)/page.tsx)
+  if (user && authRoutes.includes(pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/"; // Redirect ke dashboard
     return NextResponse.redirect(url);
   }
 

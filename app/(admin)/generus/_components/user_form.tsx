@@ -321,14 +321,14 @@ export function UserForm({
           defaultValue={user?.father_name || ""}
           className="mb-4.5"
         />
-        <InputGroup
+        {/* <InputGroup
           label="Pekerjaan Ayah"
           type="text"
           name="father_occupation"
           placeholder="Pekerjaan ayah (opsional)"
           defaultValue={user?.father_occupation || ""}
           className="mb-4.5"
-        />
+        /> */}
         <InputGroup
           label="Nama Ibu"
           type="text"
@@ -337,22 +337,22 @@ export function UserForm({
           defaultValue={user?.mother_name || ""}
           className="mb-4.5"
         />
-        <InputGroup
+        {/* <InputGroup
           label="Pekerjaan Ibu"
           type="text"
           name="mother_occupation"
           placeholder="Pekerjaan ibu (opsional)"
           defaultValue={user?.mother_occupation || ""}
           className="mb-4.5"
-        />
-        <InputGroup
+        /> */}
+        {/* <InputGroup
           label="Kontak Orang Tua"
           type="text"
           name="parent_contact"
           placeholder="No. HP orang tua (opsional)"
           defaultValue={user?.parent_contact || ""}
           className="mb-4.5"
-        />
+        /> */}
       </div>
 
       {/* Pesan Error/Sukses */}
