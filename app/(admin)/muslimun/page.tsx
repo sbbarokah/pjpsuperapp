@@ -119,7 +119,7 @@ export default async function MeetingReportsPage() {
   return (
     <>
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <Breadcrumb pageName="Laporan Muslimun" />
+        <Breadcrumb pageName="Laporan Musyawarah 5 Unsur" />
         <Link
           href="/muslimun/new"
           className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"

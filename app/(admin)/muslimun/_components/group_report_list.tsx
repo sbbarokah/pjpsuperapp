@@ -65,7 +65,7 @@ export async function MuslimunGroupList({ profile }: { profile: Profile }) {
           Belum Ada Laporan
         </h3>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 mb-6">
-          Belum ada Laporan Muslimun yang dibuat untuk kelompok Anda.
+          Belum ada Laporan Musyawarah 5 Unsur yang dibuat untuk kelompok Anda.
         </p>
         <Link
           href="/admin/muslimun/create"

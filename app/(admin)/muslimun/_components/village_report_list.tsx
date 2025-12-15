@@ -45,7 +45,7 @@ export async function MuslimunVillageList({ profile }: { profile: any }) {
           Belum Ada Laporan
         </h3>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Belum ada Laporan Muslimun yang dibuat di desa ini.
+          Belum ada Laporan Musyawarah 5 Unsur yang dibuat di desa ini.
         </p>
       </div>
     );

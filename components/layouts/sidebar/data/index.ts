@@ -31,7 +31,7 @@ export const NAV_DATA = [
         items: [],
       },
       {
-        title: "Laporan 5 Unsur",
+        title: "Muslimun",
         url: "/muslimun",
         icon: FaMosque, // Ikon Masjid untuk Muslimun
         items: [],
