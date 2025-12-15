@@ -51,6 +51,7 @@ const baseFormState = {
   element_expert: "",
   element_mubaligh: "",
   element_parent: "",
+  rundown: "",
   muroh_notes: "",
 };
 
@@ -129,6 +130,7 @@ export function MeetingReportForm({
         element_expert: formData.element_expert,
         element_mubaligh: formData.element_mubaligh,
         element_parent: formData.element_parent,
+        rundown: formData.rundown,
         muroh_notes: formData.muroh_notes,
       };
 
@@ -290,7 +292,18 @@ export function MeetingReportForm({
         />
       </div>
 
-      {/* --- Bagian 3: Catatan --- */}
+      {/* --- Bagian 3: Rangkaian Acara --- */}
+      <h4 className="mb-3 mt-6 text-lg font-semibold">Rangkaian Acara</h4>
+      <TextAreaGroupV2
+        label="Rangkaian Acara Musyawarah 5 Unsur"
+        name="rundown"
+        placeholder="Tuliskan rangkaian acara muroh 5 unsur"
+        value={formData.rundown || ""}
+        onChange={handleChange}
+        rows={5}
+      />
+
+      {/* --- Bagian 4: Catatan --- */}
       <h4 className="mb-3 mt-6 text-lg font-semibold">Catatan Musyawarah</h4>
       <TextAreaGroupV2
         label="Catatan / Notulensi"

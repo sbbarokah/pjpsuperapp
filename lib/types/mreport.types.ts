@@ -19,6 +19,7 @@ export type MeetingReportModel = {
   element_mubaligh?: string | null;                      
   element_parent?: string | null;                        
   muroh_notes?: string | null;
+  rundown?: string | null;
 };
 
 /**

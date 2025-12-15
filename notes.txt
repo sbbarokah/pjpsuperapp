@@ -377,6 +377,7 @@ CREATE TABLE meeting_reports (
   
   /* Catatan Global (Level Kelompok) */
   muroh_notes TEXT,                           -- Catatan umum musyawarah
+  rundown TEXT
 );
 
 ALTER TABLE kbm_reports ADD COLUMN five_element_report_id UUID REFERENCES five_element_reports(id) ON DELETE SET NULL;   

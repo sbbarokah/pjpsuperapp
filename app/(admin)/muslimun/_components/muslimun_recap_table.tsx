@@ -71,6 +71,19 @@ export function MuslimunRecapTable({ reports, groups }: MuslimunRecapTableProps)
           </tbody>
         </table>
       </div>
+
+      {/* Tampilkan Rundown jika ada */}
+      <div className="mt-8 flex flex-col gap-4">
+         <h4 className="font-semibold text-black dark:text-white">Rangkaian Acara:</h4>
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {reports.filter(r => r.rundown).map(r => (
+                <div key={r.id} className="p-4 border border-stroke rounded bg-gray-50 dark:bg-meta-4 dark:border-strokedark">
+                    <span className="text-xs font-bold text-primary mb-1 block">{r.group.name}</span>
+                    <p className="text-sm italic">"{r.rundown}"</p>
+                </div>
+            ))}
+         </div>
+      </div>
       
       {/* Tampilkan Notulen jika ada */}
       <div className="mt-8 flex flex-col gap-4">
