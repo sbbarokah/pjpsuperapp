@@ -5,7 +5,7 @@ export default function DeleteAccount() {
   // Ganti variabel ini dengan data aplikasi Anda
   const appName = "PJP Super App"; 
   const supportEmail = "teknodigibarokah@gmail.com"; 
-  const developerName = "Fitra Zul Fahmi";
+  const developerName = "PJPSuperApp";
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
