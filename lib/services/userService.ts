@@ -237,19 +237,31 @@ export async function createUser(data: CreateUserFormPayload) {
 }
 
 /**
- * Memperbarui data pengguna (Auth email + Profile)
+ * Memperbarui data pengguna (Auth + Profile)
  */
 export async function updateUser(userId: string, data: UpdateUserFormPayload) {
   const supabase = createAdminClient();
   let authDataUpdated = false;
   let profileDataUpdated = false;
 
-  // 1. Update data auth (jika ada)
+  // 1. Update data auth (Email & Password)
+  const authAttributes: { email?: string; password?: string; email_confirm?: boolean } = {};
+  
   if (data.email) {
+    authAttributes.email = data.email;
+    authAttributes.email_confirm = true; // Auto confirm jika admin mengubah email
+  }
+  
+  if (data.password) {
+    authAttributes.password = data.password;
+  }
+
+  if (Object.keys(authAttributes).length > 0) {
     const { error: authError } = await supabase.auth.admin.updateUserById(
       userId,
-      { email: data.email }
+      authAttributes
     );
+
     if (authError) {
       console.error("Error updating auth user:", authError.message);
       return { error: authError.message };
@@ -258,11 +270,26 @@ export async function updateUser(userId: string, data: UpdateUserFormPayload) {
   }
 
   // 2. Update data profile
-  // [CATATAN] Pastikan data.profileData tidak kosong jika email tidak di-pass
   if (data.profileData && Object.keys(data.profileData).length > 0) {
+    // Salin data agar aman dimodifikasi
+    const profileUpdates = { ...data.profileData };
+
+    // [LOGIKA SANITASI]
+    // Hanya lakukan sanitasi jika 'role' benar-benar diubah/dikirim
+    if (profileUpdates.role) {
+      if (profileUpdates.role !== 'user') {
+        // Jika diubah jadi Admin/Superadmin, paksa category_id NULL (keluar dari kelas)
+        profileUpdates.category_id = null;
+      }
+      // Jika diubah jadi 'user', biarkan category_id sesuai input form (atau tetap null jika tidak diisi)
+    }
+    
+    // Note: Jika profileUpdates.role undefined (tidak diubah), 
+    // kita biarkan category_id apa adanya (atau sesuai input jika diubah manual).
+    
     const { error: profileError } = await supabase
       .from("profile")
-      .update(data.profileData)
+      .update(profileUpdates)
       .eq("user_id", userId);
 
     if (profileError) {
@@ -272,14 +299,11 @@ export async function updateUser(userId: string, data: UpdateUserFormPayload) {
     profileDataUpdated = true;
   }
 
-  // [CATATAN] Jika tidak ada data email atau profile, tidak ada yang diupdate.
+  // Cek apakah ada yang diupdate
   if (!authDataUpdated && !profileDataUpdated) {
     return { error: "Tidak ada data untuk diperbarui." };
   }
   
-  // [PERBAIKAN] Hapus revalidatePath
-  // revalidatePath("/users");
-  // revalidatePath(`/users/${userId}`);
   return { success: true };
 }
 
