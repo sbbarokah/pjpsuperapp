@@ -916,3 +916,69 @@ USING (
     )
   )
 );
+
+
+/**
+* Perbaikan query dashboard count agar tidak menghitung admin
+**/
+
+/* Update fungsi dashboard untuk memastikan hanya role 'user' 
+   yang dihitung dalam statistik.
+*/
+
+CREATE OR REPLACE FUNCTION get_village_user_stats_by_group_category_gender(p_village_id BIGINT)
+RETURNS TABLE(
+  group_id BIGINT,
+  group_name TEXT, 
+  category_name TEXT, 
+  gender TEXT, 
+  total_users BIGINT
+) AS $$
+BEGIN
+  RETURN QUERY
+    SELECT
+      g.id AS group_id,
+      COALESCE(g.name, 'Tanpa Kelompok') AS group_name,
+      COALESCE(c.name, 'Tanpa Kategori') AS category_name,
+      COALESCE(p.gender, 'N/A') AS gender,
+      COUNT(p.id) AS total_users
+    FROM
+      profile p
+    LEFT JOIN
+      "group" g ON p.group_id::BIGINT = g.id
+    LEFT JOIN
+      category c ON p.category_id::BIGINT = c.id
+    WHERE
+      -- [PENTING] Filter ini mengunci agar hanya Generus yang terhitung
+      p.role = 'user' 
+      AND p.is_active = true -- Opsional: Hanya hitung yang aktif
+      AND p.village_id::BIGINT = p_village_id
+    GROUP BY
+      g.id, g.name, c.name, p.gender
+    ORDER BY
+      group_name, category_name, gender;
+END;
+$$ LANGUAGE plpgsql;
+
+/* Update juga untuk fungsi global jika ada */
+CREATE OR REPLACE FUNCTION get_global_user_stats_by_category_gender()
+RETURNS TABLE(category_name TEXT, gender TEXT, total_users BIGINT) AS $$
+BEGIN
+  RETURN QUERY
+    SELECT
+      COALESCE(c.name, 'Tanpa Kategori') AS category_name,
+      COALESCE(p.gender, 'N/A') AS gender,
+      COUNT(p.id) AS total_users
+    FROM
+      profile p
+    LEFT JOIN
+      category c ON p.category_id::BIGINT = c.id
+    WHERE
+      p.role = 'user' -- [PENTING] Hanya hitung Generus
+      AND p.is_active = true
+    GROUP BY
+      c.name, p.gender
+    ORDER BY
+      category_name, gender;
+END;
+$$ LANGUAGE plpgsql;

@@ -175,12 +175,18 @@ export async function getUserDetails(userId: string) {
 export async function createUser(data: CreateUserFormPayload) {
   const supabase = createAdminClient();
 
+  const isStudent = data.role === 'user';
+  
+  // Jika bukan student (generus), paksa category_id jadi null
+  const finalCategoryId = isStudent ? data.category_id : null;
+
   // 1. Buat user di Supabase Auth
   const { data: authUser, error: authError } =
     await supabase.auth.admin.createUser({
       email: data.email,
       password: data.password,
       email_confirm: true,
+      user_metadata: { full_name: data.full_name },
     });
 
   if (authError) {
@@ -200,7 +206,7 @@ export async function createUser(data: CreateUserFormPayload) {
     birth_date: data.birth_date || null,
     village_id: data.village_id || null,
     group_id: data.group_id || null,
-    category_id: data.category_id || null,
+    category_id: finalCategoryId, 
     school_level: data.school_level || null,
     school_name: data.school_name || null,
     father_name: data.father_name || null,
