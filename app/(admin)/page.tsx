@@ -2,12 +2,13 @@ import Breadcrumb from "@/components/ui/breadcrumb";
 import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
 import { Suspense } from "react";
 import {
-  getRecentMeetingReports,
+  getRecentAttendanceReports,
+  getRecentEvaluationReports,
   getRecentKbmReports,
+  getRecentMeetingReports,
 } from "@/lib/services/dashboardService";
 import { ActivityFeed } from "./dashboard/_components/activity_feed";
 import { CategoryStatsGroup } from "./dashboard/_components/category_stats_card";
-// [FIX] Impor dari path _components yang benar
 
 export const metadata = {
   title: "Dashboard | Admin",
@@ -17,18 +18,24 @@ export const metadata = {
  * Komponen Server untuk mengambil Data Aktivitas
  */
 async function RecentActivity() {
-  // Ambil data secara paralel
-  const [meetingReports, kbmReports] = await Promise.all([
+  // [PERUBAHAN] Ambil 3 data secara paralel
+  const [attendance, evaluation, meeting] = await Promise.all([
+    getRecentAttendanceReports(),
+    getRecentEvaluationReports(),
     getRecentMeetingReports(),
-    getRecentKbmReports(),
   ]);
 
-  return <ActivityFeed meetingReports={meetingReports} kbmReports={kbmReports} />;
+  return (
+    <ActivityFeed 
+      attendanceReports={attendance} 
+      evaluationReports={evaluation} 
+      meetingReports={meeting} 
+    />
+  );
 }
 
 // --- Halaman Utama ---
 export default async function DashboardPage() {
-  // Cek otentikasi (profile akan diambil di dalam komponen anak)
   try {
     await getAuthenticatedUserAndProfile();
   } catch (error: any) {
@@ -44,14 +51,13 @@ export default async function DashboardPage() {
     <>
       <Breadcrumb pageName="Dashboard" />
 
-      {/* [FIX] Memuat Grup Statistik (yang akan mengambil datanya sendiri) */}
       <div className="mt-4 md:mt-6 2xl:mt-9">
         <Suspense fallback={<CategoryStatsSkeleton />}>
           <CategoryStatsGroup />
         </Suspense>
       </div>
 
-      <div className="mt-4 md:mt-6 2xl:mt-9">
+      <div className="mt-6 md:mt-8 2xl:mt-10">
         <h2 className="mb-6 text-2xl font-semibold text-black dark:text-white">
           Aktivitas Terbaru
         </h2>

@@ -1,6 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/server_admin";
 import { KbmReportWithRelations } from "@/lib/types/report.types";
 import { MeetingReportWithRelations } from "@/lib/types/mreport.types";
+import { AttendanceRecapWithRelations } from "../types/attendance.types";
+import { EvaluationRecapWithRelations } from "../types/evaluation.types";
 
 // Tipe data berdasarkan output fungsi SQL
 export type GlobalUserStats = {
@@ -75,7 +77,57 @@ export async function getRecentMeetingReports(): Promise<MeetingReportWithRelati
 }
 
 /**
- * Mengambil 10 Laporan KBM terbaru
+ * [BARU] Mengambil 5 Rekap Presensi terbaru
+ */
+export async function getRecentAttendanceReports(): Promise<AttendanceRecapWithRelations[]> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("attendance_recap")
+    .select(`
+      id,
+      created_at,
+      period_month,
+      period_year,
+      group (name),
+      category (name)
+    `)
+    .order("created_at", { ascending: false })
+    .limit(5); // Limit 5 agar tidak terlalu panjang di dashboard
+
+  if (error) {
+    console.error("Error getRecentAttendanceReports:", error);
+    return [];
+  }
+  return data as any;
+}
+
+/**
+ * [BARU] Mengambil 5 Rekap Penilaian terbaru
+ */
+export async function getRecentEvaluationReports(): Promise<EvaluationRecapWithRelations[]> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("evaluation_recap")
+    .select(`
+      id,
+      created_at,
+      period_month,
+      period_year,
+      group (name),
+      category (name)
+    `)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  if (error) {
+    console.error("Error getRecentEvaluationReports:", error);
+    return [];
+  }
+  return data as any;
+}
+
+/**
+ * Mengambil 5 Laporan KBM terbaru
  */
 export async function getRecentKbmReports(): Promise<KbmReportWithRelations[]> {
   const supabase = createAdminClient();
@@ -89,11 +141,11 @@ export async function getRecentKbmReports(): Promise<KbmReportWithRelations[]> {
       category (name)
     `)
     .order("created_at", { ascending: false })
-    .limit(10);
+    .limit(5);
   
   if (error) {
     console.error("Error getRecentKbmReports:", error);
     return [];
   }
-  return data as any; // Tipe disesuaikan
+  return data as any; 
 }
