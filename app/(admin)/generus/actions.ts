@@ -5,6 +5,7 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  getUsersForAdmin,
 } from "@/lib/services/userService";
 import {
   CreateUserFormPayload,
@@ -294,4 +295,67 @@ export async function importGenerusAction(
     message: `Impor Selesai: ${successes} berhasil, ${failures.length} gagal.`,
     failures: failures,
   };
+}
+
+/**
+ * Action untuk mengambil data sensus lengkap
+ * Diurutkan berdasarkan: Kelompok > Kategori (Kelas) > Nama
+ */
+export async function getExportDataAction() {
+  try {
+    // 1. Validasi Admin
+    const { profile: adminProfile } = await getAuthenticatedUserAndProfile();
+    if (!adminProfile) throw new Error("Profil tidak ditemukan");
+
+    // 2. Ambil data menggunakan service yang sudah ada (menghandle filter by role)
+    const users = await getUsersForAdmin(adminProfile);
+
+    // 3. Sorting Data (Kelompok ASC -> Kategori ASC -> Nama ASC)
+    const sortedUsers = users.sort((a, b) => {
+      // Sort by Group Name
+      const groupA = a.group?.name?.toLowerCase() || "zzz"; // "zzz" agar null ditaruh di akhir
+      const groupB = b.group?.name?.toLowerCase() || "zzz";
+      if (groupA < groupB) return -1;
+      if (groupA > groupB) return 1;
+
+      // If Group same, Sort by Category Name
+      const catA = a.category?.name?.toLowerCase() || "zzz";
+      const catB = b.category?.name?.toLowerCase() || "zzz";
+      if (catA < catB) return -1;
+      if (catA > catB) return 1;
+
+      // If Category same, Sort by Full Name
+      const nameA = a.full_name?.toLowerCase() || "";
+      const nameB = b.full_name?.toLowerCase() || "";
+      if (nameA < nameB) return -1;
+      if (nameA > nameB) return 1;
+
+      return 0;
+    });
+
+    // 4. Flatten data untuk CSV
+    const csvData = sortedUsers.map(user => ({
+      Nama_Lengkap: user.full_name,
+      // Username: user.username,
+      // Email: user.email,
+      Jenis_Kelamin: user.gender === 'L' ? 'Laki-laki' : 'Perempuan',
+      Desa: user.village?.name || "-",
+      Kelompok: user.group?.name || "-",
+      Kelas: user.category?.name || "-",
+      Tempat_Lahir: user.birth_place || "-",
+      Tanggal_Lahir: user.birth_date || "-",
+      Nama_Ayah: user.father_name || "-",
+      // Pekerjaan_Ayah: user.father_occupation || "-",
+      Nama_Ibu: user.mother_name || "-",
+      // Pekerjaan_Ibu: user.mother_occupation || "-",
+      Kontak_Ortu: user.parent_contact ? `'${user.parent_contact}` : "-", // Tambah kutip agar excel membaca sbg string
+      Status: user.is_active !== false ? "Aktif" : "Nonaktif"
+    }));
+
+    return { success: true, data: csvData };
+
+  } catch (error: any) {
+    console.error("Export Error:", error.message);
+    return { success: false, message: error.message };
+  }
 }

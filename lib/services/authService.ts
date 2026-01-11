@@ -43,7 +43,7 @@ export async function getAuthenticatedUserAndProfile() {
     .from("profile")
     .select("*")
     .eq("user_id", user.id)
-    .single<Profile>(); // Gunakan tipe Profile lengkap
+    .single(); // Gunakan tipe Profile lengkap
 
   if (profileError) {
     throw new Error(`Gagal mengambil profil: ${profileError.message}`);

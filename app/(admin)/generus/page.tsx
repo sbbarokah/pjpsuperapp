@@ -12,6 +12,7 @@ import {
   getCategories,
 } from "@/lib/services/masterService";
 import { FilteredUserListClient } from "./_components/filtered_user_list";
+import { ExportButton } from "./_components/export_button";
 
 export const metadata = {
   title: "Daftar Generus | Admin",
@@ -87,6 +88,7 @@ export default function GenerusListPage() {
 
         {/* Grup Tombol Impor dan Tambah Baru */}
         <div className="flex items-center gap-3">
+          <ExportButton />
           {/* Tombol Impor Baru */}
           <Link
             href="/generus/import"

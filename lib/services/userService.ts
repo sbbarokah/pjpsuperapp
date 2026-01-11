@@ -44,12 +44,11 @@ export async function getUsersForAdmin(
   let profileQuery = supabase
     .from("profile")
     .select(
+      `*,
+        village (name),
+        group (name),
+        category (name)
       `
-      *,
-      village (name),
-      group (name),
-      category (name)
-    `
     );
 
   // 2. [LOGIKA BARU] Terapkan filter berdasarkan role admin
