@@ -88,11 +88,20 @@ function getDisplayData(data: StatData[], mode: string): StatData[] {
 
   // ID kategori yang masuk dalam kelompok Cabe Rawit
   const cabeRawitIds = [1, 2, 3, 4, 5, 6, 7, 12];
+  const praRemajaIds = [8, 13];
   const summarized: StatData[] = [];
   
   const cabeRawitBucket: StatData = {
     id: 0, // ID khusus untuk bucket gabungan
     category: "Cabe Rawit",
+    male: 0,
+    female: 0,
+    total: 0
+  };
+
+  const praRemajaBucket: StatData = {
+    id: 0, // ID khusus untuk bucket gabungan
+    category: "Pra Remaja",
     male: 0,
     female: 0,
     total: 0
@@ -107,6 +116,8 @@ function getDisplayData(data: StatData[], mode: string): StatData[] {
       summarized.push(item);
     }
   });
+
+
 
   return cabeRawitBucket.total > 0 ? [cabeRawitBucket, ...summarized] : summarized;
 }

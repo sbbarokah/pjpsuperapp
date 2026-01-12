@@ -2,213 +2,219 @@
 
 import { VillageUserStats } from "@/lib/services/dashboardService";
 import React, { useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 
 interface StatsDisplayTableProps {
   stats: VillageUserStats[];
 }
 
-// [DIUBAH] Tipe data pivot sekarang berbasis Kategori
+/**
+ * Tipe data pivot per baris (Kategori atau Kelompok Cabe Rawit)
+ */
 type PivotedRow = {
+  categoryId: number;
   categoryName: string;
   // Key adalah nama KELOMPOK, value adalah jumlah L/P
   groups: Map<string, { L: number; P: number }>;
   rowTotal: { L: number; P: number; T: number };
 };
 
-// Data yang diproses oleh useMemo
 type ProcessedData = {
-  categories: Map<string, PivotedRow>; // Peta Kategori
-  groups: string[]; // Daftar KELOMPOK unik (untuk header kolom)
-  grandTotal: PivotedRow; // Baris "Total"
+  categories: PivotedRow[]; 
+  groups: string[]; 
+  grandTotal: PivotedRow; 
 };
 
 export function StatsDisplayTable({ stats }: StatsDisplayTableProps) {
-  // [LOGIKA DIUBAH TOTAL] Gunakan useMemo untuk mem-pivot data sekali saja
+  const searchParams = useSearchParams();
+  const viewMode = searchParams.get("view") || "all";
+
+  // Memproses data berdasarkan mode tampilan
   const processedData = useMemo((): ProcessedData => {
-    const categories = new Map<string, PivotedRow>();
-    const groupSet = new Set<string>(); // Untuk header kolom
+    const categoryMap = new Map<number, PivotedRow>();
+    const groupSet = new Set<string>();
+    const cabeRawitIds = [1, 2, 3, 4, 5, 6, 7, 12];
     
-    // Inisialisasi baris Grand Total
     const grandTotal: PivotedRow = {
+      categoryId: -1,
       categoryName: "Total",
       groups: new Map<string, { L: number; P: number }>(),
       rowTotal: { L: 0, P: 0, T: 0 },
     };
 
-    // 1. Iterasi melalui data mentah
+    // 1. Iterasi dan Pengelompokan
     for (const row of stats) {
       const { group_name, category_name, gender, total_users } = row;
+      const originalCatId = Number((row as any).category_id || 0);
 
-      // Tambahkan nama grup ke set untuk header kolom
+      let targetId = originalCatId;
+      let targetName = category_name;
+
+      // Logika Ringkas: Kelompokkan ID Cabe Rawit ke ID khusus 0
+      if (viewMode === "ringkas" && cabeRawitIds.includes(originalCatId)) {
+        targetId = 0;
+        targetName = "Cabe Rawit";
+      }
+
       groupSet.add(group_name);
 
-      // --- 1. Proses Baris Kategori ---
-      if (!categories.has(category_name)) {
-        categories.set(category_name, {
-          categoryName: category_name,
+      // Inisialisasi Kategori di Map
+      if (!categoryMap.has(targetId)) {
+        categoryMap.set(targetId, {
+          categoryId: targetId,
+          categoryName: targetName,
           groups: new Map<string, { L: number; P: number }>(),
           rowTotal: { L: 0, P: 0, T: 0 },
         });
       }
-      const categoryData = categories.get(category_name)!;
-
-      // Dapatkan atau buat data grup di dalam kategori
-      if (!categoryData.groups.has(group_name)) {
-        categoryData.groups.set(group_name, { L: 0, P: 0 });
-      }
-      const groupCellData = categoryData.groups.get(group_name)!;
       
-      // --- 2. Proses Baris Grand Total ---
-      if (!grandTotal.groups.has(group_name)) {
-        grandTotal.groups.set(group_name, { L: 0, P: 0 });
-      }
-      const totalGroupCellData = grandTotal.groups.get(group_name)!;
+      const categoryData = categoryMap.get(targetId)!;
 
-      // --- 3. Tambahkan nilai ---
-      if (gender.toUpperCase() === 'L') {
-        groupCellData.L += total_users;
-        categoryData.rowTotal.L += total_users;
-        totalGroupCellData.L += total_users;
-        grandTotal.rowTotal.L += total_users;
-      } else if (gender.toUpperCase() === 'P') {
-        groupCellData.P += total_users;
-        categoryData.rowTotal.P += total_users;
-        totalGroupCellData.P += total_users;
-        grandTotal.rowTotal.P += total_users;
-      }
-      // Tambah ke total (T)
-      categoryData.rowTotal.T += total_users;
-      grandTotal.rowTotal.T += total_users;
+      // Update data sel per Kelompok
+      const updateCell = (target: PivotedRow) => {
+        if (!target.groups.has(group_name)) {
+          target.groups.set(group_name, { L: 0, P: 0 });
+        }
+        const cell = target.groups.get(group_name)!;
+        if (gender.toUpperCase() === 'L') {
+          cell.L += total_users;
+          target.rowTotal.L += total_users;
+        } else if (gender.toUpperCase() === 'P') {
+          cell.P += total_users;
+          target.rowTotal.P += total_users;
+        }
+        target.rowTotal.T += total_users;
+      };
+
+      updateCell(categoryData);
+      updateCell(grandTotal);
     }
 
-    // Urutkan nama grup (header kolom) secara alfabetis
+    // Urutkan grup secara alfabetis
     const groups = Array.from(groupSet).sort();
     
-    return { categories, groups, grandTotal };
-  }, [stats]);
+    // Urutkan kategori berdasarkan ID
+    const sortedCategories = Array.from(categoryMap.values()).sort((a, b) => a.categoryId - b.categoryId);
+    
+    return { categories: sortedCategories, groups, grandTotal };
+  }, [stats, viewMode]);
 
   if (stats.length === 0) {
-    // ... (fallback 'empty state' tetap sama)
     return (
       <div className="rounded-lg border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark">
         <h3 className="mb-4 text-xl font-semibold text-black dark:text-white">
           Rincian Statistik Generus
         </h3>
-        <p className="text-gray-600 dark:text-gray-400">Belum ada data statistik generus untuk ditampilkan.</p>
+        <p className="text-gray-600 dark:text-gray-400 italic">Belum ada data untuk ditampilkan.</p>
       </div>
     );
   }
 
   const { categories, groups, grandTotal } = processedData;
 
-  // Helper untuk mendapatkan data sel dengan aman
   const getCell = (data: PivotedRow, groupName: string) => {
     return data.groups.get(groupName) || { L: 0, P: 0 };
   };
 
   return (
     <div className="rounded-lg border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark">
-      <h3 className="mb-4 text-xl font-semibold text-black dark:text-white">
-        Rincian Statistik Generus (per Kategori & Kelompok)
-      </h3>
+      <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <h3 className="text-xl font-bold text-black dark:text-white">
+          Tabel Rincian Sensus (per Kategori & Kelompok)
+        </h3>
+        <span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary uppercase tracking-wider">
+          Mode: {viewMode === 'ringkas' ? 'Ringkas (Cabe Rawit)' : 'Semua Kategori'}
+        </span>
+      </div>
+
       <div className="max-w-full overflow-x-auto">
         <table className="w-full table-auto border-collapse">
-          <thead className="text-center">
-            {/* --- [DIUBAH] Baris Header 1: Nama Grup --- */}
-            <tr className="bg-gray-2 text-left dark:bg-meta-4">
-              <th 
-                rowSpan={2} 
-                className="border-b border-r border-stroke px-4 py-4 font-medium text-black dark:border-strokedark dark:text-white"
-              >
+          <thead>
+            <tr className="bg-gray-2 text-center dark:bg-meta-4">
+              <th rowSpan={2} className="border-b border-r border-stroke px-4 py-4 font-bold text-black dark:border-strokedark dark:text-white text-left min-w-[150px]">
                 Kategori
               </th>
-              
-              {/* Loop KELOMPOK untuk Header Atas */}
               {groups.map((groupName) => (
-                <th 
-                  key={groupName} 
-                  colSpan={2} 
-                  className="border-b border-r border-stroke px-4 py-4 font-medium text-black dark:border-strokedark dark:text-white text-center whitespace-nowrap"
-                >
+                <th key={groupName} colSpan={2} className="border-b border-r border-stroke px-2 py-4 font-bold text-black dark:border-strokedark dark:text-white whitespace-nowrap">
                   {groupName}
                 </th>
               ))}
-              
-              {/* Header Total */}
-              <th 
-                colSpan={3} 
-                className="border-b border-stroke px-4 py-4 font-medium text-black dark:border-strokedark dark:text-white text-center whitespace-nowrap"
-              >
-                Total
+              <th colSpan={3} className="border-b border-stroke px-4 py-4 font-bold text-black dark:border-strokedark dark:text-white whitespace-nowrap">
+                Total Baris
               </th>
             </tr>
-            
-            {/* --- [DIUBAH] Baris Header 2: L / P --- */}
-            <tr className="bg-gray-2 text-left dark:bg-meta-4">
-              {/* Kolom L/P untuk setiap KELOMPOK */}
+            <tr className="bg-gray-2 text-center dark:bg-meta-4 text-xs">
               {groups.map((groupName) => (
                 <React.Fragment key={`${groupName}-lp`}>
-                  <th className="border-r border-stroke px-4 py-4 font-medium text-black dark:border-strokedark dark:text-white text-center w-16">L</th>
-                  <th className="border-r border-stroke px-4 py-4 font-medium text-black dark:border-strokedark dark:text-white text-center w-16">P</th>
+                  <th className="border-r border-stroke px-2 py-2 font-medium text-black dark:border-strokedark dark:text-white w-10">L</th>
+                  <th className="border-r border-stroke px-2 py-2 font-medium text-black dark:border-strokedark dark:text-white w-10">P</th>
                 </React.Fragment>
               ))}
-              
-              {/* Kolom L/P/T untuk Total */}
-              <th className="border-r border-stroke px-4 py-4 font-medium text-black dark:border-strokedark dark:text-white text-center w-16">L</th>
-              <th className="border-r border-stroke px-4 py-4 font-medium text-black dark:border-strokedark dark:text-white text-center w-16">P</th>
-              <th className="px-4 py-4 font-medium text-black dark:text-white text-center w-20">T (L+P)</th>
+              <th className="border-r border-stroke px-2 py-2 font-bold text-blue-600 dark:text-blue-400 w-10">L</th>
+              <th className="border-r border-stroke px-2 py-2 font-bold text-pink-600 dark:text-pink-400 w-10">P</th>
+              <th className="px-2 py-2 font-bold text-black dark:text-white w-12">T</th>
             </tr>
           </thead>
           
-          <tbody className="text-center">
-            {/* --- [DIUBAH] Baris Data Kategori --- */}
-            {Array.from(categories.values()).map((row) => (
-              <tr key={row.categoryName}>
-                <td className="border-b border-r border-stroke px-4 py-5 dark:border-strokedark text-left">
-                  <p className="font-medium">{row.categoryName}</p>
+          <tbody className="text-center text-sm">
+            {categories.map((row) => (
+              <tr key={row.categoryId} className="hover:bg-gray-50 dark:hover:bg-meta-4 transition-colors">
+                <td className="border-b border-r border-stroke px-4 py-3 dark:border-strokedark text-left font-medium text-black dark:text-white">
+                  {row.categoryName}
                 </td>
-                
-                {/* Loop KELOMPOK untuk Sel Data */}
                 {groups.map((groupName) => {
                   const cell = getCell(row, groupName);
                   return (
-                    <React.Fragment key={`${row.categoryName}-${groupName}`}>
-                      <td className="border-b border-r border-stroke px-4 py-5 dark:border-strokedark">{cell.L}</td>
-                      <td className="border-b border-r border-stroke px-4 py-5 dark:border-strokedark">{cell.P}</td>
+                    <React.Fragment key={`${row.categoryId}-${groupName}`}>
+                      <td className="border-b border-r border-stroke px-2 py-3 dark:border-strokedark text-gray-600 dark:text-gray-400">
+                        {cell.L || "-"}
+                      </td>
+                      <td className="border-b border-r border-stroke px-2 py-3 dark:border-strokedark text-gray-600 dark:text-gray-400">
+                        {cell.P || "-"}
+                      </td>
                     </React.Fragment>
                   );
                 })}
-                
-                {/* Sel Total Baris */}
-                <td className="border-b border-r border-stroke px-4 py-5 dark:border-strokedark font-medium">{row.rowTotal.L}</td>
-                <td className="border-b border-r border-stroke px-4 py-5 dark:border-strokedark font-medium">{row.rowTotal.P}</td>
-                <td className="border-b border-stroke px-4 py-5 dark:border-strokedark font-bold">{row.rowTotal.T}</td>
+                <td className="border-b border-r border-stroke px-2 py-3 dark:border-strokedark font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/30 dark:bg-blue-900/10">
+                  {row.rowTotal.L}
+                </td>
+                <td className="border-b border-r border-stroke px-2 py-3 dark:border-strokedark font-semibold text-pink-600 dark:text-pink-400 bg-pink-50/30 dark:bg-pink-900/10">
+                  {row.rowTotal.P}
+                </td>
+                <td className="border-b border-stroke px-2 py-3 dark:border-strokedark font-black text-black dark:text-white bg-gray-50 dark:bg-meta-4">
+                  {row.rowTotal.T}
+                </td>
               </tr>
             ))}
           </tbody>
           
-          <tfoot className="text-center font-bold bg-gray-2 dark:bg-meta-4">
-            {/* --- [DIUBAH] Baris Grand Total --- */}
+          <tfoot className="text-center font-bold bg-gray-100 dark:bg-meta-4">
             <tr>
-              <td className="border-r border-stroke px-4 py-5 dark:border-strokedark text-left">
-                Total
+              <td className="border-r border-stroke px-4 py-4 dark:border-strokedark text-left text-black dark:text-white">
+                GRAND TOTAL
               </td>
-              
-              {/* Loop KELOMPOK untuk Sel Total */}
               {groups.map((groupName) => {
                 const cell = getCell(grandTotal, groupName);
                 return (
                   <React.Fragment key={`total-${groupName}`}>
-                    <td className="border-r border-stroke px-4 py-5 dark:border-strokedark">{cell.L}</td>
-                    <td className="border-r border-stroke px-4 py-5 dark:border-strokedark">{cell.P}</td>
+                    <td className="border-r border-stroke px-2 py-4 dark:border-strokedark text-blue-600 dark:text-blue-400">
+                      {cell.L}
+                    </td>
+                    <td className="border-r border-stroke px-2 py-4 dark:border-strokedark text-pink-600 dark:text-pink-400">
+                      {cell.P}
+                    </td>
                   </React.Fragment>
                 );
               })}
-              
-              {/* Sel Grand Total Keseluruhan */}
-              <td className="border-r border-stroke px-4 py-5 dark:border-strokedark">{grandTotal.rowTotal.L}</td>
-              <td className="border-r border-stroke px-4 py-5 dark:border-strokedark">{grandTotal.rowTotal.P}</td>
-              <td className="px-4 py-5">{grandTotal.rowTotal.T}</td>
+              <td className="border-r border-stroke px-2 py-4 dark:border-strokedark text-blue-700 dark:text-blue-300">
+                {grandTotal.rowTotal.L}
+              </td>
+              <td className="border-r border-stroke px-2 py-4 dark:border-strokedark text-pink-700 dark:text-pink-300">
+                {grandTotal.rowTotal.P}
+              </td>
+              <td className="px-2 py-4 text-black dark:text-white text-lg">
+                {grandTotal.rowTotal.T}
+              </td>
             </tr>
           </tfoot>
         </table>
