@@ -6,12 +6,14 @@ import { EvaluationRecapWithRelations } from "../types/evaluation.types";
 
 // Tipe data berdasarkan output fungsi SQL
 export type GlobalUserStats = {
+  category_id?: number;
   category_name: string;
   gender: string;
   total_users: number;
 };
 
 export type VillageUserStats = {
+  category_id?: number;
   group_id: number;
   group_name: string;
   category_name: string;

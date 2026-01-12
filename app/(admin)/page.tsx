@@ -35,7 +35,21 @@ async function RecentActivity() {
 }
 
 // --- Halaman Utama ---
-export default async function DashboardPage() {
+export default async function DashboardPage({ 
+  searchParams 
+}: { 
+  searchParams: Promise<{ view?: string }> 
+}) {
+  const awaitedParams = await searchParams; // Next.js 15 mewajibkan await params
+
+  let profile;
+  try {
+    const authData = await getAuthenticatedUserAndProfile();
+    profile = authData.profile;
+  } catch (error: any) {
+    // ... handling error
+  }
+
   try {
     await getAuthenticatedUserAndProfile();
   } catch (error: any) {
@@ -53,7 +67,7 @@ export default async function DashboardPage() {
 
       <div className="mt-4 md:mt-6 2xl:mt-9">
         <Suspense fallback={<CategoryStatsSkeleton />}>
-          <CategoryStatsGroup />
+          <CategoryStatsGroup profile={profile} searchParams={awaitedParams} />
         </Suspense>
       </div>
 

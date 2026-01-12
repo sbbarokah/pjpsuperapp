@@ -982,3 +982,39 @@ BEGIN
       category_name, gender;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_village_user_stats_by_group_category_gender(p_village_id BIGINT)
+RETURNS TABLE(
+  group_id BIGINT,
+  group_name TEXT, 
+  category_id BIGINT,   -- Penambahan kolom category_id
+  category_name TEXT, 
+  gender TEXT, 
+  total_users BIGINT
+) AS $$
+BEGIN
+  RETURN QUERY
+    SELECT
+      g.id AS group_id,
+      COALESCE(g.name, 'Tanpa Kelompok') AS group_name,
+      c.id AS category_id,                      -- Mengambil ID dari tabel category
+      COALESCE(c.name, 'Tanpa Kategori') AS category_name,
+      COALESCE(p.gender, 'N/A') AS gender,
+      COUNT(p.id) AS total_users
+    FROM
+      profile p
+    LEFT JOIN
+      "group" g ON p.group_id::BIGINT = g.id
+    LEFT JOIN
+      category c ON p.category_id::BIGINT = c.id
+    WHERE
+      -- Filter hanya untuk Generus (bukan admin)
+      p.role = 'user' 
+      AND p.is_active = true 
+      AND p.village_id::BIGINT = p_village_id
+    GROUP BY
+      g.id, g.name, c.id, c.name, p.gender      -- Menambahkan c.id ke dalam grouping
+    ORDER BY
+      group_name, category_id, gender;          -- Urutan berdasarkan ID kategori agar lebih konsisten
+END;
+$$ LANGUAGE plpgsql;
