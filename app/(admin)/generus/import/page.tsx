@@ -74,21 +74,61 @@ export default function ImportGenerusPage() {
 
             {/* --- Bagian Unduh Template (Opsional, tapi bagus untuk Tab 1) --- */}
             <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-4 dark:bg-primary/10">
-              <h4 className="mb-2 font-semibold text-primary">
+              <h4 className="mb-2 font-semibold text-primary text-lg">
                 Unduh Template (untuk Impor File)
               </h4>
-              <p className="mb-3 text-sm text-gray-700 dark:text-gray-200">
-                Jika Anda menggunakan mode "Impor via File", gunakan template ini
-                untuk memastikan semua kolom sesuai.
+              <p className="mb-4 text-sm text-gray-700 dark:text-gray-200">
+                Jika Anda menggunakan mode "Impor via File", gunakan salah satu template di bawah ini 
+                untuk memastikan semua kolom sesuai dengan sistem.
               </p>
-              <a
-                href="/template_generus.xlsx"
-                download="template_generus.xlsx"
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90"
-              >
-                {/* ... (SVG Ikon Download) ... */}
-                Unduh Template Generus
-              </a>
+              
+              <div className="flex flex-wrap gap-3">
+                {/* Tombol Template Lengkap */}
+                <a
+                  href="/template_generus.xlsx"
+                  download="template_generus_lengkap.xlsx"
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-opacity-90 transition-all shadow-sm"
+                >
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    ></path>
+                  </svg>
+                  Unduh Template Generus (lengkap)
+                </a>
+
+                {/* Tombol Template Singkat */}
+                <a
+                  href="//template_generus2.xlsx"
+                  download="/template_generus2.xlsx"
+                  className="inline-flex items-center gap-2 rounded-lg border border-primary bg-white px-4 py-2.5 text-sm font-medium text-primary hover:bg-primary/5 dark:bg-boxdark dark:text-white dark:hover:bg-primary/10 transition-all shadow-sm"
+                >
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    ></path>
+                  </svg>
+                  Unduh Template Generus 2 (singkat)
+                </a>
+              </div>
             </div>
             
             {/* --- Bagian Upload (Form) --- */}

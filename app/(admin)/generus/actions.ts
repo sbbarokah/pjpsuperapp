@@ -205,10 +205,9 @@ export async function importGenerusAction(
     // Hasilkan email jika kosong (Logika baru Anda)
     let email = row.email ? String(row.email) : "";
     if (!email) {
-      // Hilangkan spasi dan ubah ke huruf kecil
       const emailName = full_name.toLowerCase().replace(/\s/g, "");
-      // Gunakan domain baru @pjp.com
-      email = `${emailName || "user" + Date.now()}@pjp.com`;
+      const randomSuffix = Math.floor(100 + Math.random() * 900); // 3 angka acak
+      email = `${emailName}${randomSuffix}@pjp.app`;
     }
 
     // Hasilkan username jika kosong
