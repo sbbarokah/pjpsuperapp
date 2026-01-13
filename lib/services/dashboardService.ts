@@ -94,7 +94,7 @@ export async function getRecentAttendanceReports(): Promise<AttendanceRecapWithR
       category (name)
     `)
     .order("created_at", { ascending: false })
-    .limit(5); // Limit 5 agar tidak terlalu panjang di dashboard
+    .limit(10); // Limit 5 agar tidak terlalu panjang di dashboard
 
   if (error) {
     console.error("Error getRecentAttendanceReports:", error);
@@ -119,7 +119,7 @@ export async function getRecentEvaluationReports(): Promise<EvaluationRecapWithR
       category (name)
     `)
     .order("created_at", { ascending: false })
-    .limit(5);
+    .limit(10);
 
   if (error) {
     console.error("Error getRecentEvaluationReports:", error);
