@@ -12,6 +12,7 @@ import { deleteRecapAction } from "../actions";
 import { currentYear, monthOptions, yearOptions } from "@/lib/constants";
 import { CategoryModel, GroupModel } from "@/lib/types/master.types";
 import IconSearch from "@/components/icon/IconSearch";
+import { FiFilter } from "react-icons/fi";
 
 interface ListProps {
   recaps: AttendanceRecapWithRelations[];
@@ -93,7 +94,6 @@ export function RecapListClient({ recaps, profile, masterGroups, masterCategorie
     month: "",
     year: String(currentYear),
   });
-  console.log("=== isi filter", filter);
 
   const isAdminDesa = profile.role === 'admin_desa';
 
@@ -183,7 +183,7 @@ export function RecapListClient({ recaps, profile, masterGroups, masterCategorie
       {/* --- Section Filter --- */}
       <div className="rounded-lg border border-stroke bg-white p-4 shadow-default dark:border-strokedark dark:bg-boxdark">
         <div className="flex items-center gap-2 mb-4 text-primary font-bold">
-          <FaFilter />
+          <FiFilter />
           <span>Filter Laporan</span>
         </div>
         

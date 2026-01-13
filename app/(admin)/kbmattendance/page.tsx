@@ -27,8 +27,6 @@ async function RecapList({ profile }: { profile: Profile }) {
     getGroups(),
     getCategories()
   ]);
-
-  // console.log("isi recaps", recaps);
   
   return (
     <RecapListClient 

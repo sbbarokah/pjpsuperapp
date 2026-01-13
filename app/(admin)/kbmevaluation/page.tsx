@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { Profile } from "@/lib/types/user.types";
 import { RecapListClient } from "./_components/recap_list_client";
+import { getCategories, getGroups } from "@/lib/services/masterService";
 
 export const metadata = {
   title: "Rekap Penilaian | Admin",
@@ -21,8 +22,20 @@ async function RecapList({ profile }: { profile: Profile }) {
     villageId: profile.village_id as number,
     groupId: profile.role === 'admin_kelompok' ? (profile.group_id as number) : undefined,
   });
+
+  const [groups, categories] = await Promise.all([
+    getGroups(),
+    getCategories()
+  ]);
   
-  return <RecapListClient recaps={recaps} profile={profile} />;
+  return (
+    <RecapListClient 
+      recaps={recaps} 
+      profile={profile} 
+      masterGroups={groups} 
+      masterCategories={categories} 
+    />
+  );
 }
 
 export default async function EvaluationRecapPage() {
