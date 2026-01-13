@@ -87,7 +87,7 @@ function getDisplayData(data: StatData[], mode: string): StatData[] {
   if (mode !== "ringkas") return data;
 
   // ID kategori yang masuk dalam kelompok Cabe Rawit
-  const cabeRawitIds = [1, 2, 3, 4, 5, 6, 7, 12];
+  const cabeRawitIds = [1, 2, 3, 4, 5, 6, 7];
   const praRemajaIds = [8, 13];
   const summarized: StatData[] = [];
   

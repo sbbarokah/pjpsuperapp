@@ -33,7 +33,7 @@ export function StatsDisplayTable({ stats }: StatsDisplayTableProps) {
   const processedData = useMemo((): ProcessedData => {
     const categoryMap = new Map<number, PivotedRow>();
     const groupSet = new Set<string>();
-    const cabeRawitIds = [1, 2, 3, 4, 5, 6, 7, 12];
+    const cabeRawitIds = [1, 2, 3, 4, 5, 6, 7];
     
     const grandTotal: PivotedRow = {
       categoryId: -1,
