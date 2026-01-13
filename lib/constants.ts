@@ -27,3 +27,9 @@ export const monthOptions = [
   { value: 11, label: "November" },
   { value: 12, label: "Desember" },
 ];
+
+export const currentYear = new Date().getFullYear();
+export const yearOptions = [
+  { value: String(currentYear), label: String(currentYear) },
+  { value: String(currentYear - 1), label: String(currentYear - 1) },
+];

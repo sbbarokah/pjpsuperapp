@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { Profile } from "@/lib/types/user.types";
 import { RecapListClient } from "./_components/recap_list_client";
+import { getCategories, getGroups } from "@/lib/services/masterService";
 
 export const metadata = {
   title: "Rekap Presensi | Admin",
@@ -21,8 +22,22 @@ async function RecapList({ profile }: { profile: Profile }) {
     villageId: profile.village_id as number,
     groupId: profile.role === 'admin_kelompok' ? (profile.group_id as number) : undefined,
   });
+
+  const [groups, categories] = await Promise.all([
+    getGroups(),
+    getCategories()
+  ]);
+
+  // console.log("isi recaps", recaps);
   
-  return <RecapListClient recaps={recaps} profile={profile} />;
+  return (
+    <RecapListClient 
+      recaps={recaps} 
+      profile={profile} 
+      masterGroups={groups} 
+      masterCategories={categories} 
+    />
+  );
 }
 
 export default async function AttendanceRecapPage() {
@@ -47,7 +62,7 @@ export default async function AttendanceRecapPage() {
   return (
     <>
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <Breadcrumb pageName="Rekap Presensi KBM" showNav={false} />
+        <Breadcrumb pageName="Rekap Presensi Generus" showNav={false} />
         <Link
           href="/kbmattendance/new"
           className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"
