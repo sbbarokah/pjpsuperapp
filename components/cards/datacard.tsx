@@ -23,9 +23,9 @@ export function DataCard({ children, actions, href, className }: DataCardProps) 
   const content = (
     <>
       {actions && (
-        <div className="absolute right-2 top-2 z-10">{actions}</div>
+        <div className="absolute right-2 top-5 z-10">{actions}</div>
       )}
-      <div className="relative z-0">{children}</div>
+      <div className="relative z-0 h-full">{children}</div>
     </>
   );
 

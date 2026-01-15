@@ -123,7 +123,7 @@ export function StatsDisplayTable({ stats }: StatsDisplayTableProps) {
           Tabel Rincian Sensus (per Kategori & Kelompok)
         </h3>
         <span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary uppercase tracking-wider">
-          Mode: {viewMode === 'ringkas' ? 'Ringkas (Cabe Rawit)' : 'Semua Kategori'}
+          Mode: {viewMode === 'ringkas' ? 'Ringkas' : 'Semua Kategori'}
         </span>
       </div>
 

@@ -40,6 +40,13 @@ export function DeleteUserButton({ id, name }: DeleteUserButtonProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter(); // Untuk refresh data setelah hapus
 
+  const handleDeleteTrigger = (e: React.MouseEvent) => {
+    // Berhenti di sini agar tidak memicu Link/Anchor pada parent (UserCard)
+    e.stopPropagation();
+    e.preventDefault();
+    handleDelete();
+  };
+
   const handleDelete = () => {
     Swal.fire({
       title: "Anda yakin?",
@@ -57,31 +64,34 @@ export function DeleteUserButton({ id, name }: DeleteUserButtonProps) {
       }
     }).then((result) => {
       if (result.isConfirmed) {
-        // Gunakan useTransition untuk state loading
-        startTransition(async () => {
-          const response = await deleteUserAction(id);
+        confirmDelete();
+      }
+    });
+  };
 
-          if (response.success) {
-            Swal.fire({
-              title: "Terhapus!",
-              text: response.message,
-              icon: "success",
-              customClass: {
-                popup: 'dark:bg-boxdark dark:text-white',
-              }
-            });
-            // 'revalidatePath' di action akan memuat ulang data di server.
-            // 'router.refresh()' memastikan klien mengambil data baru itu.
-            router.refresh();
-          } else {
-            Swal.fire({
-              title: "Gagal!",
-              text: response.error || "Terjadi kesalahan",
-              icon: "error",
-              customClass: {
-                popup: 'dark:bg-boxdark dark:text-white',
-              }
-            });
+  const confirmDelete = () => {
+    startTransition(async () => {
+      const response = await deleteUserAction(id);
+
+      if (response.success) {
+        Swal.fire({
+          title: "Terhapus!",
+          text: response.message,
+          icon: "success",
+          customClass: {
+            popup: 'dark:bg-boxdark dark:text-white',
+          }
+        });
+        // 'revalidatePath' di action akan memuat ulang data di server.
+        // 'router.refresh()' memastikan klien mengambil data baru itu.
+        router.refresh();
+      } else {
+        Swal.fire({
+          title: "Gagal!",
+          text: response.error || "Terjadi kesalahan",
+          icon: "error",
+          customClass: {
+            popup: 'dark:bg-boxdark dark:text-white',
           }
         });
       }
@@ -90,7 +100,7 @@ export function DeleteUserButton({ id, name }: DeleteUserButtonProps) {
 
   return (
     <button
-      onClick={handleDelete}
+      onClick={handleDeleteTrigger}
       disabled={isPending}
       className="group rounded p-1.5 hover:bg-red-100 dark:hover:bg-red-900/20 disabled:opacity-50"
       title="Hapus Kelompok"
