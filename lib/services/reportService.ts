@@ -366,7 +366,7 @@ export async function getVillageDetailData(
     groups.forEach(grp => {
       groupMap.set(grp.id, {
         count_male: 0, count_female: 0, count_total: 0,
-        avg_present: 0, avg_permission: 0, avg_absent: 0,
+        avg_present: 0, avg_permission: 0, avg_absent: 0, achievement: "",
         materials: [], challenges: "", solutions: "", success_notes: ""
       });
     });

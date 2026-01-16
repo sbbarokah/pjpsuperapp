@@ -41,6 +41,7 @@ export type EvaluationRecapModel = {
   category_id: number;
   period_month: number;
   period_year: number;
+  achievement?: string | null;
   challenges?: string | null;
   solutions?: string | null;
   notes?: string | null;
@@ -69,6 +70,7 @@ export type CreateEvaluationPayload = {
   category_id: number;
   period_month: number;
   period_year: number;
+  achievement?: string | null;
   challenges?: string | null;
   solutions?: string | null;
   notes?: string | null;

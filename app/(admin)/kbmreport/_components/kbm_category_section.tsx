@@ -3,6 +3,7 @@
 import { StudentAttendanceData } from "@/lib/types/attendance.types";
 import { KbmDetailContext, KbmDetailData } from "@/lib/types/report.types";
 import { FaUsers, FaClipboardList, FaExclamationTriangle, FaLightbulb, FaStickyNote } from "react-icons/fa";
+import { MdReport } from "react-icons/md";
 
 export function KbmCategorySection({ 
   data, 
@@ -185,8 +186,18 @@ export function KbmCategorySection({
            {/* Mengambil dari EvaluationRecap jika ada, fallback ke KbmReport */}
            
            {/* Box Tantangan (Prioritas: Manual Report challenges) */}
-           <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 dark:bg-boxdark-2 dark:border-strokedark">
-              <h5 className="font-bold text-orange-800 dark:text-orange-400 mb-2 flex items-center gap-2">
+           <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:bg-boxdark-2 dark:border-strokedark">
+              <h5 className="font-bold text-green-800 dark:text-green-400 mb-2 flex items-center gap-2">
+                <MdReport /> Info Keberhasilan Program
+              </h5>
+              <p className="text-sm whitespace-pre-wrap">
+                {manualReport?.program_success_info || evaluation?.achievement || "-"}
+              </p>
+           </div>
+           
+           {/* Box Tantangan (Prioritas: Manual Report challenges) */}
+           <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:bg-boxdark-2 dark:border-strokedark">
+              <h5 className="font-bold text-red-800 dark:text-red-400 mb-2 flex items-center gap-2">
                 <FaExclamationTriangle /> Tantangan / Kendala
               </h5>
               <p className="text-sm whitespace-pre-wrap">
@@ -195,8 +206,8 @@ export function KbmCategorySection({
            </div>
 
            {/* Box Solusi (Prioritas: Evaluation Recap solutions -> atau gabung di challenges report) */}
-           <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:bg-boxdark-2 dark:border-strokedark">
-              <h5 className="font-bold text-green-800 dark:text-green-400 mb-2 flex items-center gap-2">
+           <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:bg-boxdark-2 dark:border-strokedark">
+              <h5 className="font-bold text-yellow-800 dark:text-yellow-400 mb-2 flex items-center gap-2">
                 <FaLightbulb /> Solusi / Usulan
               </h5>
               <p className="text-sm whitespace-pre-wrap">
@@ -205,9 +216,10 @@ export function KbmCategorySection({
            </div>
            
            {/* Box Catatan / Program Sukses */}
-           <div className="col-span-1 md:col-span-2 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:bg-boxdark-2 dark:border-strokedark">
+           {/* <div className="col-span-1 md:col-span-2 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:bg-boxdark-2 dark:border-strokedark"> */}
+           <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:bg-boxdark-2 dark:border-strokedark">
               <h5 className="font-bold text-blue-800 dark:text-blue-400 mb-2 flex items-center gap-2">
-                <FaStickyNote /> Catatan / Keberhasilan Program
+                <FaStickyNote /> Catatan Lain
               </h5>
               <p className="text-sm whitespace-pre-wrap">
                 {manualReport?.program_success_info || evaluation?.notes || "-"}

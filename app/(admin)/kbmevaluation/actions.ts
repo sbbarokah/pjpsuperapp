@@ -105,6 +105,7 @@ export async function createEvaluationAction(
     category_id: payload.category_id,
     period_month: payload.period_month,
     period_year: payload.period_year,
+    achievement: payload.achievement,
     challenges: payload.challenges,
     solutions: payload.solutions,
     notes: payload.notes,
@@ -152,6 +153,9 @@ export async function updateEvaluationAction(
     category_id: data.category_id,
     period_month: data.period_month,
     period_year: data.period_year,
+    achievement: data.achievement,
+    challenges: data.challenges,
+    solutions: data.solutions,
     notes: data.notes, // Menggunakan 'notes'
     raw_data: raw_data,
   };

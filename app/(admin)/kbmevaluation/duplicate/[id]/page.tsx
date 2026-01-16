@@ -6,12 +6,12 @@ import { notFound } from "next/navigation";
 import { EvaluationRecapForm } from "../../_components/recap_eval_form";
 
 export const metadata = {
-  title: "Edit Rekap Penilaian | Admin",
+  title: "Duplikat Rekap Penilaian | Admin",
 };
 
-interface EditPageProps { params: { id: string } }
+interface DuplicatePageProps { params: { id: string } }
 
-export default async function EditEvaluationPage(propsPromise: Promise<EditPageProps>) {
+export default async function DuplicateEvaluationPage(propsPromise: Promise<DuplicatePageProps>) {
   const { params } = await propsPromise;
   const { id } = await params;
 
@@ -51,8 +51,8 @@ export default async function EditEvaluationPage(propsPromise: Promise<EditPageP
           admin={profile}
           groups={groups}
           categories={categories}
-          initialData={recapData} // <-- Kirim data untuk mode edit
-          mode="edit"
+          initialData={recapData} // <-- Kirim data untuk mode duplicate
+          mode="duplicate"
         />
       </div>
     </>

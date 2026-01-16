@@ -11,6 +11,8 @@ import { currentYear, monthOptions, yearOptions } from "@/lib/constants";
 import { CategoryModel, GroupModel } from "@/lib/types/master.types";
 import IconSearch from "@/components/icon/IconSearch";
 import { FiFilter } from "react-icons/fi";
+import { IoDuplicate } from "react-icons/io5";
+import Swal from "sweetalert2";
 
 interface ListProps {
   recaps: EvaluationRecapWithRelations[];
@@ -54,8 +56,11 @@ const RecapCard = ({
     </div>
     
     <div className="p-4 border-t border-stroke dark:border-strokedark flex justify-end items-center gap-3">
+      <Link href={`/kbmevaluation/duplicate/${recap.id}`} className="text-green-500 hover:text-green-700 flex items-center gap-1 text-sm">
+        <IoDuplicate /> Salin
+      </Link>
       <Link href={`/kbmevaluation/edit/${recap.id}`} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-sm">
-        <FaEdit /> Edit
+        <FaEdit /> Ubah
       </Link>
       <button
         onClick={onDelete}
@@ -99,17 +104,53 @@ export function RecapListClient({ recaps, profile, masterGroups, masterCategorie
   };
   
   const handleDelete = (id: string, groupName: string, catName: string) => {
-    if (window.confirm(`Hapus rekap penilaian ${groupName} - ${catName}?`)) {
-      startTransition(async () => {
-        setError(null);
-        const response = await deleteEvaluationRecapAction(id);
-        if (!response.success) {
-          setError(response.message);
-        } else {
-          router.refresh();
-        }
-      });
-    }
+    Swal.fire({
+      title: "Anda yakin?",
+      text: `Anda akan menghapus laporan penilaiai kelas "${catName}" kelompok "${groupName}". Aksi ini tidak dapat dibatalkan.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6", // Biru
+      cancelButtonColor: "#d33", // Merah
+      confirmButtonText: "Ya, hapus!",
+      cancelButtonText: "Batal",
+      customClass: {
+        popup: 'dark:bg-boxdark dark:text-white',
+        confirmButton: 'bg-primary',
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        confirmDelete(id);
+      }
+    });
+  };
+
+  const confirmDelete = (id: string) => {
+    startTransition(async () => {
+      const response = await deleteEvaluationRecapAction(id);
+
+      if (response.success) {
+        Swal.fire({
+          title: "Terhapus!",
+          text: response.message,
+          icon: "success",
+          customClass: {
+            popup: 'dark:bg-boxdark dark:text-white',
+          }
+        });
+        // 'revalidatePath' di action akan memuat ulang data di server.
+        // 'router.refresh()' memastikan klien mengambil data baru itu.
+        router.refresh();
+      } else {
+        Swal.fire({
+          title: "Gagal!",
+          text: response.error || "Terjadi kesalahan",
+          icon: "error",
+          customClass: {
+            popup: 'dark:bg-boxdark dark:text-white',
+          }
+        });
+      }
+    });
   };
 
   if (recaps.length === 0) {

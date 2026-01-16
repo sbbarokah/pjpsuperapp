@@ -38,6 +38,7 @@ export default async function CreateEvaluationPage() {
           admin={profile}
           groups={groups}
           categories={categories}
+          mode="create"
         />
       </div>
     </>

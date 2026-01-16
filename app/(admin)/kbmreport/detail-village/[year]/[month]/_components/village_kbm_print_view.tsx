@@ -83,23 +83,31 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
             {/* 4. Tantangan */}
             <section className="break-inside-avoid">
               <h3 className="text-xl font-bold mb-4 text-black dark:text-white border-l-4 border-primary pl-3 print:text-black print:border-black">
-                4. Tantangan / Kendala
+                4. Info Keberhasilan Program Generus
+              </h3>
+              <VillageDescriptiveSection context={context} type="ACHIEVEMENT" />
+            </section>
+            
+            {/* 5. Tantangan */}
+            <section className="break-inside-avoid">
+              <h3 className="text-xl font-bold mb-4 text-black dark:text-white border-l-4 border-primary pl-3 print:text-black print:border-black">
+                5. Tantangan / Kendala
               </h3>
               <VillageDescriptiveSection context={context} type="CHALLENGES" />
             </section>
 
-            {/* 5. Solusi */}
+            {/* 6. Solusi */}
             <section className="break-inside-avoid">
               <h3 className="text-xl font-bold mb-4 text-black dark:text-white border-l-4 border-primary pl-3 print:text-black print:border-black">
-                5. Solusi / Usulan
+                6. Solusi / Usulan
               </h3>
               <VillageDescriptiveSection context={context} type="SOLUTIONS" />
             </section>
             
-            {/* 6. Keberhasilan */}
+            {/* 7. Keberhasilan */}
             <section className="break-inside-avoid">
               <h3 className="text-xl font-bold mb-4 text-black dark:text-white border-l-4 border-primary pl-3 print:text-black print:border-black">
-                6. Catatan / Keberhasilan
+                7. Catatan 
               </h3>
               <VillageDescriptiveSection context={context} type="SUCCESS" />
             </section>

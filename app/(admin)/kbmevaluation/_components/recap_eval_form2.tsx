@@ -20,7 +20,7 @@ import {
   getMaterialCategoriesForFormAction,
   getAllMaterialsForFormAction,
 } from "../actions";
-import { FaCopy, FaPlus, FaTrash } from "react-icons/fa";
+import { FaPlus, FaTrash } from "react-icons/fa";
 import { MaterialWithRelations } from "@/lib/types/material.types";
 import { SelectGroupV2 } from "@/components/forms/select_group_v2";
 import { TextAreaGroupV2 } from "@/components/forms/text_area_v2";
@@ -68,7 +68,6 @@ export function EvaluationRecapForm({
     category_id: String(initialData?.category_id || ""),
     period_month: String(initialData?.period_month || new Date().getMonth() + 1),
     period_year: String(initialData?.period_year || currentYear),
-    achievement: initialData?.achievement || "",
     challenges: initialData?.challenges || "",
     solutions: initialData?.solutions || "",
     notes: initialData?.notes || "",
@@ -81,58 +80,103 @@ export function EvaluationRecapForm({
   const [evaluationRows, setEvaluationRows] = useState<EvaluationRowState[]>([]);
 
   // --- Efek untuk memuat data di Mode Edit ---
+  // --- Efek untuk memuat data di Mode Edit ---
   useEffect(() => {
-    const loadInitialData = async () => {
-      if (hasInitialData && initialData) {
+    const loadEditData = async () => {
+      if (isEditMode && initialData) {
         setIsLoading(true);
-        // Using mocks defined above
+        // 1. Ambil semua data master
         const [studentResponse, materialResponse, matCatResponse] = await Promise.all([
           getGenerusForFormAction(initialData.group_id, initialData.category_id),
           getAllMaterialsForFormAction(),
           getMaterialCategoriesForFormAction()
         ]);
         
+        // 2. Set state master (Materi & Kategori)
         if (materialResponse.success) setAllAvailableMaterials(materialResponse.data || []);
         if (matCatResponse.success) setMaterialCategories(matCatResponse.data || []);
 
+        // 3. LOGIC MERGE SISWA (Handle Deleted Students)
         let finalStudents: Generus[] = [];
         const activeStudents = (studentResponse.success && studentResponse.data) ? studentResponse.data : [];
+
+        // Buat Set ID siswa aktif untuk lookup cepat
         const activeStudentIds = new Set(activeStudents.map(s => s.user_id));
+        
+        // Cari "Ghost Students" (Ada di history tapi tidak di master aktif)
         const ghostStudents: Generus[] = [];
         const processedGhostIds = new Set<string>();
 
+        // Loop data lama untuk mencari Ghost Students
         initialData.raw_data.forEach(row => {
           if (row.scores) {
             Object.keys(row.scores).forEach(studentId => {
+              // Jika ID ini TIDAK ada di daftar aktif DAN belum diproses
               if (!activeStudentIds.has(studentId) && !processedGhostIds.has(studentId)) {
+                
+                // [FIX 1] Handle Legacy Data untuk Ghost Name
                 const val = row.scores[studentId];
                 let snapshotName = "Siswa Terhapus / Tanpa Nama";
+                
+                // Cek apakah data lama (string) atau data baru (object)
                 if (typeof val === 'object' && val !== null && 'name' in val) {
-                   snapshotName = (val as any).name; 
+                   // @ts-ignore
+                   snapshotName = val.name; 
                 } else {
+                   // Jika legacy (string), kita tidak punya snapshot nama. 
+                   // Beri label generic atau biarkan default.
                    snapshotName = "Siswa Terhapus (Legacy)";
                 }
-                ghostStudents.push({ user_id: studentId, full_name: snapshotName, is_deleted: true });
+
+                ghostStudents.push({
+                  user_id: studentId,
+                  full_name: snapshotName,
+                  is_deleted: true 
+                });
                 processedGhostIds.add(studentId);
               }
             });
           }
         });
 
+        // Gabungkan Aktif + Ghost
         finalStudents = [...activeStudents, ...ghostStudents];
         finalStudents.sort((a, b) => a.full_name.localeCompare(b.full_name));
+        
         setStudents(finalStudents);
 
-        const rowsFromData: EvaluationRowState[] = initialData.raw_data.map((item) => {
+        // 4. Mapping raw_data ke state form dengan NAME CORRECTION & LEGACY SUPPORT
+        const rawDataArray = initialData.raw_data;
+        
+        const rowsFromData: EvaluationRowState[] = rawDataArray.map((item) => {
+          
           const smartScores: Record<string, ScoreItem> = {};
+          
           if (item.scores) {
             Object.entries(item.scores).forEach(([uid, val]) => {
+              // Cari data siswa di Master Terbaru
               const masterStudent = activeStudents.find(s => s.user_id === uid);
-              let scoreValue = typeof val === 'string' ? val : (val as any).score;
-              let storedName = typeof val === 'string' ? "" : (val as any).name;
+              
+              // [FIX 2] Deteksi format nilai (String vs Object)
+              let scoreValue = "";
+              let storedName = "";
+
+              if (typeof val === 'string') {
+                // KASUS DATA LAMA: val adalah string nilai langsung
+                scoreValue = val;
+                storedName = ""; // Tidak ada nama tersimpan di data lama
+              } else if (typeof val === 'object' && val !== null) {
+                // KASUS DATA BARU: val adalah object { score, name }
+                // @ts-ignore
+                scoreValue = val.score;
+                // @ts-ignore
+                storedName = val.name;
+              }
 
               smartScores[uid] = {
                 score: scoreValue, 
+                // Jika master ada, pakai master. Jika tidak (ghost), pakai storedName.
+                // Jika storedName kosong (kasus ghost legacy), pakai fallback.
                 name: masterStudent ? masterStudent.full_name : (storedName || "Siswa Terhapus")
               };
             });
@@ -154,8 +198,9 @@ export function EvaluationRecapForm({
         setIsLoading(false);
       }
     };
-    loadInitialData();
-  }, [hasInitialData, initialData]);
+    loadEditData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditMode, initialData]);
 
   // --- Handlers ---
   const handleFormChange = (
@@ -317,7 +362,6 @@ export function EvaluationRecapForm({
       category_id: Number(formData.category_id),
       period_month: Number(formData.period_month),
       period_year: Number(formData.period_year),
-      achievement: formData.achievement,
       challenges: formData.challenges,
       solutions: formData.solutions,
       notes: formData.notes,
@@ -347,12 +391,6 @@ export function EvaluationRecapForm({
   return (
     <form onSubmit={handleSubmit}>
       <div className="flex flex-col gap-5.5">
-        {isDuplicateMode && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-yellow-100 p-4 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
-            <FaCopy />
-            <p className="text-sm font-medium">Mode Duplikasi: Data ini akan disimpan sebagai entri rekap baru.</p>
-          </div>
-        )}
         
         {/* --- Bagian 1: Filter --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -409,14 +447,6 @@ export function EvaluationRecapForm({
         <hr className="my-4"/>
         
         {/* --- Bagian 2: Catatan Umum --- */}
-        <TextAreaGroupV2
-          label="Info Keberhasilan Program Generus (Opsional)"
-          name="achievement"
-          value={formData.achievement}
-          onChange={handleFormChange}
-          placeholder="Tuliskan info keberhasilan program generus periode ini..."
-          rows={3}
-        />
         <TextAreaGroupV2
           label="Tantangan KBM (Opsional)"
           name="challenges"

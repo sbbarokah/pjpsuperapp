@@ -79,6 +79,7 @@ export type VillageDataPoint = {
   
   // Deskriptif
   materials: EvaluationEntry[]; // Gabungan dari manual & recap
+  achievement: string;
   challenges: string;
   solutions: string;
   success_notes: string;

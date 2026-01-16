@@ -3,7 +3,7 @@
 import { VillageDetailContext } from "@/lib/types/report.types";
 import { FaCheckCircle, FaCircle } from "react-icons/fa";
 
-type SectionType = 'MATERIALS' | 'CHALLENGES' | 'SOLUTIONS' | 'SUCCESS';
+type SectionType = 'MATERIALS' | 'CHALLENGES' | 'SOLUTIONS' | 'SUCCESS' | 'ACHIEVEMENT';
 
 export function VillageDescriptiveSection({ 
   context, 
@@ -80,6 +80,7 @@ export function VillageDescriptiveSection({
         // Ambil data field yang sesuai
         const getData = (gId: number) => {
             const cell = matrix.get(cat.id)?.get(gId);
+            if (type === 'ACHIEVEMENT') return cell?.achievement;
             if (type === 'CHALLENGES') return cell?.challenges;
             if (type === 'SOLUTIONS') return cell?.solutions;
             if (type === 'SUCCESS') return cell?.success_notes;
