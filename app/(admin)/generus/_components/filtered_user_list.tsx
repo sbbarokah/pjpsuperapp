@@ -5,7 +5,8 @@ import { UserAdminView } from "@/lib/types/user.types"; // Perlu tipe UserAdminV
 import { UserCard } from "@/components/cards/carduser"; // Impor UserCard Anda
 import { DeleteUserButton } from "./delete_user_button"; // Asumsi path ini benar
 import Link from "next/link";
-import { FaFilter } from "react-icons/fa";
+import { FaEye, FaFilter } from "react-icons/fa";
+import { UserDetailModal } from "./user_detail_modal";
 
 // --- [BARU] Ikon Search (dari contoh Anda) ---
 const SearchIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -88,6 +89,14 @@ export function FilteredUserListClient({ users }: FilteredUserListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [groupFilter, setGroupFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleViewDetails = (user: any) => {
+    setSelectedUser(user);
+    setIsModalOpen(true);
+  };
 
   const { uniqueGroups, uniqueCategories } = useMemo(() => {
     const groupSet = new Set<string>();
@@ -200,7 +209,23 @@ export function FilteredUserListClient({ users }: FilteredUserListProps) {
                 key={user.user_id}
                 user={user}
                 href={`/generus/edit/${user.user_id}`}
-                actions={<DeleteUserButton id={user.user_id} name={userName} />}
+                // actions={<DeleteUserButton id={user.user_id} name={userName} />}
+                actions={
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleViewDetails(user);
+                        }}
+                        className="group flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 hover:bg-primary/20 transition-all"
+                        title="Lihat Detail"
+                    >
+                      <FaEye />
+                    </button>
+                    <DeleteUserButton id={user.user_id} name={user.full_name || user.username} />
+                </div>
+                }
               />
             );
           })}
@@ -210,6 +235,12 @@ export function FilteredUserListClient({ users }: FilteredUserListProps) {
           Tidak ada generus yang cocok dengan pencarian "{searchQuery}".
         </div>
       )}
+
+      <UserDetailModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        user={selectedUser} 
+      />
     </div>
   );
 }
