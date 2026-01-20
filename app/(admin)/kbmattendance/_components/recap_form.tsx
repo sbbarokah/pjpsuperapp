@@ -19,6 +19,7 @@ import {
 } from "../actions";
 import { SelectGroupV2 } from "@/components/forms/select_group_v2";
 import { InputGroupV2 } from "@/components/forms/input_group_v2";
+import { FaTrash } from "react-icons/fa";
 
 interface RecapFormProps {
   admin: Profile;
@@ -99,6 +100,31 @@ export function AttendanceRecapForm({
       setAttendanceData({});
       setGenderCounts({ m: 0, f: 0, t: 0 });
     }
+  };
+
+  /**
+   * FITUR: Exclude Student
+   * Mengeluarkan siswa dari laporan dan memperbarui sensus gender
+   */
+  const handleExcludeStudent = (userId: string) => {
+    const studentToExclude = students.find(s => s.user_id === userId);
+    if (!studentToExclude) return;
+
+    setStudents(prev => prev.filter(s => s.user_id !== userId));
+    setAttendanceData(prev => {
+      const next = { ...prev };
+      delete next[userId];
+      return next;
+    });
+
+    setGenderCounts(prev => {
+      const isMale = studentToExclude.gender === 'L';
+      return {
+        m: isMale ? Math.max(0, prev.m - 1) : prev.m,
+        f: !isMale ? Math.max(0, prev.f - 1) : prev.f,
+        t: Math.max(0, prev.t - 1)
+      };
+    });
   };
 
   const handleStudentDataChange = (
@@ -368,46 +394,59 @@ export function AttendanceRecapForm({
             {students.map((student, index) => (
               <div 
                 key={student.user_id} 
-                className={`grid grid-cols-1 md:grid-cols-4 gap-4 items-center rounded border border-stroke p-3 dark:border-strokedark ${
-                  student.is_deleted ? "bg-red-50 dark:bg-red-900/20 border-red-200" : ""
+                className={`grid grid-cols-1 md:grid-cols-12 gap-4 items-center rounded-lg border border-stroke p-4 dark:border-strokedark transition-all hover:shadow-md ${
+                  student.is_deleted ? "bg-red-50 dark:bg-red-900/10 border-red-200" : "bg-white dark:bg-boxdark"
                 }`}
               >
-                <div className="md:col-span-1">
+                {/* <div className="md:col-span-1"> */}
+                <div className="md:col-span-3 flex items-start gap-3">
                   <p className={`font-medium ${student.is_deleted ? "text-red-500" : "text-black dark:text-white"}`}>
                     {index + 1}. {student.full_name} 
                     {student.is_deleted && <span className="text-xs ml-2 italic">(Data Lama/Terhapus)</span>}
                   </p>
                 </div>
-                <InputGroupV2
-                  label="Hadir (P)"
-                  placeholder="Tuliskan jumlah hadir"
-                  type="number"
-                  name={`p_${student.user_id}`}
-                  value={attendanceData[student.user_id]?.p || 0}
-                  onChange={(e) => handleStudentDataChange(student.user_id, 'p', e.target.value, student.full_name)}
-                  min="0"
-                  max={formData.meeting_count}
-                />
-                <InputGroupV2
-                  label="Izin (I)"
-                  placeholder="Tuliskan jumlah izin"
-                  type="number"
-                  name={`i_${student.user_id}`}
-                  value={attendanceData[student.user_id]?.i || 0}
-                  onChange={(e) => handleStudentDataChange(student.user_id, 'i', e.target.value, student.full_name)}
-                  min="0"
-                  max={formData.meeting_count}
-                />
-                <InputGroupV2
-                  label="Alpa (A)"
-                  placeholder="Tuliskan jumlah alpa"
-                  type="number"
-                  name={`a_${student.user_id}`}
-                  value={attendanceData[student.user_id]?.a || 0}
-                  onChange={(e) => handleStudentDataChange(student.user_id, 'a', e.target.value, student.full_name)}
-                  min="0"
-                  max={formData.meeting_count}
-                />
+                <div className="md:col-span-8 grid grid-cols-3 gap-3">
+                  <InputGroupV2
+                    label="Hadir (P)"
+                    placeholder="Tuliskan jumlah hadir"
+                    type="number"
+                    name={`p_${student.user_id}`}
+                    value={attendanceData[student.user_id]?.p || 0}
+                    onChange={(e) => handleStudentDataChange(student.user_id, 'p', e.target.value, student.full_name)}
+                    min="0"
+                    max={formData.meeting_count}
+                  />
+                  <InputGroupV2
+                    label="Izin (I)"
+                    placeholder="Tuliskan jumlah izin"
+                    type="number"
+                    name={`i_${student.user_id}`}
+                    value={attendanceData[student.user_id]?.i || 0}
+                    onChange={(e) => handleStudentDataChange(student.user_id, 'i', e.target.value, student.full_name)}
+                    min="0"
+                    max={formData.meeting_count}
+                  />
+                  <InputGroupV2
+                    label="Alpa (A)"
+                    placeholder="Tuliskan jumlah alpa"
+                    type="number"
+                    name={`a_${student.user_id}`}
+                    value={attendanceData[student.user_id]?.a || 0}
+                    onChange={(e) => handleStudentDataChange(student.user_id, 'a', e.target.value, student.full_name)}
+                    min="0"
+                    max={formData.meeting_count}
+                  />
+                </div>
+                <div className="md:col-span-1 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => handleExcludeStudent(student.user_id)}
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
+                    title="Keluarkan dari laporan ini"
+                  >
+                    <FaTrash />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
