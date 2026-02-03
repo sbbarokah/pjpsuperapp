@@ -1018,3 +1018,155 @@ BEGIN
       group_name, category_id, gender;          -- Urutan berdasarkan ID kategori agar lebih konsisten
 END;
 $$ LANGUAGE plpgsql;
+
+
+/* -------------------------------------------------------------------------
+   MODUL PROKER
+------------------------------------------------------------------------- */
+
+/* --- 1. TABEL PROGRAM KERJA --- */
+CREATE TABLE public.work_programs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  author_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  
+  /* Scoping Wilayah */
+  village_id BIGINT NOT NULL REFERENCES public.village(id),
+  group_id BIGINT REFERENCES public.group(id), -- Opsional (bisa null jika proker desa)
+  
+  /* Data Inti */
+  name TEXT NOT NULL,          -- nama_kegiatan
+  team TEXT NOT NULL,          -- tim
+  year INT NOT NULL,           -- tahun
+  description TEXT,            -- deskripsi
+  location TEXT,               -- tempat
+  participants TEXT,           -- peserta
+  objective TEXT,              -- tujuan
+  
+  /* Data JSON Kompleks */
+  budget_items JSONB NOT NULL DEFAULT '[]'::jsonb, -- rab: [{item, harga, jumlah, satuan}]
+  timeline JSONB NOT NULL DEFAULT '{}'::jsonb,     -- timeline: {"Januari": ["M1"]}
+  
+  /* Data Terhitung (untuk sorting/filter cepat) */
+  total_budget BIGINT DEFAULT 0
+);
+
+/* Aktifkan RLS */
+ALTER TABLE public.work_programs ENABLE ROW LEVEL SECURITY;
+
+/* --- POLICIES --- */
+
+/* Read: Semua yang login bisa lihat (atau filter per desa) */
+CREATE POLICY "Allow authenticated read"
+ON public.work_programs FOR SELECT TO authenticated
+USING (true);
+
+/* Write: Admin Desa & Kelompok */
+CREATE POLICY "Allow admin insert"
+ON public.work_programs FOR INSERT TO authenticated
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.profile
+    WHERE profile.user_id = auth.uid()
+    AND (
+      (profile.role = 'admin_desa' AND profile.village_id = work_programs.village_id) OR
+      (profile.role = 'admin_kelompok' AND profile.group_id = work_programs.group_id) OR
+      profile.role = 'superadmin'
+    )
+  )
+);
+
+CREATE POLICY "Allow admin update/delete"
+ON public.work_programs FOR ALL TO authenticated
+USING (
+  author_user_id = auth.uid() OR
+  EXISTS (
+    SELECT 1 FROM public.profile
+    WHERE profile.user_id = auth.uid()
+    AND profile.role IN ('admin_desa', 'superadmin')
+    AND profile.village_id = work_programs.village_id
+  )
+);
+
+/* --- 2. RPC: REKAPITULASI ANGGARAN PER BULAN --- */
+/* Fungsi ini menghitung total anggaran yang direncanakan per bulan 
+   berdasarkan timeline yang dipilih. Jika kegiatan ada di Januari & Februari,
+   total anggarannya akan dihitung di kedua bulan tersebut (sebagai cashflow requirement) 
+   atau dibagi (tergantung logika bisnis, di sini saya gunakan logika SUM agar aman).
+*/
+CREATE OR REPLACE FUNCTION get_monthly_budget_recap(p_year INT, p_village_id BIGINT)
+RETURNS TABLE(
+  month_name TEXT,
+  total_budget BIGINT,
+  activity_count INT
+) AS $$
+DECLARE
+  months TEXT[] := ARRAY['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  m TEXT;
+BEGIN
+  FOREACH m IN ARRAY months LOOP
+    RETURN QUERY
+    SELECT
+      m AS month_name,
+      COALESCE(SUM(wp.total_budget), 0) AS total_budget,
+      COUNT(wp.id)::INT AS activity_count
+    FROM
+      public.work_programs wp
+    WHERE
+      wp.year = p_year
+      AND wp.village_id = p_village_id
+      -- Cek apakah bulan tersebut ada isinya di JSON timeline
+      AND jsonb_array_length(wp.timeline -> m) > 0;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+
+/******************************************
+Penyesuaian proker (tambah level)
+/******************************************
+/* 1. Tambah tipe enum untuk tingkatan */
+CREATE TYPE proker_level AS ENUM ('daerah', 'desa', 'kelompok');
+
+/* 2. Tambah kolom level ke tabel */
+ALTER TABLE public.work_programs 
+ADD COLUMN level proker_level NOT NULL DEFAULT 'desa';
+
+/* 3. Perbarui RLS Policy agar lebih ketat */
+
+-- Hapus policy lama jika ada
+DROP POLICY IF EXISTS "Allow authenticated read" ON public.work_programs;
+DROP POLICY IF EXISTS "Allow admin insert" ON public.work_programs;
+
+-- Read Policy: 
+-- Admin Desa hanya lihat level 'desa' di desanya.
+-- Admin Kelompok hanya lihat level 'kelompok' di kelompoknya.
+-- Superadmin bisa lihat semuanya.
+CREATE POLICY "Strict read based on role"
+ON public.work_programs FOR SELECT TO authenticated
+USING (
+  (EXISTS (
+    SELECT 1 FROM public.profile p
+    WHERE p.user_id = auth.uid()
+    AND (
+      (p.role = 'superadmin') OR
+      (p.role = 'admin_desa' AND work_programs.level = 'desa' AND p.village_id = work_programs.village_id) OR
+      (p.role = 'admin_kelompok' AND work_programs.level = 'kelompok' AND p.group_id = work_programs.group_id)
+    )
+  ))
+);
+
+-- Insert Policy: Superadmin dilarang insert via policy ini
+CREATE POLICY "Strict insert based on role"
+ON public.work_programs FOR INSERT TO authenticated
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.profile p
+    WHERE p.user_id = auth.uid()
+    AND (
+      (p.role = 'admin_desa' AND work_programs.level = 'desa') OR
+      (p.role = 'admin_kelompok' AND work_programs.level = 'kelompok')
+    )
+  )
+);

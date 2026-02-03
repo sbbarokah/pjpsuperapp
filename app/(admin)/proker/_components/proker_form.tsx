@@ -19,6 +19,7 @@ import {
   Target, 
   Clock 
 } from "lucide-react";
+import { createProkerAction, updateProkerAction } from "../actions";
 
 // Simulasi useRouter karena next/navigation mungkin tidak tersedia di lingkungan kompilasi ini
 const useRouter = () => ({
@@ -50,6 +51,8 @@ const formatIDR = (val: number) => new Intl.NumberFormat('id-ID', {
 export function ProkerForm({ initialData = null }: { initialData?: any }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     nama_kegiatan: initialData?.nama_kegiatan || "",
@@ -99,11 +102,36 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    
+    // Validasi sederhana
+    if(!formData.nama_kegiatan) {
+        alert("Nama kegiatan wajib diisi");
+        return;
+    }
+
     startTransition(async () => {
-      console.log("Simpan Data Program Kerja:", formData);
-      // Di sini Anda dapat memanggil server action asli
-      alert("Program Kerja berhasil disimpan ke sistem!");
-      router.back();
+      let result;
+      
+      if (initialData?.id) {
+        // Mode Edit
+        result = await updateProkerAction({
+            id: initialData.id,
+            ...formData
+        });
+      } else {
+        // Mode Create
+        result = await createProkerAction(formData);
+      }
+
+      if (!result.success) {
+        setError(result.message);
+      } else {
+        setSuccess(result.message);
+        router.push("/proker");
+        router.refresh();
+      }
     });
   };
 
@@ -319,6 +347,9 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
           ))}
         </div>
       </section>
+
+      {error && <div className="my-4 p-3 text-sm text-red-700 bg-red-100 border border-red-500 rounded">{error}</div>}
+      {success && <div className="my-4 p-3 text-sm text-green-700 bg-green-100 border border-green-500 rounded">{success}</div>}
 
       {/* Tombol Aksi */}
       <div className="flex justify-end gap-3 pt-6 border-t border-stroke dark:border-strokedark">
