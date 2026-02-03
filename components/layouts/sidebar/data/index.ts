@@ -7,6 +7,7 @@ import {
   LuSchool 
 } from "react-icons/lu";
 import { FaMosque } from "react-icons/fa6";
+import { FaProjectDiagram } from "react-icons/fa";
 
 export const NAV_DATA = [
   {
@@ -53,6 +54,12 @@ export const NAV_DATA = [
             url: "/kbmreport",
           },
         ],
+      },
+      {
+        title: "Proker",
+        url: "/proker",
+        icon: FaProjectDiagram, // Ganti Icons.User
+        items: [],
       },
       {
         title: "Berkas",
