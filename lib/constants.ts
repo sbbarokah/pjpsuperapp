@@ -36,9 +36,9 @@ export const yearOptions = [
 
 // --- Konstanta ---
 export const TEAMS = [
-  "4S Desa", "LDII", "Senkom", "Persinas", "Fosgi", "ASAD", 
-  "Tim Kematian", "Tim PNKB", "PJP Desa", "KMM Desa", 
-  "Tim Benda SB", "Tim Pembangunan"
+  "4S Desa", "LDII", "Senkom", "Fosgi", "Persinas ASAD", "Pengcam", 
+  "Tim Kematian", "Tim PNKB", "PJP Desa", "PJP CR", "PJP PRJ", 
+  "PJP RMJ", "PJP PRN", "KMM Desa", "Tim Benda SB", "Tim Pembangunan"
 ];
 
 export const BULAN = [

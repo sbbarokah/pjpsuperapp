@@ -20,24 +20,8 @@ import {
   Clock 
 } from "lucide-react";
 import { createProkerAction, updateProkerAction } from "../actions";
-
-// Simulasi useRouter karena next/navigation mungkin tidak tersedia di lingkungan kompilasi ini
-const useRouter = () => ({
-  push: (path: string) => console.log(`Navigasi ke: ${path}`),
-  back: () => console.log("Navigasi kembali"),
-  refresh: () => console.log("Memperbarui data"),
-});
-
-const TEAMS = [
-  "4S Desa", "LDII", "Senkom", "Persinas", "Fosgi", "ASAD", 
-  "Tim Kematian", "Tim PNKB", "PJP Desa", "KMM Desa", 
-  "Tim Benda SB", "Tim Pembangunan"
-];
-
-const BULAN = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-];
+import { useRouter } from "next/navigation";
+import { BULAN, TEAMS } from "@/lib/constants";
 
 const MINGGU = ["M1", "M2", "M3", "M4", "M5"];
 const YEARS = [2026, 2027, 2028, 2029, 2030];
@@ -53,7 +37,6 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  console.log("isi initial data", initialData);
 
   const [formData, setFormData] = useState({
     tim: initialData?.team || TEAMS[0],
