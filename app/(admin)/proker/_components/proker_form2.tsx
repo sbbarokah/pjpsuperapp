@@ -1,12 +1,12 @@
 /**
  * Lokasi: app/(admin)/proker/_components/proker_form.tsx
  * Deskripsi: Komponen formulir untuk tambah/edit Program Kerja Tahunan.
- * Perbaikan: Menambah kolom Frekuensi RAB, Timeline 3 State, dan Validasi silang.
+ * Perbaikan: Mengganti dependency next/navigation dengan simulasi router untuk lingkungan ini.
  */
 
 "use client";
 
-import React, { useState, useTransition, useMemo } from "react";
+import React, { useState, useTransition } from "react";
 import { 
   Plus, 
   Trash2, 
@@ -16,9 +16,8 @@ import {
   FileText, 
   MapPin, 
   Users, 
-  Clock,
-  AlertCircle,
-  CheckCircle2
+  Target, 
+  Clock 
 } from "lucide-react";
 import { createProkerAction, updateProkerAction } from "../actions";
 import { useRouter } from "next/navigation";
@@ -27,38 +26,17 @@ import { BULAN, TEAMS } from "@/lib/constants";
 const MINGGU = ["M1", "M2", "M3", "M4", "M5"];
 const YEARS = [2026, 2027, 2028, 2029, 2030];
 
-// Definisi status timeline
-const TIMELINE_STATES = {
-  NONE: 0,
-  ACTIVITY: 1, // Biru (Ada kegiatan, tanpa biaya)
-  FISCAL: 2    // Hijau (Ada kegiatan, ada biaya)
-};
+const formatIDR = (val: number) => new Intl.NumberFormat('id-ID', { 
+  style: 'currency', 
+  currency: 'IDR', 
+  minimumFractionDigits: 0 
+}).format(val);
 
 export function ProkerForm({ initialData = null }: { initialData?: any }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  // Helper untuk inisialisasi timeline dari data lama atau baru
-  const initializeTimeline = (dataTimeline: any) => {
-    if (!dataTimeline) return {};
-    // Jika data lama berbentuk array string (format lama), kita anggap itu FISCAL (Hijau)
-    // Jika format baru (object), gunakan langsung
-    const newTimeline: any = {};
-    Object.keys(dataTimeline).forEach(bulan => {
-      newTimeline[bulan] = {};
-      if (Array.isArray(dataTimeline[bulan])) {
-        // Konversi format array lama ke format object baru
-        dataTimeline[bulan].forEach((m: string) => {
-          newTimeline[bulan][m] = TIMELINE_STATES.FISCAL;
-        });
-      } else {
-        newTimeline[bulan] = dataTimeline[bulan];
-      }
-    });
-    return newTimeline;
-  };
 
   const [formData, setFormData] = useState({
     tim: initialData?.team || TEAMS[0],
@@ -68,37 +46,10 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
     tujuan: initialData?.objective || "",
     tempat: initialData?.location || "",
     peserta: initialData?.participants || "",
-    // Tambahkan field frekuensi default 1
-    rab: initialData?.budget_items?.map((item: any) => ({
-        ...item,
-        frekuensi: item.frekuensi || 1 
-    })) || [{ item: "", harga: 0, satuan: "", jumlah: 1, frekuensi: 1 }],
-    timeline: initializeTimeline(initialData?.timeline),
+    rab: initialData?.budget_items || [{ item: "", harga: 0, satuan: "", jumlah: 1 }],
+    timeline: initialData?.timeline || BULAN.reduce((acc, bln) => ({ ...acc, [bln]: [] }), {}),
+    total_anggaran: initialData?.total_budget || 0,
   });
-
-  // --- COMPUTED VALUES FOR VALIDATION ---
-  
-  // Hitung total frekuensi dari RAB
-  const totalRabFreq = useMemo(() => {
-    return formData.rab.reduce((acc: number, item: any) => acc + Number(item.frekuensi || 0), 0);
-  }, [formData.rab]);
-
-  // Hitung total minggu yang berwarna HIJAU (Fiscal)
-  const totalFiscalWeeks = useMemo(() => {
-    let count = 0;
-    Object.values(formData.timeline).forEach((weeks: any) => {
-      if (weeks) {
-        Object.values(weeks).forEach((val) => {
-          if (val === TIMELINE_STATES.FISCAL) count++;
-        });
-      }
-    });
-    return count;
-  }, [formData.timeline]);
-
-  const isValidFrequency = totalRabFreq === totalFiscalWeeks;
-
-  // --------------------------------------
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -109,7 +60,7 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
     const newRab = [...formData.rab];
     newRab[index] = { 
       ...newRab[index], 
-      [field]: field === "harga" || field === "jumlah" || field === "frekuensi" ? Number(value) : value 
+      [field]: field === "harga" || field === "jumlah" ? Number(value) : value 
     };
     setFormData((prev) => ({ ...prev, rab: newRab }));
   };
@@ -117,68 +68,45 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
   const addRabRow = () => {
     setFormData((prev) => ({
       ...prev,
-      rab: [...prev.rab, { item: "", harga: 0, satuan: "", jumlah: 1, frekuensi: 1 }]
+      rab: [...prev.rab, { item: "", harga: 0, satuan: "", jumlah: 1 }]
     }));
   };
 
-  // Logic Rotasi: 0 (Putih) -> 1 (Biru) -> 2 (Hijau) -> 0 (Putih)
   const toggleTimeline = (bulan: string, minggu: string) => {
     setFormData((prev) => {
-      const currentMonthData = (prev.timeline as any)[bulan] || {};
-      const currentVal = currentMonthData[minggu] || TIMELINE_STATES.NONE;
-      
-      let nextVal = TIMELINE_STATES.NONE;
-      if (currentVal === TIMELINE_STATES.NONE) nextVal = TIMELINE_STATES.ACTIVITY;
-      else if (currentVal === TIMELINE_STATES.ACTIVITY) nextVal = TIMELINE_STATES.FISCAL;
-      else nextVal = TIMELINE_STATES.NONE;
-
-      // Jika value 0, hapus key biar bersih, jika tidak simpan valuenya
-      const newMonthData = { ...currentMonthData };
-      if (nextVal === TIMELINE_STATES.NONE) {
-        delete newMonthData[minggu];
-      } else {
-        newMonthData[minggu] = nextVal;
-      }
-
-      return { ...prev, timeline: { ...prev.timeline, [bulan]: newMonthData } };
+      const currentWeeks = (prev.timeline as any)[bulan] || [];
+      const newWeeks = currentWeeks.includes(minggu)
+        ? currentWeeks.filter((w: string) => w !== minggu)
+        : [...currentWeeks, minggu];
+      return { ...prev, timeline: { ...prev.timeline, [bulan]: newWeeks } };
     });
   };
 
-  // Total Biaya = Harga * Jumlah * Frekuensi
-  const calculateTotal = () => formData.rab.reduce((acc: any, row: any) => acc + (row.harga * row.jumlah * row.frekuensi), 0);
+  const calculateTotal = () => formData.rab.reduce((acc: any, row: any) => acc + (row.harga * row.jumlah), 0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
     
-    // Validasi Field Wajib
+    // Validasi sederhana
     if(!formData.nama_kegiatan) {
         alert("Nama kegiatan wajib diisi");
         return;
     }
 
-    // Validasi Cross-Check RAB vs Timeline
-    if (!isValidFrequency) {
-      setError(`Validasi Gagal: Total Frekuensi di RAB (${totalRabFreq}) TIDAK SAMA dengan jumlah minggu Hijau/Fiskal (${totalFiscalWeeks}) pada timeline.`);
-      // Scroll ke atas atau ke area error
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
     startTransition(async () => {
       let result;
       
-      const payload = {
-        ...formData,
-        // Pastikan timeline disimpan dalam format yang bersih (opsional: bersihkan bulan kosong)
-        total_anggaran: calculateTotal()
-      };
-
       if (initialData?.id) {
-        result = await updateProkerAction({ id: initialData.id, ...payload });
+        // Mode Edit
+        result = await updateProkerAction({
+            id: initialData.id,
+            ...formData
+        });
       } else {
-        result = await createProkerAction(payload);
+        // Mode Create
+        result = await createProkerAction(formData);
       }
 
       if (!result.success) {
@@ -191,32 +119,8 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
     });
   };
 
-  // Helper untuk style tombol timeline
-  const getTimelineButtonStyle = (val: number) => {
-    switch (val) {
-      case TIMELINE_STATES.ACTIVITY: // Biru
-        return "bg-blue-500 border-blue-600 text-white shadow-md";
-      case TIMELINE_STATES.FISCAL: // Hijau
-        return "bg-green-500 border-green-600 text-white shadow-md scale-105 ring-2 ring-green-200";
-      default: // Putih/Kosong
-        return "bg-white dark:bg-boxdark border-stroke text-gray-400 hover:bg-gray-50";
-    }
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-8 pb-20">
-      
-      {/* ERROR MESSAGE TOP */}
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-700 animate-pulse">
-          <AlertCircle className="shrink-0 mt-0.5" />
-          <div>
-            <h4 className="font-bold">Gagal Menyimpan</h4>
-            <p className="text-sm">{error}</p>
-          </div>
-        </div>
-      )}
-
       {/* 1. Informasi Dasar */}
       <section className="bg-white p-6 rounded-xl border border-stroke dark:bg-boxdark dark:border-strokedark shadow-sm">
         <h3 className="text-xl font-bold mb-6 border-b pb-3 text-black dark:text-white flex items-center gap-2">
@@ -272,7 +176,7 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
               name="deskripsi" 
               value={formData.deskripsi} 
               onChange={handleInputChange} 
-              placeholder="Deskripsi singkat kegiatan..." 
+              placeholder="Contoh: Musyawarah Kerja Tahun" 
               className="w-full rounded-lg border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary dark:border-strokedark" 
             />
           </div>
@@ -298,7 +202,7 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
             />
           </div>
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold uppercase text-gray-500 flex items-center gap-2"><Users size={14}/> Peserta</label>
+            <label className="text-xs font-bold uppercase text-gray-500 flex items-center gap-2"><Users size={14}/> Estimasi Peserta</label>
             <input 
               name="peserta" 
               value={formData.peserta} 
@@ -317,18 +221,13 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
             <DollarSign className="text-primary" size={20}/>
             Rencana Anggaran Biaya (RAB)
           </h3>
-          <div className="flex items-center gap-4">
-            <div className={`text-sm px-3 py-1 rounded-full border ${isValidFrequency ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300 animate-pulse'}`}>
-               Total Frekuensi: <b>{totalRabFreq}</b>
-            </div>
-            <button 
-                type="button" 
-                onClick={addRabRow} 
-                className="text-primary font-bold flex items-center gap-1 text-sm hover:underline"
-            >
-                <Plus size={16}/> Tambah Item
-            </button>
-          </div>
+          <button 
+            type="button" 
+            onClick={addRabRow} 
+            className="text-primary font-bold flex items-center gap-1 text-sm hover:underline"
+          >
+            <Plus size={16}/> Tambah Item
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
@@ -336,9 +235,8 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
               <tr className="font-bold opacity-50 uppercase tracking-widest text-[10px] border-b border-stroke dark:border-strokedark">
                 <th className="pb-3 px-2">Item Kebutuhan</th>
                 <th className="pb-3 px-2">Satuan</th>
-                <th className="pb-3 px-2 w-20 text-center">Qty</th>
-                <th className="pb-3 px-2 w-20 text-center text-blue-600">Freq</th>
-                <th className="pb-3 px-2">Harga @</th>
+                <th className="pb-3 px-2 w-20">Qty</th>
+                <th className="pb-3 px-2">Harga</th>
                 <th className="pb-3 px-2 text-right">Subtotal</th>
                 <th className="pb-3 px-2 text-right"></th>
               </tr>
@@ -352,7 +250,7 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
                       value={row.item} 
                       onChange={(e) => updateRabRow(idx, "item", e.target.value)} 
                       className="w-full bg-transparent outline-none focus:text-primary font-medium" 
-                      placeholder="Nama Item..." 
+                      placeholder="Konsumsi" 
                     />
                   </td>
                   <td className="py-4 px-2">
@@ -361,28 +259,16 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
                       value={row.satuan} 
                       onChange={(e) => updateRabRow(idx, "satuan", e.target.value)} 
                       className="w-full bg-transparent outline-none focus:text-primary" 
-                      placeholder="Unit..." 
+                      placeholder="Porsi" 
                     />
                   </td>
                   <td className="py-4 px-2">
                     <input 
                       type="number" 
-                      min="1"
                       required 
                       value={row.jumlah} 
                       onChange={(e) => updateRabRow(idx, "jumlah", e.target.value)} 
-                      className="w-full bg-transparent outline-none focus:text-primary text-center bg-gray-50 dark:bg-meta-4 rounded" 
-                    />
-                  </td>
-                  {/* KOLOM FREKUENSI BARU */}
-                  <td className="py-4 px-2">
-                    <input 
-                      type="number" 
-                      min="1"
-                      required 
-                      value={row.frekuensi} 
-                      onChange={(e) => updateRabRow(idx, "frekuensi", e.target.value)} 
-                      className="w-full bg-transparent outline-none focus:text-primary text-center font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-100 dark:border-blue-900" 
+                      className="w-full bg-transparent outline-none focus:text-primary" 
                     />
                   </td>
                   <td className="py-4 px-2">
@@ -391,12 +277,11 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
                       required 
                       value={row.harga} 
                       onChange={(e) => updateRabRow(idx, "harga", e.target.value)} 
-                      className="w-full bg-transparent outline-none focus:text-primary font-bold text-gray-700 dark:text-gray-300" 
+                      className="w-full bg-transparent outline-none focus:text-primary font-bold text-primary" 
                     />
                   </td>
                   <td className="py-4 px-2 text-right font-black text-black dark:text-white">
-                    {/* Kalkulasi: Harga * Qty * Freq */}
-                    {(row.harga * row.jumlah * row.frekuensi).toLocaleString("id-ID")}
+                    {(row.harga * row.jumlah).toLocaleString("id-ID")}
                   </td>
                   <td className="py-4 px-2 text-right">
                     {formData.rab.length > 1 && (
@@ -414,7 +299,7 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={5} className="pt-6 text-right font-bold text-gray-500 uppercase text-[10px]">Total Estimasi Anggaran</td>
+                <td colSpan={4} className="pt-6 text-right font-bold text-gray-500 uppercase text-[10px]">Total Estimasi Anggaran</td>
                 <td colSpan={2} className="pt-6 text-right text-xl font-black text-primary italic">
                   Rp {calculateTotal().toLocaleString("id-ID")}
                 </td>
@@ -426,52 +311,27 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
 
       {/* 3. Timeline */}
       <section className="bg-white p-6 rounded-xl border border-stroke dark:bg-boxdark dark:border-strokedark shadow-sm">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b pb-3 gap-4">
-          <h3 className="text-xl font-bold text-black dark:text-white flex items-center gap-2">
-            <Clock className="text-primary" size={20}/>
-            Timeline Pelaksanaan
-          </h3>
-          
-          {/* LEGENDA WARNA & INDIKATOR VALIDASI */}
-          <div className="flex flex-wrap items-center gap-4 text-xs">
-            <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 bg-white border border-gray-300 rounded"></div>
-                <span className="text-gray-500">Kosong</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                <span className="text-gray-500">Kegiatan (Non-Biaya)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 bg-green-500 rounded ring-1 ring-green-200"></div>
-                <span className="text-gray-500">Fiskal (Ada Biaya)</span>
-            </div>
-            <div className={`ml-2 px-3 py-1 rounded-full border flex items-center gap-1 ${isValidFrequency ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300'}`}>
-                {isValidFrequency ? <CheckCircle2 size={12}/> : <AlertCircle size={12}/>}
-                Target Hijau: <b>{totalFiscalWeeks}</b>
-            </div>
-          </div>
-        </div>
-
-        <p className="text-xs text-gray-400 mb-4 italic">
-            * Klik kotak minggu untuk mengubah status: Putih → Biru → Hijau
-        </p>
-
+        <h3 className="text-xl font-bold mb-6 border-b pb-3 text-black dark:text-white flex items-center gap-2">
+          <Clock className="text-primary" size={20}/>
+          Timeline Pelaksanaan (Mingguan)
+        </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {BULAN.map((bln) => (
             <div key={bln} className="p-3 bg-gray-50 rounded-xl dark:bg-meta-4 border border-stroke dark:border-strokedark text-center">
               <span className="text-[10px] font-black uppercase opacity-40 mb-3 block">{bln}</span>
               <div className="flex gap-1 justify-center">
                 {MINGGU.map((m) => {
-                  const currentMonthData = (formData.timeline as any)[bln] || {};
-                  const status = currentMonthData[m] || TIMELINE_STATES.NONE;
-                  
+                  const isActive = (formData.timeline as any)[bln]?.includes(m);
                   return (
                     <button
                       key={m}
                       type="button"
                       onClick={() => toggleTimeline(bln, m)}
-                      className={`w-7 h-7 rounded-lg text-[8px] font-black border transition-all ${getTimelineButtonStyle(status)}`}
+                      className={`w-7 h-7 rounded-lg text-[8px] font-black border transition-all ${
+                        isActive 
+                          ? "bg-primary border-primary text-white shadow-md scale-105" 
+                          : "bg-white dark:bg-boxdark border-stroke text-gray-400 hover:bg-gray-100"
+                      }`}
                     >
                       {m}
                     </button>
@@ -483,6 +343,7 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
         </div>
       </section>
 
+      {error && <div className="my-4 p-3 text-sm text-red-700 bg-red-100 border border-red-500 rounded">{error}</div>}
       {success && <div className="my-4 p-3 text-sm text-green-700 bg-green-100 border border-green-500 rounded">{success}</div>}
 
       {/* Tombol Aksi */}
@@ -496,11 +357,10 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
         </button>
         <button 
           type="submit" 
-          disabled={isPending || !isValidFrequency} 
-          className="px-8 py-3 rounded-lg bg-primary text-white font-black shadow-lg hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center gap-2"
+          disabled={isPending} 
+          className="px-8 py-3 rounded-lg bg-primary text-white font-black shadow-lg hover:bg-opacity-90 disabled:opacity-50 transition-all active:scale-95"
         >
           {isPending ? "Sedang Menyimpan..." : "Simpan Program Kerja"}
-          {!isValidFrequency && <AlertCircle size={16} />}
         </button>
       </div>
     </form>

@@ -7,8 +7,17 @@ export type RabItem = {
   item: string;
   satuan: string;
   jumlah: number;
+  frekuensi: number;
   harga: number;
 };
+
+/**
+ * Status Timeline
+ * 0: Tidak ada kegiatan (Putih)
+ * 1: Ada kegiatan, tanpa biaya (Biru)
+ * 2: Ada kegiatan, ada biaya / Fiskal (Hijau)
+ */
+export type TimelineStatus = 0 | 1 | 2;
 
 /**
  * Struktur Timeline
@@ -56,6 +65,7 @@ export type CreateProkerDto = {
   tujuan: string;
   rab: RabItem[];
   timeline: TimelineData;
+  total_anggaran: number;
   
   // Scoping (diisi otomatis oleh action)
   village_id?: number;

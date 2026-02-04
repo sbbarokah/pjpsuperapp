@@ -14,10 +14,15 @@ import {
   Briefcase,
   Pencil,
   Trash2,
-  Loader2
+  Loader2,
+  CalendarDays,
+  Coins
 } from "lucide-react";
 import { deleteProkerAction } from "../actions";
 import { BULAN } from "@/lib/constants";
+import { TimelineStatus, WorkProgramModel } from "@/lib/types/proker.types";
+
+const MINGGU_LIST = ["M1", "M2", "M3", "M4", "M5"];
 
 const formatIDR = (val: number) => new Intl.NumberFormat('id-ID', { 
   style: 'currency', currency: 'IDR', minimumFractionDigits: 0 
@@ -30,7 +35,7 @@ interface ProkerPrintViewProps {
   groupedPrograms: Record<string, any[]>;
   monthlyRecap: { bulan: string; items: any[]; totalRab: number }[];
   canMutate: boolean;
-  userRole: string; // [BARU] Ditambahkan sesuai request
+  userRole: string;
 }
 
 export function ProkerPrintView({ 
@@ -39,8 +44,7 @@ export function ProkerPrintView({
   activeLevel, 
   groupedPrograms, 
   monthlyRecap,
-  canMutate,
-  userRole // [BARU] Ditambahkan
+  canMutate
 }: ProkerPrintViewProps) {
     
   const router = useRouter();
@@ -72,20 +76,21 @@ export function ProkerPrintView({
         startDeleteTransition(async () => {
           const res = await deleteProkerAction(id);
           if (res.success) {
-            Swal.fire({
-              title: "Terhapus!",
-              text: res.message,
-              icon: "success",
-              timer: 1500,
-              showConfirmButton: false
-            });
-            router.refresh(); // Refresh data halaman tanpa reload
+            Swal.fire("Terhapus!", res.message, "success");
+            router.refresh();
           } else {
             Swal.fire("Gagal!", res.message, "error");
           }
         });
       }
     });
+  };
+
+  // Helper untuk mendapatkan warna badge timeline
+  const getTimelineBadge = (status: TimelineStatus) => {
+    if (status === 2) return "bg-green-500 border-green-600 print:bg-green-600 print:text-white"; // Fiskal
+    if (status === 1) return "bg-blue-400 border-blue-500 print:bg-gray-300 print:text-black";   // Kegiatan
+    return "bg-transparent border-gray-200 opacity-20"; // Kosong
   };
 
   return (
@@ -106,10 +111,10 @@ export function ProkerPrintView({
 
       {/* Area Konten Laporan */}
       <div ref={contentRef}>
-        <div className="min-h-screen bg-transparent print:bg-white print:text-black print:p-8">
+        <div className="min-h-screen bg-transparent print:bg-white print:text-black print:p-8 font-sans">
             
           <header className="text-center mb-12">
-             <h1 className="text-4xl font-black text-black dark:text-white uppercase tracking-tight print:text-black">
+             <h1 className="text-3xl md:text-4xl font-black text-black dark:text-white uppercase tracking-tight print:text-black">
                 Program Kerja Tahunan {year}
              </h1>
              <div className="h-1.5 w-32 bg-primary mx-auto mt-2 rounded-full print:bg-black"></div>
@@ -118,70 +123,153 @@ export function ProkerPrintView({
              </p>
           </header>
 
+          {/* Legenda Timeline */}
+          <div className="flex justify-center gap-6 mb-8 text-[10px] uppercase font-bold text-gray-500 print:text-black print:mb-4">
+             <div className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-blue-400 rounded-sm print:bg-gray-300 border print:border-black"></span> Kegiatan Non-Anggaran
+             </div>
+             <div className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-green-500 rounded-sm print:bg-black"></span> Kegiatan Fiskal (RAB Cair)
+             </div>
+          </div>
+
           {Object.keys(groupedPrograms).length === 0 ? (
             <div className="text-center py-24 bg-white dark:bg-boxdark rounded-3xl border border-dashed border-stroke print:border-gray-300">
                <p className="text-gray-500 italic font-medium">Belum ada data program kerja.</p>
             </div>
           ) : (
             Object.entries(groupedPrograms).map(([team, items]) => (
-              <section key={team} className="space-y-6 break-inside-avoid mb-10">
-                <div className="flex items-center gap-4">
+              <section key={team} className="break-inside-avoid mb-10">
+                {/* Header Tim */}
+                <div className="flex items-center gap-4 mb-6">
                   <h2 className="text-lg font-black text-black dark:text-white px-6 py-2 bg-white dark:bg-boxdark border border-stroke dark:border-strokedark rounded-full shadow-sm print:shadow-none print:border-black print:text-black">
                     <Briefcase className="inline-block mr-2 text-primary print:text-black" size={18} /> {team}
                   </h2>
                   <div className="h-px bg-stroke dark:bg-strokedark flex-1 print:bg-black"></div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:grid-cols-2">
-                  {items.map(prog => (
-                    <div key={prog.id} className="group relative bg-white dark:bg-boxdark rounded-2xl border border-stroke dark:border-strokedark overflow-hidden border-l-4 border-l-primary shadow-sm print:shadow-none print:border print:border-gray-300 print:break-inside-avoid hover:shadow-md transition-all">
-                      <div className="p-6">
-                        <div className="flex justify-between items-start mb-4">
-                          <h3 className="text-lg font-black text-black dark:text-white print:text-black pr-12 leading-snug">{prog.name}</h3>
-                          <span className="text-primary font-black text-sm print:text-black whitespace-nowrap">
-                            {formatIDR(prog.total_budget || 0)}
-                          </span>
-                        </div>
+                {/* List Program */}
+                <div className="flex flex-col gap-6">
+                  {items.map((prog: WorkProgramModel) => (
+                    <div key={prog.id} className="group relative bg-white dark:bg-boxdark rounded-xl border border-stroke dark:border-strokedark overflow-hidden shadow-sm print:shadow-none print:border-2 print:border-gray-800 print:break-inside-avoid">
+                      
+                      {/* 1. Header Kartu: Nama & Total */}
+                      <div className="p-5 border-b border-stroke dark:border-strokedark bg-gray-50 dark:bg-meta-4 flex justify-between items-start print:bg-gray-100 print:border-gray-400">
+                         <div>
+                            <h3 className="text-lg font-black text-black dark:text-white print:text-black leading-tight mb-1">
+                                {prog.name}
+                            </h3>
+                            <div className="flex flex-wrap gap-3 text-xs text-gray-500 print:text-black">
+                                <span className="flex items-center gap-1"><MapPin size={12}/> {prog.location || '-'}</span>
+                                <span className="flex items-center gap-1"><Users size={12}/> {prog.participants || '-'}</span>
+                            </div>
+                         </div>
+                         <div className="text-right">
+                             <div className="text-xs font-bold text-gray-400 uppercase tracking-wider print:text-black">Total Anggaran</div>
+                             <div className="text-xl font-black text-primary print:text-black">
+                                {formatIDR(prog.total_budget || 0)}
+                             </div>
+                         </div>
+                      </div>
 
-                        {/* TOMBOL AKSI (Muncul di Web saat Hover, Hilang di Print) */}
-                        {canMutate && (
-                          <div className="flex items-center gap-2 absolute top-6 right-4 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
-                             <Link 
-                               href={`/proker/edit/${prog.id}`}
-                               className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors shadow-sm"
-                               title="Edit Program"
-                             >
-                               <Pencil size={16} />
+                      {/* 2. Body: Deskripsi & Timeline Matrix */}
+                      <div className="p-5 grid grid-cols-1 lg:grid-cols-3 gap-6 print:grid-cols-3">
+                         {/* Kolom Kiri: Deskripsi & Tujuan */}
+                         <div className="lg:col-span-1 text-sm text-gray-600 dark:text-gray-300 print:text-black">
+                            <div className="mb-4">
+                                <strong className="block text-xs font-black uppercase text-gray-400 mb-1 print:text-black">Deskripsi</strong>
+                                <p>{prog.description || '-'}</p>
+                            </div>
+                            <div>
+                                <strong className="block text-xs font-black uppercase text-gray-400 mb-1 print:text-black">Tujuan Strategis</strong>
+                                <p className="italic">"{prog.objective || '-'}"</p>
+                            </div>
+                         </div>
+
+                         {/* Kolom Kanan: Timeline Matrix */}
+                         <div className="lg:col-span-2">
+                            <strong className="block text-xs font-black uppercase text-gray-400 mb-2 flex items-center gap-2 print:text-black">
+                                <CalendarDays size={14}/> Matriks Pelaksanaan
+                            </strong>
+                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                                {BULAN.map(bln => {
+                                    // Cek apakah bulan ini ada kegiatan apa saja (Status > 0)
+                                    const monthData = prog.timeline[bln] || {};
+                                    const hasActivity = Object.values(monthData).some(v => Number(v) > 0);
+                                    
+                                    return (
+                                        <div key={bln} className={`p-1.5 rounded border text-center ${hasActivity ? 'border-gray-300 bg-white print:border-black' : 'border-transparent opacity-50'}`}>
+                                            <div className="text-[9px] font-bold uppercase mb-1 print:text-black">{bln.substring(0,3)}</div>
+                                            <div className="flex justify-center gap-0.5">
+                                                {MINGGU_LIST.map(m => {
+                                                    const status = (monthData as any)[m] as TimelineStatus || 0;
+                                                    return (
+                                                        <div 
+                                                            key={m} 
+                                                            className={`w-1.5 h-1.5 rounded-full border ${getTimelineBadge(status)}`} 
+                                                            title={`${bln} ${m}: ${status === 2 ? 'Fiskal' : status === 1 ? 'Kegiatan' : 'Kosong'}`}
+                                                        />
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                         </div>
+                      </div>
+
+                      {/* 3. Footer: Detail RAB */}
+                      {prog.budget_items && prog.budget_items.length > 0 && (
+                          <div className="px-5 pb-5">
+                             <div className="bg-white dark:bg-boxdark border border-stroke dark:border-strokedark rounded-lg overflow-hidden print:border-gray-400">
+                                <div className="bg-gray-50 dark:bg-meta-4 px-4 py-2 border-b border-stroke dark:border-strokedark flex items-center gap-2 print:bg-gray-200 print:border-gray-400">
+                                    <Coins size={14} className="text-primary print:text-black"/>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 print:text-black">Rincian Anggaran Biaya (RAB)</span>
+                                </div>
+                                <table className="w-full text-left text-xs print:text-[10px]">
+                                    <thead className="text-gray-500 border-b border-stroke dark:border-strokedark print:text-black print:border-gray-400">
+                                        <tr>
+                                            <th className="px-4 py-2 font-bold w-1/2">Uraian Kebutuhan</th>
+                                            <th className="px-4 py-2 font-bold text-center">Vol</th>
+                                            <th className="px-4 py-2 font-bold text-center">Freq</th>
+                                            <th className="px-4 py-2 font-bold text-right">Harga Satuan</th>
+                                            <th className="px-4 py-2 font-bold text-right">Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-stroke dark:divide-strokedark print:divide-gray-300">
+                                        {prog.budget_items.map((item, idx) => (
+                                            <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-meta-4">
+                                                <td className="px-4 py-1.5 font-medium print:text-black">{item.item}</td>
+                                                <td className="px-4 py-1.5 text-center print:text-black">{item.jumlah} {item.satuan}</td>
+                                                <td className="px-4 py-1.5 text-center print:text-black">{item.frekuensi || 1}x</td>
+                                                <td className="px-4 py-1.5 text-right font-mono print:text-black">{formatIDR(item.harga)}</td>
+                                                <td className="px-4 py-1.5 text-right font-bold print:text-black">
+                                                    {formatIDR(item.harga * item.jumlah * (item.frekuensi || 1))}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                             </div>
+                          </div>
+                      )}
+
+                      {/* ACTION BUTTONS (WEB ONLY) */}
+                      {canMutate && (
+                          <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
+                             <Link href={`/proker/edit/${prog.id}`} className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200">
+                                <Pencil size={16}/>
                              </Link>
-                             <button
-                               onClick={() => handleDelete(prog.id, prog.name)}
-                               disabled={isDeleting}
-                               className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors shadow-sm disabled:opacity-50"
-                               title="Hapus Program"
+                             <button 
+                                onClick={() => handleDelete(prog.id, prog.name)}
+                                disabled={isDeleting}
+                                className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 disabled:opacity-50"
                              >
-                               {isDeleting ? <Loader2 size={16} className="animate-spin"/> : <Trash2 size={16} />}
+                                {isDeleting ? <Loader2 className="animate-spin" size={16}/> : <Trash2 size={16}/>}
                              </button>
                           </div>
-                        )}
-
-                        <div className="space-y-2 mb-4 text-xs text-gray-500 print:text-black">
-                          <div className="flex items-center gap-2 font-medium"><MapPin size={12}/> {prog.location || '-'}</div>
-                          <div className="flex items-center gap-2 font-medium"><Users size={12}/> Target: {prog.participants || '-'}</div>
-                          <p className="italic border-l-2 border-primary/20 pl-3 leading-relaxed mt-2 text-gray-600 dark:text-gray-400 print:text-black print:border-gray-400">
-                            "{prog.objective}"
-                          </p>
-                        </div>
-                        <div className="border-t border-stroke pt-4 dark:border-strokedark print:border-gray-300">
-                          <p className="text-[10px] font-black text-gray-400 uppercase mb-2 print:text-black">Jadwal Pelaksanaan:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {BULAN.map(b => prog.timeline[b]?.length > 0 && (
-                              <span key={b} className="px-2 py-0.5 bg-gray-100 dark:bg-meta-4 rounded text-[9px] font-bold border border-stroke dark:border-strokedark print:border-gray-400 print:bg-gray-100 print:text-black">
-                                {b.substring(0,3)} ({prog.timeline[b].join(',')})
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -191,39 +279,38 @@ export function ProkerPrintView({
 
           {/* Rekap Bulanan (Arus Kas) */}
           {Object.keys(groupedPrograms).length > 0 && (
-             <section className="bg-white dark:bg-boxdark rounded-2xl border border-stroke dark:border-strokedark shadow-sm overflow-hidden break-inside-avoid mt-20 print:mt-10 print:shadow-none print:border-black">
-               <div className="bg-primary/5 p-6 border-b border-stroke dark:border-strokedark flex items-center gap-3 print:bg-gray-100 print:border-black">
+             <section className="bg-white dark:bg-boxdark rounded-xl border border-stroke dark:border-strokedark shadow-sm overflow-hidden break-inside-avoid mt-16 print:mt-8 print:border-2 print:border-black print:shadow-none">
+               <div className="bg-primary/5 p-4 border-b border-stroke dark:border-strokedark flex items-center gap-3 print:bg-gray-200 print:border-black">
                    <LayoutDashboard className="text-primary print:text-black" size={20}/>
                    <h2 className="text-lg font-black text-black dark:text-white uppercase tracking-tighter print:text-black">
-                     Rekapitulasi Estimasi Anggaran Bulanan {year}
+                     Rekapitulasi Arus Kas Bulanan {year}
                    </h2>
                </div>
                <div className="overflow-x-auto">
                  <table className="w-full text-sm">
-                   <thead className="bg-gray-50 dark:bg-meta-4 print:bg-gray-200">
+                   <thead className="bg-gray-50 dark:bg-meta-4 print:bg-gray-100">
                      <tr>
-                       <th className="p-4 text-left font-black uppercase text-[10px] text-gray-500 tracking-widest print:text-black">Bulan</th>
-                       <th className="p-4 text-left font-black uppercase text-[10px] text-gray-500 tracking-widest print:text-black">Agenda Kegiatan</th>
-                       <th className="p-4 text-right font-black uppercase text-[10px] text-gray-500 tracking-widest print:text-black">Total RAB</th>
+                       <th className="p-3 text-left font-black uppercase text-[10px] text-gray-500 tracking-widest print:text-black">Bulan</th>
+                       <th className="p-3 text-left font-black uppercase text-[10px] text-gray-500 tracking-widest print:text-black">Agenda Kegiatan Fiskal</th>
+                       <th className="p-3 text-right font-black uppercase text-[10px] text-gray-500 tracking-widest print:text-black">Total Pencairan</th>
                      </tr>
                    </thead>
                    <tbody>
                      {monthlyRecap.map(data => (
-                       <tr key={data.bulan} className="border-b border-stroke dark:border-strokedark hover:bg-gray-50 dark:hover:bg-meta-4 transition-colors print:border-gray-300">
-                         <td className="p-4 font-black text-black dark:text-white uppercase text-xs print:text-black">{data.bulan}</td>
-                         <td className="p-4">
+                       <tr key={data.bulan} className="border-b border-stroke dark:border-strokedark print:border-gray-300">
+                         <td className="p-3 font-black text-black dark:text-white uppercase text-xs print:text-black">{data.bulan}</td>
+                         <td className="p-3">
                            {data.items.length > 0 ? (
-                             <div className="flex flex-wrap gap-2">
+                             <div className="flex flex-wrap gap-1.5">
                                {data.items.map((it: any) => (
-                                 <div key={it.id} className="border border-stroke dark:border-strokedark px-2 py-1 rounded bg-white dark:bg-boxdark shadow-xs print:shadow-none print:border-gray-400">
-                                    <span className="font-bold block leading-tight text-[11px] print:text-black">{it.name}</span>
-                                    <span className="text-[9px] text-gray-400 font-bold uppercase print:text-gray-600">{it.team}</span>
+                                 <div key={it.id} className="border border-stroke dark:border-strokedark px-2 py-0.5 rounded bg-white dark:bg-boxdark print:border-gray-400">
+                                    <span className="font-bold block leading-tight text-[10px] print:text-black">{it.name}</span>
                                  </div>
                                ))}
                              </div>
-                           ) : <span className="text-gray-300 italic text-xs print:text-gray-400">Tidak ada kegiatan terjadwal</span>}
+                           ) : <span className="text-gray-300 italic text-[10px] print:text-gray-400">Tidak ada pencairan</span>}
                          </td>
-                         <td className="p-4 text-right font-black text-primary text-base print:text-black">
+                         <td className="p-3 text-right font-black text-primary text-sm print:text-black">
                            {data.totalRab > 0 ? formatIDR(data.totalRab) : '-'}
                          </td>
                        </tr>
@@ -231,8 +318,8 @@ export function ProkerPrintView({
                    </tbody>
                    <tfoot className="bg-primary text-white print:bg-black print:text-white">
                      <tr>
-                       <td colSpan={2} className="p-6 text-right font-black uppercase tracking-widest text-[11px]">Total Anggaran Seluruh Kegiatan Tahun {year}:</td>
-                       <td className="p-6 text-right text-2xl font-black italic">
+                       <td colSpan={2} className="p-4 text-right font-black uppercase tracking-widest text-[11px]">Total Anggaran Tahun {year}:</td>
+                       <td className="p-4 text-right text-xl font-black italic">
                          {formatIDR(monthlyRecap.reduce((a,b)=>a+b.totalRab, 0))}
                        </td>
                      </tr>
@@ -243,16 +330,16 @@ export function ProkerPrintView({
           )}
           
           {/* Footer Tanda Tangan */}
-          <div className="hidden print:flex justify-between items-end mt-20 px-10">
+          <div className="hidden print:flex justify-between items-end mt-20 px-10 break-inside-avoid">
              <div className="text-center">
-                <p className="mb-24 font-bold uppercase text-xs text-black">Ketua Tim Pelaksana</p>
+                <p className="mb-20 font-bold uppercase text-xs text-black">Ketua Tim Pelaksana</p>
                 <div className="w-48 h-px bg-black mx-auto"></div>
-                <p className="text-[8px] mt-1 text-black">(Nama Terang & Stempel Bidang)</p>
+                <p className="text-[8px] mt-1 text-black">(Nama Terang & Stempel)</p>
              </div>
              <div className="text-center">
-                <p className="mb-24 font-bold uppercase text-xs text-black">Mengetahui, Pengurus Desa</p>
+                <p className="mb-20 font-bold uppercase text-xs text-black">Mengetahui, Pimpinan</p>
                 <div className="w-48 h-px bg-black mx-auto"></div>
-                <p className="text-[8px] mt-1 text-black">(Ketua Desa)</p>
+                <p className="text-[8px] mt-1 text-black">(Tanda Tangan & Stempel)</p>
              </div>
           </div>
 
