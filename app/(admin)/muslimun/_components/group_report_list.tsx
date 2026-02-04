@@ -68,7 +68,7 @@ export async function MuslimunGroupList({ profile }: { profile: Profile }) {
           Belum ada Laporan Musyawarah 5 Unsur yang dibuat untuk kelompok Anda.
         </p>
         <Link
-          href="/admin/muslimun/create"
+          href="/muslimun/create"
           className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-2 text-center font-medium text-white hover:bg-opacity-90"
         >
           Buat Laporan Baru

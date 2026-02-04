@@ -57,10 +57,10 @@ export function ActivityFeed({
           
           // Tentukan rute dan teks label berdasarkan tipe aktivitas
           if (type === 'attendance') {
-            href = `/admin/presensi/edit/${item.id}`;
+            href = `/kbmattendance/edit/${item.id}`;
             actionText = "input presensi";
           } else if (type === 'evaluation') {
-            href = `/admin/penilaian/edit/${item.id}`;
+            href = `/kbmevaluation/edit/${item.id}`;
             actionText = "input penilaian";
           } else {
             href = `/muslimun/edit/${item.id}`;

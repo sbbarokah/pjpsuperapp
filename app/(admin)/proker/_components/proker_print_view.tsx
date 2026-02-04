@@ -92,7 +92,7 @@ export function ProkerPrintView({
     <>
       {/* Header Navigasi (Hanya di Web) */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 print:hidden">
-        <Link href="/admin/proker" className="flex items-center gap-2 text-gray-500 font-bold text-xs uppercase hover:text-primary transition-all">
+        <Link href="/proker" className="flex items-center gap-2 text-gray-500 font-bold text-xs uppercase hover:text-primary transition-all">
           <ChevronLeft size={16} /> Kembali ke Daftar Tahun
         </Link>
         
@@ -147,7 +147,7 @@ export function ProkerPrintView({
                         {canMutate && (
                           <div className="flex items-center gap-2 absolute top-6 right-4 opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
                              <Link 
-                               href={`/admin/proker/edit/${prog.id}`}
+                               href={`/proker/edit/${prog.id}`}
                                className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors shadow-sm"
                                title="Edit Program"
                              >
