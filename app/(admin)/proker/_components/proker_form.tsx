@@ -53,17 +53,17 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  console.log("isi initial data", initialData);
 
   const [formData, setFormData] = useState({
-    nama_kegiatan: initialData?.nama_kegiatan || "",
-    tim: initialData?.tim || TEAMS[0],
-    tahun: initialData?.tahun || new Date().getFullYear(),
-    deskripsi: initialData?.deskripsi || "",
-    keterangan: initialData?.keterangan || "",
-    tempat: initialData?.tempat || "",
-    peserta: initialData?.peserta || "",
-    tujuan: initialData?.tujuan || "",
-    rab: initialData?.rab || [{ item: "", harga: 0, satuan: "", jumlah: 1 }],
+    tim: initialData?.team || TEAMS[0],
+    tahun: initialData?.year || new Date().getFullYear(),
+    nama_kegiatan: initialData?.name || "",
+    deskripsi: initialData?.description || "",
+    tujuan: initialData?.objective || "",
+    tempat: initialData?.location || "",
+    peserta: initialData?.participants || "",
+    rab: initialData?.budget_items || [{ item: "", harga: 0, satuan: "", jumlah: 1 }],
     timeline: initialData?.timeline || BULAN.reduce((acc, bln) => ({ ...acc, [bln]: [] }), {}),
   });
 
@@ -180,6 +180,17 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
               required 
               name="nama_kegiatan" 
               value={formData.nama_kegiatan} 
+              onChange={handleInputChange} 
+              placeholder="Contoh: Musyawarah Kerja Tahun" 
+              className="w-full rounded-lg border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary dark:border-strokedark" 
+            />
+          </div>
+          <div className="flex flex-col gap-2 md:col-span-2">
+            <label className="text-xs font-bold uppercase text-gray-500">Deskripsi Kegiatan</label>
+            <input 
+              required 
+              name="deskripsi" 
+              value={formData.deskripsi} 
               onChange={handleInputChange} 
               placeholder="Contoh: Musyawarah Kerja Tahun" 
               className="w-full rounded-lg border border-stroke bg-transparent py-3 px-5 outline-none focus:border-primary dark:border-strokedark" 

@@ -61,7 +61,7 @@ export default async function ProkerPage({
           {/* Tombol Input: Sembunyikan untuk Superadmin */}
           {!isSuper && (
             <Link 
-              href="/admin/proker/add" 
+              href="/proker/add" 
               className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 hover:bg-opacity-90 transition-all active:scale-95 text-sm"
             >
               <Plus size={20}/> Input Proker Baru
@@ -75,7 +75,7 @@ export default async function ProkerPage({
             {["desa", "kelompok"].map((lvl) => (
               <Link
                 key={lvl}
-                href={`/admin/proker?level=${lvl}`}
+                href={`/proker?level=${lvl}`}
                 className={`px-6 py-2.5 rounded-xl text-xs font-bold uppercase transition-all ${
                   activeLevel === lvl 
                     ? "bg-primary text-white shadow-md" 
@@ -93,7 +93,7 @@ export default async function ProkerPage({
           {availableYears.map((year) => (
             <Link 
               key={year}
-              href={`/admin/proker/detail/${year}?level=${activeLevel}`}
+              href={`/proker/detail/${year}?level=${activeLevel}`}
               className="group bg-white dark:bg-boxdark p-6 rounded-2xl border border-stroke dark:border-strokedark shadow-sm hover:border-primary transition-all flex items-center justify-between"
             >
               <div className="flex items-center gap-4">

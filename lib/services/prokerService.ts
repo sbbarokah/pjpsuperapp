@@ -6,9 +6,65 @@ import { Profile } from "../types/user.types";
 const supabase = createAdminClient();
 
 /**
- * Mengambil daftar program kerja berdasarkan filter
+ * Mengambil daftar program kerja untuk tahun tertentu
+ * dengan filter keamanan berdasarkan Role.
  */
 export async function getProkersByYear(
+  year: number,
+  profile: Profile,
+  filterLevel: string = "desa" // default level
+) {
+  let query = supabase
+    .from("work_programs")
+    .select("*")
+    .eq("year", year);
+
+  // Filter berdasarkan Role & Level
+  if (profile.role === 'superadmin') {
+    // Superadmin melihat berdasarkan filter level yang dipilih di URL
+    query = query.eq("level", filterLevel);
+  } else if (profile.role === 'admin_desa') {
+    // Admin Desa melihat data desanya (level desa)
+    // Opsional: Bisa juga melihat level kelompok di desanya jika diinginkan, 
+    // tapi sesuai request sebelumnya: admin_desa -> level desa.
+    query = query
+      .eq("village_id", profile.village_id)
+      .eq("level", "desa");
+  } else if (profile.role === 'admin_kelompok') {
+    // Admin Kelompok hanya melihat data kelompoknya
+    query = query
+      .eq("group_id", profile.group_id)
+      .eq("level", "kelompok");
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("Error getProkersByYear:", error.message);
+    return [];
+  }
+
+  return data;
+}
+
+/**
+ * Mengambil satu program kerja by ID (untuk halaman Edit nanti)
+ */
+export async function getProkerById(id: string) {
+  const { data, error } = await supabase
+    .from("work_programs")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) return null;
+  return data;
+}
+
+/**
+ * Mengambil daftar program kerja berdasarkan filter
+ */
+export async function getProkersByYear2(
   villageId: number, 
   year: number,
   groupId?: number // Opsional: Filter untuk admin_kelompok

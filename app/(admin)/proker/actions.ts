@@ -5,7 +5,7 @@ import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
 import { CreateProkerDto, UpdateProkerDto, WorkProgramModel } from "@/lib/types/proker.types";
 import { revalidatePath } from "next/cache";
 
-const ADMIN_PATH = "/admin/proker";
+const ADMIN_PATH = "/proker";
 
 type ActionResponse = {
   success: boolean;
@@ -79,13 +79,13 @@ export async function updateProkerAction(payload: UpdateProkerDto): Promise<Acti
 
   // Siapkan data update
   const updates: any = {};
-  if (data.nama_kegiatan) updates.name = data.nama_kegiatan;
   if (data.tim) updates.team = data.tim;
   if (data.tahun) updates.year = data.tahun;
+  if (data.nama_kegiatan) updates.name = data.nama_kegiatan;
   if (data.deskripsi) updates.description = data.deskripsi;
+  if (data.tujuan) updates.objective = data.tujuan;
   if (data.tempat) updates.location = data.tempat;
   if (data.peserta) updates.participants = data.peserta;
-  if (data.tujuan) updates.objective = data.tujuan;
   if (data.rab) {
     updates.budget_items = data.rab;
     updates.total_budget = calculateTotalBudget(data.rab);

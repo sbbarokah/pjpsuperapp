@@ -33,3 +33,15 @@ export const yearOptions = [
   { value: String(currentYear), label: String(currentYear) },
   { value: String(currentYear - 1), label: String(currentYear - 1) },
 ];
+
+// --- Konstanta ---
+export const TEAMS = [
+  "4S Desa", "LDII", "Senkom", "Persinas", "Fosgi", "ASAD", 
+  "Tim Kematian", "Tim PNKB", "PJP Desa", "KMM Desa", 
+  "Tim Benda SB", "Tim Pembangunan"
+];
+
+export const BULAN = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+];
