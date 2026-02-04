@@ -48,6 +48,40 @@ export async function getProkersByYear(
 }
 
 /**
+ * Mengambil daftar tahun unik berdasarkan Role dan Level yang dipilih
+ */
+export async function getAvailableProkerYears(profile: Profile, targetLevel: string): Promise<number[]> {
+  let query = supabase
+    .from("work_programs")
+    .select("year")
+    .eq("level", targetLevel);
+
+  // 1. Filter Wilayah (Desa) - Berlaku untuk Admin Desa & Kelompok
+  if (profile.role !== 'superadmin') {
+    query = query.eq("village_id", profile.village_id);
+  }
+
+  // 2. Filter Kelompok Khusus
+  // Hanya terapkan filter group_id JIKA Admin Kelompok sedang melihat level 'kelompok'
+  // Jika Admin Kelompok melihat level 'desa', jangan filter group_id (karena proker desa group_id-nya null)
+  if (profile.role === 'admin_kelompok' && targetLevel === 'kelompok') {
+    query = query.eq("group_id", profile.group_id);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("Error getAvailableProkerYears:", error.message);
+    return [];
+  }
+
+  // Ambil tahun unik dan urutkan dari yang terbaru
+  const years = Array.from(new Set(data.map((d) => d.year))).sort((a, b) => b - a);
+  
+  return years;
+}
+
+/**
  * Mengambil satu program kerja by ID (untuk halaman Edit nanti)
  */
 export async function getProkerById(id: string) {
@@ -116,7 +150,7 @@ export async function getMonthlyBudgetRecap(year: number, villageId: number) {
 /**
  * Mengambil daftar tahun unik berdasarkan Role dan Level aktif
  */
-export async function getAvailableProkerYears(profile: Profile, activeLevel: string): Promise<number[]> {
+export async function getAvailableProkerYears2(profile: Profile, activeLevel: string): Promise<number[]> {
   let query = supabase
     .from("work_programs")
     .select("year")

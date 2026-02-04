@@ -1,13 +1,12 @@
 /**
  * Lokasi: app/(admin)/proker/detail/[year]/page.tsx
- * Deskripsi: Halaman wrapper (Server Component) yang memuat data dan merender Print View.
- * Update: Menggunakan service terpusat (getProkersByYear) untuk mengambil data.
+ * Deskripsi: Halaman wrapper (Server Component) dengan logika RBAC level.
  */
 
 import React from "react";
-import { getAuthenticatedUserAndProfile } from "@/lib/services/authService"; // Import Auth Service
-import { getProkersByYear } from "@/lib/services/prokerService"; // Import Proker Service
-import { BULAN, TEAMS } from "@/lib/constants";
+import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
+import { getProkersByYear } from "@/lib/services/prokerService";
+import { BULAN, TEAMS } from "@/lib/constants"; // Pastikan konstanta ini ada di file terpisah
 import { ProkerPrintView } from "../../_components/proker_print_view";
 
 export default async function ProkerDetailPage({ 
@@ -18,43 +17,55 @@ export default async function ProkerDetailPage({
   searchParams: Promise<{ level?: string }>; 
 }) {
   
-  // 1. Unwrap Params (Next.js 15)
-  const resolvedParams = await params;
-  const resolvedSearchParams = await searchParams;
-  const year = parseInt(resolvedParams.year);
-  const activeLevel = resolvedSearchParams.level || "desa";
-
-  // 2. Ambil User Profile via Service
-  // Service ini biasanya akan throw error atau redirect jika tidak login
+  // 1. Ambil Profil User
   let profile;
   try {
     const authData = await getAuthenticatedUserAndProfile();
     profile = authData.profile;
   } catch (error) {
-    return <div className="p-8 text-center">Akses ditolak atau sesi berakhir.</div>;
+    return <div className="p-8 text-center text-red-500">Akses ditolak atau sesi berakhir.</div>;
   }
 
   if (!profile) return <div className="p-8 text-center">Profil pengguna tidak ditemukan.</div>;
 
-  const orgName = profile.village?.name || 'Organisasi';
+  // 2. Unwrap Params (Next.js 15)
+  const { year: yearStr } = await params;
+  const { level: paramLevel } = await searchParams;
+  const year = parseInt(yearStr);
 
-  // 3. Ambil Data Program Kerja via Service
-  // Service ini sudah menangani logika filter berdasarkan role (admin_desa/kelompok/superadmin)
+  // 3. Logika Penentuan Level Aktif
+  // Jika ada di URL (?level=...), pakai itu.
+  // Jika tidak, default sesuai role user.
+  let defaultLevel = "desa";
+  if (profile.role === "admin_kelompok") defaultLevel = "kelompok";
+  
+  const activeLevel = paramLevel || defaultLevel;
+
+  // 4. Logika Hak Akses Edit/Hapus (canMutate)
+  // User hanya bisa edit jika Level Aktif == Role Mereka
+  let canMutate = false;
+  if (profile.role === 'admin_desa' && activeLevel === 'desa') canMutate = true;
+  if (profile.role === 'admin_kelompok' && activeLevel === 'kelompok') canMutate = true;
+  // Superadmin biasanya read-only untuk data operasional, atau set true jika ingin superadmin bisa edit
+
+  // 5. Ambil Data
   const programs = await getProkersByYear(year, profile, activeLevel);
   const safePrograms = programs || [];
 
-  // 4. Olah Data (Grouping) untuk dikirim ke Print View
-  // Grouping Data by Team
+  const orgName = profile.village?.name || 'Organisasi';
+
+  // 6. Pengolahan Data untuk View (Grouping & Recap)
+  const TEAMS_LIST = TEAMS;
+  const BULAN_LIST = BULAN;
+
   const groupedPrograms: Record<string, any[]> = {};
-  TEAMS.forEach(team => {
+  TEAMS_LIST.forEach(team => {
     const prokers = safePrograms.filter((p: any) => p.team === team);
     if (prokers.length > 0) groupedPrograms[team] = prokers;
   });
 
-  // Rekap Bulanan
-  const monthlyRecap = BULAN.map(bln => {
+  const monthlyRecap = BULAN_LIST.map(bln => {
     const items = safePrograms.filter((p: any) => {
-        // Cek timeline di JSONB, pastikan array ada dan tidak kosong
         const schedule = p.timeline ? p.timeline[bln] : [];
         return schedule && schedule.length > 0;
     });
@@ -62,7 +73,6 @@ export default async function ProkerDetailPage({
     return { bulan: bln, items, totalRab };
   });
 
-  // 5. Render Komponen Print View
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8 font-sans">
       <div className="max-w-7xl mx-auto">
@@ -72,15 +82,8 @@ export default async function ProkerDetailPage({
           activeLevel={activeLevel}
           groupedPrograms={groupedPrograms}
           monthlyRecap={monthlyRecap}
-          // Tambahkan props lain yang dibutuhkan ProkerPrintView seperti canMutate & onDelete jika ada
-          canMutate={profile.role === 'admin_desa' || profile.role === 'admin_kelompok'} 
-          // onDelete handler biasanya hanya bisa dipass ke Client Component jika berbentuk Server Action yang dibind
-          // atau ProkerPrintView menangani logika delete internalnya sendiri.
-          // onDelete={async (id, name) => {
-          //   "use server";
-          //   // Placeholder jika ProkerPrintView membutuhkan prop ini, 
-          //   // idealnya ProkerPrintView mengimport deleteProkerAction langsung.
-          // }}
+          canMutate={canMutate} // Pass status izin ke UI
+          userRole={profile.role}
         />
       </div>
     </div>
