@@ -58,6 +58,7 @@ export async function createProkerAction(payload: CreateProkerDto) {
     objective: payload.tujuan,
     budget_items: payload.rab,
     timeline: payload.timeline,
+    timeline_notes: payload.timeline_notes || {}, // [BARU] Simpan catatan timeline
     total_budget: payload.rab.reduce((acc: number, r: any) => acc + (r.harga * r.jumlah), 0),
   });
 
@@ -91,6 +92,7 @@ export async function updateProkerAction(payload: UpdateProkerDto): Promise<Acti
     updates.total_budget = calculateTotalBudget(data.rab);
   }
   if (data.timeline) updates.timeline = data.timeline;
+  if (data.timeline_notes) updates.timeline_notes = data.timeline_notes;
 
   updates.updated_at = new Date().toISOString();
 

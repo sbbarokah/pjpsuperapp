@@ -1133,6 +1133,9 @@ CREATE TYPE proker_level AS ENUM ('daerah', 'desa', 'kelompok');
 ALTER TABLE public.work_programs 
 ADD COLUMN level proker_level NOT NULL DEFAULT 'desa';
 
+ALTER TABLE work_programs 
+ADD COLUMN IF NOT EXISTS timeline_notes JSONB DEFAULT '{}'::jsonb;
+
 /* 3. Perbarui RLS Policy agar lebih ketat */
 
 -- Hapus policy lama jika ada

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useTransition } from "react";
+import React, { useRef, useState, useTransition, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useReactToPrint } from "react-to-print";
@@ -16,7 +16,9 @@ import {
   Trash2,
   Loader2,
   CalendarDays,
-  Coins
+  Coins,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { deleteProkerAction } from "../actions";
 import { BULAN } from "@/lib/constants";
@@ -43,13 +45,53 @@ export function ProkerPrintView({
   orgName, 
   activeLevel, 
   groupedPrograms, 
-  monthlyRecap,
+  monthlyRecap: serverMonthlyRecap, // Rename agar tidak konflik dengan perhitungan client
   canMutate
 }: ProkerPrintViewProps) {
     
   const router = useRouter();
   const contentRef = useRef<HTMLDivElement>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
+
+  // State untuk toggle hide/unhide per tim
+  const [collapsedTeams, setCollapsedTeams] = useState<Record<string, boolean>>({});
+
+  const toggleTeam = (team: string) => {
+    setCollapsedTeams(prev => ({
+      ...prev,
+      [team]: !prev[team]
+    }));
+  };
+
+  // Kalkulasi Rekapitulasi di Client untuk memastikan SEMUA kegiatan muncul (Fiskal & Non-Fiskal)
+  // Ini menggantikan props monthlyRecap dari server yang mungkin terfilter hanya fiskal
+  const clientRecapData = useMemo(() => {
+    // Flatten semua program dari grouping
+    const allPrograms = Object.values(groupedPrograms).flat() as WorkProgramModel[];
+    
+    return BULAN.map(bln => {
+        // Cari program yang aktif di bulan ini (Status > 0)
+        const items = allPrograms.filter(p => {
+            const schedule = p.timeline?.[bln];
+            if (!schedule) return false;
+            if (Array.isArray(schedule)) return schedule.length > 0; // Support legacy format
+            return Object.values(schedule).some(s => s > 0);
+        });
+
+        // Hitung total hanya jika statusnya FISCAL (2) di bulan tersebut
+        const totalRab = items.reduce((acc, p) => {
+             const schedule = p.timeline?.[bln];
+             // Cek apakah bulan ini mengandung status Fiskal (2)
+             const isFiscal = Array.isArray(schedule) 
+                ? true // Legacy dianggap fiskal
+                : Object.values(schedule || {}).some(v => v === 2);
+             
+             return acc + (isFiscal ? (p.total_budget || 0) : 0);
+        }, 0);
+
+        return { bulan: bln, items, totalRab };
+    });
+  }, [groupedPrograms]);
 
   // Hook Print
   const handlePrint = useReactToPrint({
@@ -86,7 +128,7 @@ export function ProkerPrintView({
     });
   };
 
-  // Helper untuk mendapatkan warna badge timeline
+  // Helper untuk mendapatkan warna badge timeline di kartu program
   const getTimelineBadge = (status: TimelineStatus) => {
     if (status === 2) return "bg-green-500 border-green-600 print:bg-green-600 print:text-white"; // Fiskal
     if (status === 1) return "bg-blue-400 border-blue-500 print:bg-gray-300 print:text-black";   // Kegiatan
@@ -129,7 +171,7 @@ export function ProkerPrintView({
                 <span className="w-3 h-3 bg-blue-400 rounded-sm print:bg-gray-300 border print:border-black"></span> Kegiatan Non-Anggaran
              </div>
              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 bg-green-500 rounded-sm print:bg-black"></span> Kegiatan Fiskal (RAB Cair)
+                <span className="w-3 h-3 bg-green-500 rounded-sm print:bg-black"></span> Kegiatan Dengan Anggaran
              </div>
           </div>
 
@@ -140,16 +182,26 @@ export function ProkerPrintView({
           ) : (
             Object.entries(groupedPrograms).map(([team, items]) => (
               <section key={team} className="break-inside-avoid mb-10">
-                {/* Header Tim */}
-                <div className="flex items-center gap-4 mb-6">
-                  <h2 className="text-lg font-black text-black dark:text-white px-6 py-2 bg-white dark:bg-boxdark border border-stroke dark:border-strokedark rounded-full shadow-sm print:shadow-none print:border-black print:text-black">
-                    <Briefcase className="inline-block mr-2 text-primary print:text-black" size={18} /> {team}
+                {/* Header Tim dengan Tombol Toggle */}
+                <div className="flex items-center gap-4 mb-6 group/header">
+                  <h2 className="text-lg font-black text-black dark:text-white px-6 py-2 bg-white dark:bg-boxdark border border-stroke dark:border-strokedark rounded-full shadow-sm print:shadow-none print:border-black print:text-black flex items-center gap-2">
+                    <Briefcase className="text-primary print:text-black" size={18} /> {team}
                   </h2>
+                  
+                  {/* Tombol Hide/Unhide (Hidden saat Print) */}
+                  <button 
+                    onClick={() => toggleTeam(team)}
+                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-meta-4 text-gray-400 hover:text-primary transition-all print:hidden"
+                    title={collapsedTeams[team] ? "Tampilkan Program" : "Sembunyikan Program"}
+                  >
+                    {collapsedTeams[team] ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+
                   <div className="h-px bg-stroke dark:bg-strokedark flex-1 print:bg-black"></div>
                 </div>
 
-                {/* List Program */}
-                <div className="flex flex-col gap-6">
+                {/* List Program (Bisa di-collapse) */}
+                <div className={`flex flex-col gap-6 transition-all ${collapsedTeams[team] ? 'hidden print:flex' : 'flex'}`}>
                   {items.map((prog: WorkProgramModel) => (
                     <div key={prog.id} className="group relative bg-white dark:bg-boxdark rounded-xl border border-stroke dark:border-strokedark overflow-hidden shadow-sm print:shadow-none print:border-2 print:border-gray-800 print:break-inside-avoid">
                       
@@ -193,25 +245,33 @@ export function ProkerPrintView({
                             </strong>
                             <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                                 {BULAN.map(bln => {
-                                    // Cek apakah bulan ini ada kegiatan apa saja (Status > 0)
                                     const monthData = prog.timeline[bln] || {};
-                                    const hasActivity = Object.values(monthData).some(v => Number(v) > 0);
+                                    const hasActivity = Object.values(monthData).some(v => v > 0);
+                                    const note = prog.timeline_notes ? prog.timeline_notes[bln] : "";
                                     
                                     return (
-                                        <div key={bln} className={`p-1.5 rounded border text-center ${hasActivity ? 'border-gray-300 bg-white print:border-black' : 'border-transparent opacity-50'}`}>
-                                            <div className="text-[9px] font-bold uppercase mb-1 print:text-black">{bln.substring(0,3)}</div>
-                                            <div className="flex justify-center gap-0.5">
-                                                {MINGGU_LIST.map(m => {
-                                                    const status = (monthData as any)[m] as TimelineStatus || 0;
-                                                    return (
-                                                        <div 
-                                                            key={m} 
-                                                            className={`w-1.5 h-1.5 rounded-full border ${getTimelineBadge(status)}`} 
-                                                            title={`${bln} ${m}: ${status === 2 ? 'Fiskal' : status === 1 ? 'Kegiatan' : 'Kosong'}`}
-                                                        />
-                                                    )
-                                                })}
+                                        <div key={bln} className={`p-1.5 rounded border text-center flex flex-col justify-between min-h-[50px] ${hasActivity || note ? 'border-gray-300 bg-white print:border-black' : 'border-transparent opacity-50'}`}>
+                                            <div>
+                                                <div className="text-[9px] font-bold uppercase mb-1 print:text-black">{bln.substring(0,3)}</div>
+                                                <div className="flex justify-center gap-0.5">
+                                                    {MINGGU_LIST.map(m => {
+                                                        const status = monthData[m] as TimelineStatus || 0;
+                                                        return (
+                                                            <div 
+                                                                key={m} 
+                                                                className={`w-1.5 h-1.5 rounded-full border ${getTimelineBadge(status)}`} 
+                                                                title={`${bln} ${m}`}
+                                                            />
+                                                        )
+                                                    })}
+                                                </div>
                                             </div>
+                                            
+                                            {note && (
+                                                <div className="mt-1 text-[8px] leading-tight text-gray-600 border-t border-dashed border-gray-300 pt-1 italic print:text-black print:border-gray-500">
+                                                    {note}
+                                                </div>
+                                            )}
                                         </div>
                                     )
                                 })}
@@ -277,13 +337,13 @@ export function ProkerPrintView({
             ))
           )}
 
-          {/* Rekap Bulanan (Arus Kas) */}
+          {/* Rekap Bulanan (Disempurnakan) */}
           {Object.keys(groupedPrograms).length > 0 && (
              <section className="bg-white dark:bg-boxdark rounded-xl border border-stroke dark:border-strokedark shadow-sm overflow-hidden break-inside-avoid mt-16 print:mt-8 print:border-2 print:border-black print:shadow-none">
                <div className="bg-primary/5 p-4 border-b border-stroke dark:border-strokedark flex items-center gap-3 print:bg-gray-200 print:border-black">
                    <LayoutDashboard className="text-primary print:text-black" size={20}/>
                    <h2 className="text-lg font-black text-black dark:text-white uppercase tracking-tighter print:text-black">
-                     Rekapitulasi Arus Kas Bulanan {year}
+                     Rekapitulasi Kegiatan dan RAB Bulanan {year}
                    </h2>
                </div>
                <div className="overflow-x-auto">
@@ -291,26 +351,39 @@ export function ProkerPrintView({
                    <thead className="bg-gray-50 dark:bg-meta-4 print:bg-gray-100">
                      <tr>
                        <th className="p-3 text-left font-black uppercase text-[10px] text-gray-500 tracking-widest print:text-black">Bulan</th>
-                       <th className="p-3 text-left font-black uppercase text-[10px] text-gray-500 tracking-widest print:text-black">Agenda Kegiatan Fiskal</th>
+                       <th className="p-3 text-left font-black uppercase text-[10px] text-gray-500 tracking-widest print:text-black">Agenda Kegiatan</th>
                        <th className="p-3 text-right font-black uppercase text-[10px] text-gray-500 tracking-widest print:text-black">Total Pencairan</th>
                      </tr>
                    </thead>
                    <tbody>
-                     {monthlyRecap.map(data => (
+                     {clientRecapData.map(data => (
                        <tr key={data.bulan} className="border-b border-stroke dark:border-strokedark print:border-gray-300">
-                         <td className="p-3 font-black text-black dark:text-white uppercase text-xs print:text-black">{data.bulan}</td>
+                         <td className="p-3 font-black text-black dark:text-white uppercase text-xs print:text-black w-32">{data.bulan}</td>
                          <td className="p-3">
                            {data.items.length > 0 ? (
-                             <div className="flex flex-wrap gap-1.5">
-                               {data.items.map((it: any) => (
-                                 <div key={it.id} className="border border-stroke dark:border-strokedark px-2 py-0.5 rounded bg-white dark:bg-boxdark print:border-gray-400">
-                                    <span className="font-bold block leading-tight text-[10px] print:text-black">{it.name}</span>
-                                 </div>
-                               ))}
+                             <div className="flex flex-wrap gap-2">
+                               {data.items.map((it: WorkProgramModel) => {
+                                 // Tentukan warna border berdasarkan status di bulan tersebut
+                                 const schedule = it.timeline?.[data.bulan];
+                                 const isFiscal = Array.isArray(schedule) 
+                                    ? true 
+                                    : Object.values(schedule || {}).some(v => v === 2);
+                                 
+                                 const borderClass = isFiscal 
+                                    ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 print:border-green-600 print:bg-white print:text-black" 
+                                    : "border-blue-400 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 print:border-blue-400 print:bg-white print:text-black";
+
+                                 return (
+                                   <div key={it.id} className={`border px-2 py-1 rounded text-[10px] font-bold shadow-sm print:shadow-none ${borderClass}`}>
+                                      <span className="block leading-tight">{it.name}</span>
+                                      <span className="text-[8px] opacity-70 uppercase font-medium mt-0.5 block">{it.team}</span>
+                                   </div>
+                                 );
+                               })}
                              </div>
-                           ) : <span className="text-gray-300 italic text-[10px] print:text-gray-400">Tidak ada pencairan</span>}
+                           ) : <span className="text-gray-300 italic text-[10px] print:text-gray-400">Tidak ada kegiatan</span>}
                          </td>
-                         <td className="p-3 text-right font-black text-primary text-sm print:text-black">
+                         <td className="p-3 text-right font-black text-primary text-sm print:text-black w-40">
                            {data.totalRab > 0 ? formatIDR(data.totalRab) : '-'}
                          </td>
                        </tr>
@@ -318,9 +391,9 @@ export function ProkerPrintView({
                    </tbody>
                    <tfoot className="bg-primary text-white print:bg-black print:text-white">
                      <tr>
-                       <td colSpan={2} className="p-4 text-right font-black uppercase tracking-widest text-[11px]">Total Anggaran Tahun {year}:</td>
+                       <td colSpan={2} className="p-4 text-right font-black uppercase tracking-widest text-[11px]">Total Estimasi Anggaran Tahun {year}:</td>
                        <td className="p-4 text-right text-xl font-black italic">
-                         {formatIDR(monthlyRecap.reduce((a,b)=>a+b.totalRab, 0))}
+                         {formatIDR(clientRecapData.reduce((a,b)=>a+b.totalRab, 0))}
                        </td>
                      </tr>
                    </tfoot>

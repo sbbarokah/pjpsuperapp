@@ -7,7 +7,7 @@ export type RabItem = {
   item: string;
   satuan: string;
   jumlah: number;
-  frekuensi: number;
+  frekuensi: number; 
   harga: number;
 };
 
@@ -21,14 +21,19 @@ export type TimelineStatus = 0 | 1 | 2;
 
 /**
  * Struktur Timeline
- * Key: Nama Bulan (Januari, Februari...)
- * Value: Array Minggu (M1, M2...)
  */
-export type TimelineData = Record<string, string[]>;
+export type TimelineData = Record<string, Record<string, TimelineStatus>>;
+
+/**
+ * [BARU] Struktur Notes Timeline
+ * Key: Nama Bulan, Value: String catatan
+ */
+export type TimelineNotes = Record<string, string>;
 
 export type ProkerLevel = 'daerah' | 'desa' | 'kelompok';
+
 /**
- * Model Utama Program Kerja (Sesuai DB)
+ * Model Utama Program Kerja
  */
 export type WorkProgramModel = {
   id: string;
@@ -38,22 +43,23 @@ export type WorkProgramModel = {
   group_id?: number | null;
   level: ProkerLevel;
   
-  name: string;          // nama_kegiatan
-  team: string;          // tim
-  year: number;          // tahun
-  description?: string;  // deskripsi
-  location?: string;     // tempat
-  participants?: string; // peserta
-  objective?: string;    // tujuan
+  name: string;          
+  team: string;          
+  year: number;          
+  description?: string;  
+  location?: string;     
+  participants?: string; 
+  objective?: string;    
   
-  budget_items: RabItem[]; // rab
+  budget_items: RabItem[]; 
   timeline: TimelineData;
+  timeline_notes?: TimelineNotes; // [BARU] Field optional
   
   total_budget: number;
 };
 
 /**
- * DTO untuk Create/Update
+ * DTO Create
  */
 export type CreateProkerDto = {
   nama_kegiatan: string;
@@ -63,20 +69,19 @@ export type CreateProkerDto = {
   tempat: string;
   peserta: string;
   tujuan: string;
+  
   rab: RabItem[];
   timeline: TimelineData;
-  total_anggaran: number;
+  timeline_notes: TimelineNotes; // [BARU]
   
-  // Scoping (diisi otomatis oleh action)
+  total_anggaran: number; 
+  
   village_id?: number;
   group_id?: number;
 };
 
 export type UpdateProkerDto = Partial<CreateProkerDto> & { id: string };
 
-/**
- * Tipe untuk tampilan list
- */
 export type WorkProgramWithAuthor = WorkProgramModel & {
   author?: Pick<Profile, 'full_name'> | null;
 };

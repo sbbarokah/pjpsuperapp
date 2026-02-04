@@ -49,6 +49,7 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
     rab: initialData?.budget_items || [{ item: "", harga: 0, satuan: "", jumlah: 1 }],
     timeline: initialData?.timeline || BULAN.reduce((acc, bln) => ({ ...acc, [bln]: [] }), {}),
     total_anggaran: initialData?.total_budget || 0,
+    timeline_notes: initialData?.timeline_notes || {} 
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {

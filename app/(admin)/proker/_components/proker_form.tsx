@@ -1,7 +1,7 @@
 /**
  * Lokasi: app/(admin)/proker/_components/proker_form.tsx
  * Deskripsi: Komponen formulir untuk tambah/edit Program Kerja Tahunan.
- * Perbaikan: Menambah kolom Frekuensi RAB, Timeline 3 State, dan Validasi silang.
+ * Perbaikan: Menambah input text (catatan) di bawah tombol timeline per bulan.
  */
 
 "use client";
@@ -43,13 +43,10 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
   // Helper untuk inisialisasi timeline dari data lama atau baru
   const initializeTimeline = (dataTimeline: any) => {
     if (!dataTimeline) return {};
-    // Jika data lama berbentuk array string (format lama), kita anggap itu FISCAL (Hijau)
-    // Jika format baru (object), gunakan langsung
     const newTimeline: any = {};
     Object.keys(dataTimeline).forEach(bulan => {
       newTimeline[bulan] = {};
       if (Array.isArray(dataTimeline[bulan])) {
-        // Konversi format array lama ke format object baru
         dataTimeline[bulan].forEach((m: string) => {
           newTimeline[bulan][m] = TIMELINE_STATES.FISCAL;
         });
@@ -68,22 +65,21 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
     tujuan: initialData?.objective || "",
     tempat: initialData?.location || "",
     peserta: initialData?.participants || "",
-    // Tambahkan field frekuensi default 1
     rab: initialData?.budget_items?.map((item: any) => ({
         ...item,
         frekuensi: item.frekuensi || 1 
     })) || [{ item: "", harga: 0, satuan: "", jumlah: 1, frekuensi: 1 }],
     timeline: initializeTimeline(initialData?.timeline),
+    // [BARU] State untuk catatan timeline per bulan
+    timeline_notes: initialData?.timeline_notes || {} 
   });
 
   // --- COMPUTED VALUES FOR VALIDATION ---
   
-  // Hitung total frekuensi dari RAB
   const totalRabFreq = useMemo(() => {
     return formData.rab.reduce((acc: number, item: any) => acc + Number(item.frekuensi || 0), 0);
   }, [formData.rab]);
 
-  // Hitung total minggu yang berwarna HIJAU (Fiscal)
   const totalFiscalWeeks = useMemo(() => {
     let count = 0;
     Object.values(formData.timeline).forEach((weeks: any) => {
@@ -121,7 +117,6 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
     }));
   };
 
-  // Logic Rotasi: 0 (Putih) -> 1 (Biru) -> 2 (Hijau) -> 0 (Putih)
   const toggleTimeline = (bulan: string, minggu: string) => {
     setFormData((prev) => {
       const currentMonthData = (prev.timeline as any)[bulan] || {};
@@ -132,7 +127,6 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
       else if (currentVal === TIMELINE_STATES.ACTIVITY) nextVal = TIMELINE_STATES.FISCAL;
       else nextVal = TIMELINE_STATES.NONE;
 
-      // Jika value 0, hapus key biar bersih, jika tidak simpan valuenya
       const newMonthData = { ...currentMonthData };
       if (nextVal === TIMELINE_STATES.NONE) {
         delete newMonthData[minggu];
@@ -144,7 +138,17 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
     });
   };
 
-  // Total Biaya = Harga * Jumlah * Frekuensi
+  // [BARU] Handler untuk input catatan timeline
+  const handleTimelineNoteChange = (bulan: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      timeline_notes: {
+        ...prev.timeline_notes,
+        [bulan]: value
+      }
+    }));
+  };
+
   const calculateTotal = () => formData.rab.reduce((acc: any, row: any) => acc + (row.harga * row.jumlah * row.frekuensi), 0);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -152,16 +156,13 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
     setError(null);
     setSuccess(null);
     
-    // Validasi Field Wajib
     if(!formData.nama_kegiatan) {
         alert("Nama kegiatan wajib diisi");
         return;
     }
 
-    // Validasi Cross-Check RAB vs Timeline
     if (!isValidFrequency) {
       setError(`Validasi Gagal: Total Frekuensi di RAB (${totalRabFreq}) TIDAK SAMA dengan jumlah minggu Hijau/Fiskal (${totalFiscalWeeks}) pada timeline.`);
-      // Scroll ke atas atau ke area error
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -171,7 +172,6 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
       
       const payload = {
         ...formData,
-        // Pastikan timeline disimpan dalam format yang bersih (opsional: bersihkan bulan kosong)
         total_anggaran: calculateTotal()
       };
 
@@ -191,14 +191,13 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
     });
   };
 
-  // Helper untuk style tombol timeline
   const getTimelineButtonStyle = (val: number) => {
     switch (val) {
-      case TIMELINE_STATES.ACTIVITY: // Biru
+      case TIMELINE_STATES.ACTIVITY: 
         return "bg-blue-500 border-blue-600 text-white shadow-md";
-      case TIMELINE_STATES.FISCAL: // Hijau
+      case TIMELINE_STATES.FISCAL: 
         return "bg-green-500 border-green-600 text-white shadow-md scale-105 ring-2 ring-green-200";
-      default: // Putih/Kosong
+      default: 
         return "bg-white dark:bg-boxdark border-stroke text-gray-400 hover:bg-gray-50";
     }
   };
@@ -206,7 +205,6 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-8 pb-20">
       
-      {/* ERROR MESSAGE TOP */}
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-700 animate-pulse">
           <AlertCircle className="shrink-0 mt-0.5" />
@@ -298,7 +296,7 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
             />
           </div>
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold uppercase text-gray-500 flex items-center gap-2"><Users size={14}/> Peserta</label>
+            <label className="text-xs font-bold uppercase text-gray-500 flex items-center gap-2"><Users size={14}/> Estimasi Peserta</label>
             <input 
               name="peserta" 
               value={formData.peserta} 
@@ -374,7 +372,6 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
                       className="w-full bg-transparent outline-none focus:text-primary text-center bg-gray-50 dark:bg-meta-4 rounded" 
                     />
                   </td>
-                  {/* KOLOM FREKUENSI BARU */}
                   <td className="py-4 px-2">
                     <input 
                       type="number" 
@@ -395,7 +392,6 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
                     />
                   </td>
                   <td className="py-4 px-2 text-right font-black text-black dark:text-white">
-                    {/* Kalkulasi: Harga * Qty * Freq */}
                     {(row.harga * row.jumlah * row.frekuensi).toLocaleString("id-ID")}
                   </td>
                   <td className="py-4 px-2 text-right">
@@ -432,7 +428,6 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
             Timeline Pelaksanaan
           </h3>
           
-          {/* LEGENDA WARNA & INDIKATOR VALIDASI */}
           <div className="flex flex-wrap items-center gap-4 text-xs">
             <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 bg-white border border-gray-300 rounded"></div>
@@ -461,7 +456,9 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
           {BULAN.map((bln) => (
             <div key={bln} className="p-3 bg-gray-50 rounded-xl dark:bg-meta-4 border border-stroke dark:border-strokedark text-center">
               <span className="text-[10px] font-black uppercase opacity-40 mb-3 block">{bln}</span>
-              <div className="flex gap-1 justify-center">
+              
+              {/* TOMBOL MINGGUAN */}
+              <div className="flex gap-1 justify-center mb-2">
                 {MINGGU.map((m) => {
                   const currentMonthData = (formData.timeline as any)[bln] || {};
                   const status = currentMonthData[m] || TIMELINE_STATES.NONE;
@@ -478,6 +475,16 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
                   );
                 })}
               </div>
+
+              {/* [BARU] Input Catatan/Keterangan per Bulan */}
+              <input
+                 type="text"
+                 placeholder="Ket. kegiatan..."
+                 value={(formData.timeline_notes as any)[bln] || ""}
+                 onChange={(e) => handleTimelineNoteChange(bln, e.target.value)}
+                 className="w-full mt-1 text-[10px] px-2 py-1.5 rounded border border-stroke bg-white dark:bg-boxdark dark:border-strokedark focus:border-primary outline-none transition-colors"
+              />
+
             </div>
           ))}
         </div>
@@ -485,7 +492,6 @@ export function ProkerForm({ initialData = null }: { initialData?: any }) {
 
       {success && <div className="my-4 p-3 text-sm text-green-700 bg-green-100 border border-green-500 rounded">{success}</div>}
 
-      {/* Tombol Aksi */}
       <div className="flex justify-end gap-3 pt-6 border-t border-stroke dark:border-strokedark">
         <button 
           type="button" 
