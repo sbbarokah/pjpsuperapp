@@ -352,7 +352,7 @@ export function ProkerPrintView({
                      <tr>
                        <th className="p-3 text-left font-black uppercase text-[10px] text-gray-500 tracking-widest print:text-black">Bulan</th>
                        <th className="p-3 text-left font-black uppercase text-[10px] text-gray-500 tracking-widest print:text-black">Agenda Kegiatan</th>
-                       <th className="p-3 text-right font-black uppercase text-[10px] text-gray-500 tracking-widest print:text-black">Total Pencairan</th>
+                       <th className="p-3 text-right font-black uppercase text-[10px] text-gray-500 tracking-widest print:text-black">Total RAB</th>
                      </tr>
                    </thead>
                    <tbody>
