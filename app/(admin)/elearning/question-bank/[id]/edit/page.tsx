@@ -23,7 +23,6 @@ type PilihanJawaban = {
 export default function EditQuestionPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const questionId = resolvedParams.id;
-  console.log("ID Soal yang akan diedit:", questionId);
   const supabase = createClient();
 
   const [isInitializing, setIsInitializing] = useState(true);
@@ -32,13 +31,15 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
   const [errorMsg, setErrorMsg] = useState("");
 
   // State Data Master
-  const [materialCategories, setMaterialCategories] = useState<any[]>([]);
-  const [allMaterials, setAllMaterials] = useState<any[]>([]);
+  const [classesData, setClassesData] = useState<any[]>([]); // Data Kelas (category)
+  const [materialCategories, setMaterialCategories] = useState<any[]>([]); // Data Kategori Materi
+  const [allMaterials, setAllMaterials] = useState<any[]>([]); // Data Materi
 
   // State Formulir Utama
   const [formData, setFormData] = useState({
-    category_id: "",
-    material_id: "",
+    category_id: "", // Kelas
+    material_category_id: "", // Kategori Materi
+    material_id: "", // Materi Spesifik
     pertanyaan: "",
     pembahasan: "",
     level_kesulitan: "medium"
@@ -52,12 +53,14 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
     const fetchData = async () => {
       setIsInitializing(true);
       try {
-        // 1. Fetch Kategori & Materi
-        const [catRes, matRes] = await Promise.all([
-          supabase.from('material_category').select('id, name').order('name'),
-          supabase.from('material').select('id, material_name, material_category_id').order('material_name')
+        // 1. Fetch Data Master (Kelas, Kategori Materi, Materi)
+        const [classRes, catRes, matRes] = await Promise.all([
+          supabase.from('category').select('*').order('id'),
+          supabase.from('material_category').select('*').order('name'),
+          supabase.from('material').select('*').order('material_name')
         ]);
 
+        if (classRes.data) setClassesData(classRes.data);
         if (catRes.data) setMaterialCategories(catRes.data);
         if (matRes.data) setAllMaterials(matRes.data);
 
@@ -72,8 +75,9 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
 
         if (qData) {
           setFormData({
-            category_id: String(qData.category_id),
-            material_id: qData.material_id,
+            category_id: String(qData.category_id || ""),
+            material_category_id: String(qData.material_category_id || ""),
+            material_id: String(qData.material_id || ""),
             pertanyaan: qData.question,
             pembahasan: qData.explanation || "",
             level_kesulitan: qData.difficulty
@@ -101,9 +105,9 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
 
   // Filter Materi
   const filteredMaterials = useMemo(() => {
-    if (!formData.category_id) return [];
-    return allMaterials.filter(m => String(m.material_category_id) === String(formData.category_id));
-  }, [formData.category_id, allMaterials]);
+    if (!formData.material_category_id) return [];
+    return allMaterials.filter(m => String(m.material_category_id) === String(formData.material_category_id));
+  }, [formData.material_category_id, allMaterials]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -111,7 +115,7 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
       ...prev, 
       [name]: value,
       // Reset material jika kategori diubah
-      ...(name === "category_id" ? { material_id: "" } : {})
+      ...(name === "material_category_id" ? { material_id: "" } : {})
     }));
   };
 
@@ -152,6 +156,7 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
     try {
       const payload = {
         category_id: Number(formData.category_id),
+        material_category_id: Number(formData.material_category_id),
         material_id: formData.material_id,
         question: formData.pertanyaan,
         explanation: formData.pembahasan || null,
@@ -191,7 +196,7 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-8 bg-gray-50 min-h-screen font-sans">
+    <div className="max-w-5xl mx-auto p-4 md:p-8 bg-gray-50 min-h-screen font-sans">
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-800 flex items-center gap-3">
@@ -202,7 +207,7 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
         </div>
         <a 
           href="/elearning/question-bank"
-          className="text-sm font-bold text-slate-600 hover:text-blue-600"
+          className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors"
         >
           &larr; Kembali ke Daftar
         </a>
@@ -224,7 +229,7 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
 
       <form onSubmit={handleSubmit} className="space-y-6 pb-20">
         
-        {/* SECTION 1: PEMETAAN MATERI */}
+        {/* SECTION 1: PEMETAAN MATERI (3 KOLOM) */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex justify-between items-center mb-4 border-b pb-2">
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -232,20 +237,38 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
             </h2>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* 1. KELAS */}
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Kategori Materi</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Kelas / Tingkat</label>
               <select 
                 required
                 name="category_id"
                 value={formData.category_id}
                 onChange={handleInputChange}
-                className="w-full p-3 rounded-xl border border-slate-300 bg-slate-50 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                className="w-full p-3 text-sm rounded-xl border border-slate-300 bg-slate-50 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+              >
+                <option value="">-- Pilih Kelas --</option>
+                {classesData.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+
+            {/* 2. KATEGORI MATERI */}
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Kategori Materi</label>
+              <select 
+                required
+                name="material_category_id"
+                value={formData.material_category_id}
+                onChange={handleInputChange}
+                className="w-full p-3 text-sm rounded-xl border border-slate-300 bg-slate-50 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
               >
                 <option value="">-- Pilih Kategori --</option>
                 {materialCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
+
+            {/* 3. MATERI SPESIFIK */}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">Materi Spesifik</label>
               <select 
@@ -253,8 +276,8 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
                 name="material_id"
                 value={formData.material_id}
                 onChange={handleInputChange}
-                disabled={!formData.category_id}
-                className="w-full p-3 rounded-xl border border-slate-300 bg-slate-50 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all disabled:opacity-50"
+                disabled={!formData.material_category_id}
+                className="w-full p-3 text-sm rounded-xl border border-slate-300 bg-slate-50 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all disabled:opacity-50"
               >
                 <option value="">-- Pilih Materi --</option>
                 {filteredMaterials.map(m => <option key={m.id} value={m.id}>{m.material_name}</option>)}

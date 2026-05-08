@@ -1279,3 +1279,25 @@ FOR ALL USING (
 ) WITH CHECK (
   (SELECT role FROM public.profile WHERE user_id = auth.uid()) IN ('superadmin', 'admin_desa')
 );
+
+update question_bank agar menambahkan kelas
+-- 1. Tambahkan kolom material_category_id baru
+ALTER TABLE public.question_bank 
+ADD COLUMN IF NOT EXISTS material_category_id BIGINT;
+
+-- 2. Pindahkan data lama dari category_id ke material_category_id (Agar data tidak hilang)
+UPDATE public.question_bank 
+SET material_category_id = category_id 
+WHERE material_category_id IS NULL;
+
+-- 3. Hapus relasi (foreign key) lama yang salah sasaran
+ALTER TABLE public.question_bank 
+DROP CONSTRAINT IF EXISTS question_bank_category_id_fkey;
+
+-- 4. Set ulang category_id menjadi NULL agar bisa diisi ID Kelas yang benar nantinya
+UPDATE public.question_bank SET category_id = NULL;
+
+-- 5. Tambahkan kembali relasi (foreign key) yang tepat
+ALTER TABLE public.question_bank 
+ADD CONSTRAINT question_bank_material_category_id_fkey FOREIGN KEY (material_category_id) REFERENCES public.material_category(id) ON DELETE CASCADE,
+ADD CONSTRAINT question_bank_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.category(id) ON DELETE CASCADE;

@@ -30,17 +30,19 @@ export default function QuestionBankForm() {
   const [errorMsg, setErrorMsg] = useState("");
 
   // State Data Master
-  const [materialCategories, setMaterialCategories] = useState<any[]>([]);
-  const [allMaterials, setAllMaterials] = useState<any[]>([]);
+  const [classesData, setClassesData] = useState<any[]>([]); // Data Kelas (category)
+  const [materialCategories, setMaterialCategories] = useState<any[]>([]); // Data Kategori Materi
+  const [allMaterials, setAllMaterials] = useState<any[]>([]); // Data Materi
   const [isLoadingMaster, setIsLoadingMaster] = useState(true);
 
   // State Formulir Utama
   const [formData, setFormData] = useState({
-    category_id: "",
-    material_id: "",
+    category_id: "", // ID Kelas
+    material_category_id: "", // ID Kategori Materi (Aqidah, Fiqih, dll)
+    material_id: "", // ID Materi
     pertanyaan: "",
     pembahasan: "",
-    level_kesulitan: "medium" // Default ke 'medium' (bhs inggris sesuai DB)
+    level_kesulitan: "medium" 
   });
 
   // State untuk Pilihan Jawaban (Default 4 pilihan: A, B, C, D)
@@ -51,30 +53,37 @@ export default function QuestionBankForm() {
     { id: crypto.randomUUID(), teks: "", poin: 0 },
   ]);
 
-  // Fetch Kategori & Materi saat komponen dimuat
+  // Fetch Semua Data Master saat komponen dimuat
   useEffect(() => {
     const fetchMasterData = async () => {
       setIsLoadingMaster(true);
       
-      const [catRes, matRes] = await Promise.all([
-        supabase.from('material_category').select('id, name').order('name'),
-        supabase.from('material').select('id, material_name, material_category_id').order('material_name')
-      ]);
+      try {
+        const [classRes, matCatRes, matRes] = await Promise.all([
+          supabase.from('category').select('*').order('id'), // Ambil data Kelas
+          supabase.from('material_category').select('*').order('name'), // Ambil Kategori Materi
+          supabase.from('material').select('*').order('material_name') // Ambil Materi Spesifik
+        ]);
 
-      if (catRes.data) setMaterialCategories(catRes.data);
-      if (matRes.data) setAllMaterials(matRes.data);
-      
-      setIsLoadingMaster(false);
+        if (classRes.data) setClassesData(classRes.data);
+        if (matCatRes.data) setMaterialCategories(matCatRes.data);
+        if (matRes.data) setAllMaterials(matRes.data);
+      } catch (error) {
+        console.error("Gagal mengambil data master:", error);
+      } finally {
+        setIsLoadingMaster(false);
+      }
     };
 
     fetchMasterData();
   }, [supabase]);
 
-  // Filter Materi berdasarkan Kategori yang dipilih
+  // Filter Materi berdasarkan Kategori Materi yang dipilih
   const filteredMaterials = useMemo(() => {
-    if (!formData.category_id) return [];
-    return allMaterials.filter(m => String(m.material_category_id) === String(formData.category_id));
-  }, [formData.category_id, allMaterials]);
+    if (!formData.material_category_id) return [];
+    // Asumsi: tabel material memiliki kolom material_category_id
+    return allMaterials.filter(m => String(m.material_category_id) === String(formData.material_category_id));
+  }, [formData.material_category_id, allMaterials]);
 
 
   // Handle Input Dasar
@@ -82,8 +91,8 @@ export default function QuestionBankForm() {
     const { name, value } = e.target;
     setFormData(prev => {
       const newData = { ...prev, [name]: value };
-      // Reset materi jika kategori berubah
-      if (name === "category_id") newData.material_id = "";
+      // Reset materi spesifik jika kategori materi berubah
+      if (name === "material_category_id") newData.material_id = "";
       return newData;
     });
   };
@@ -107,7 +116,7 @@ export default function QuestionBankForm() {
     setOptions(prev => prev.filter(opt => opt.id !== id));
   };
 
-  // Set otomatis satu jawaban bernilai poin penuh (misal: 10) dan sisanya 0
+  // Set otomatis satu jawaban bernilai poin penuh
   const setCorrectAnswer = (id: string) => {
     setOptions(prev => prev.map(opt => ({
       ...opt,
@@ -134,10 +143,11 @@ export default function QuestionBankForm() {
       // Ambil user ID untuk kolom created_by
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Mapping ke Skema Supabase berbahasa Inggris
+      // Mapping ke Skema Supabase (Pastikan tabel DB sudah diperbarui dengan material_category_id)
       const payload = {
-        category_id: Number(formData.category_id),
-        material_id: formData.material_id,
+        category_id: Number(formData.category_id), // Kelas
+        material_category_id: Number(formData.material_category_id), // Kategori Materi
+        material_id: formData.material_id, // Materi Spesifik
         question: formData.pertanyaan,
         explanation: formData.pembahasan || null,
         difficulty: formData.level_kesulitan,
@@ -154,9 +164,10 @@ export default function QuestionBankForm() {
 
       setSuccessMsg("Soal berhasil ditambahkan ke Bank Soal!");
       
-      // Reset Form untuk input selanjutnya
+      // Reset Form untuk input selanjutnya (pertahankan klasifikasi untuk input borongan)
       setFormData({
-        category_id: formData.category_id, // Pertahankan kategori dan materi untuk entry borongan
+        category_id: formData.category_id,
+        material_category_id: formData.material_category_id,
         material_id: formData.material_id,
         pertanyaan: "",
         pembahasan: "",
@@ -169,7 +180,6 @@ export default function QuestionBankForm() {
         { id: crypto.randomUUID(), teks: "", poin: 0 },
       ]);
       
-      // Scroll ke atas
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
     } catch (error: any) {
@@ -181,7 +191,7 @@ export default function QuestionBankForm() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-8 bg-gray-50 min-h-screen font-sans">
+    <div className="max-w-5xl mx-auto p-4 md:p-8 bg-gray-50 min-h-screen font-sans">
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-800 flex items-center gap-3">
@@ -192,7 +202,7 @@ export default function QuestionBankForm() {
         </div>
         <button 
           onClick={() => router.push('/elearning/question-bank')}
-          className="text-sm font-bold text-slate-600 hover:text-blue-600"
+          className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors"
         >
           &larr; Kembali ke Daftar
         </button>
@@ -214,7 +224,7 @@ export default function QuestionBankForm() {
 
       <form onSubmit={handleSubmit} className="space-y-6 pb-20">
         
-        {/* SECTION 1: PEMETAAN MATERI */}
+        {/* SECTION 1: PEMETAAN MATERI (3 KOLOM) */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex justify-between items-center mb-4 border-b pb-2">
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -223,21 +233,40 @@ export default function QuestionBankForm() {
             {isLoadingMaster && <Loader2 size={16} className="animate-spin text-blue-500" />}
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* 1. KELAS */}
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Kategori Materi</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Kelas / Tingkat</label>
               <select 
                 required
                 name="category_id"
                 value={formData.category_id}
                 onChange={handleInputChange}
                 disabled={isLoadingMaster}
-                className="w-full p-3 rounded-xl border border-slate-300 bg-slate-50 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all disabled:opacity-50"
+                className="w-full p-3 text-sm rounded-xl border border-slate-300 bg-slate-50 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all disabled:opacity-50"
               >
-                <option value="">-- Pilih Kategori --</option>
-                {materialCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                <option value="">-- Pilih Kelas --</option>
+                {classesData.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
+
+            {/* 2. KATEGORI MATERI */}
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Kategori Materi</label>
+              <select 
+                required
+                name="material_category_id"
+                value={formData.material_category_id}
+                onChange={handleInputChange}
+                disabled={isLoadingMaster}
+                className="w-full p-3 text-sm rounded-xl border border-slate-300 bg-slate-50 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all disabled:opacity-50"
+              >
+                <option value="">-- Pilih Kategori --</option>
+                {materialCategories.map(mc => <option key={mc.id} value={mc.id}>{mc.name}</option>)}
+              </select>
+            </div>
+
+            {/* 3. MATERI SPESIFIK */}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">Materi Spesifik</label>
               <select 
@@ -245,8 +274,8 @@ export default function QuestionBankForm() {
                 name="material_id"
                 value={formData.material_id}
                 onChange={handleInputChange}
-                disabled={!formData.category_id || isLoadingMaster}
-                className="w-full p-3 rounded-xl border border-slate-300 bg-slate-50 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all disabled:opacity-50"
+                disabled={!formData.material_category_id || isLoadingMaster}
+                className="w-full p-3 text-sm rounded-xl border border-slate-300 bg-slate-50 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all disabled:opacity-50"
               >
                 <option value="">-- Pilih Materi --</option>
                 {filteredMaterials.map(m => <option key={m.id} value={m.id}>{m.material_name}</option>)}
