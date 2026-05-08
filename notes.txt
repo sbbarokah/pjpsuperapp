@@ -49,6 +49,63 @@ App Structure:
 ├── .env.local                  # (Menyimpan kunci API Supabase)
 └── tailwind.config.js
 
+App Structure v2:
+src/
+├── app/
+│   ├── (auth)/                  <-- AREA LOGIN
+│   │   ├── login/page.tsx
+│   │   └── layout.tsx           <-- Layout polos tanpa sidebar
+│   │
+│   ├── (admin)/                 <-- AREA ADMIN (WAJIB LOGIN)
+│   │   ├── layout.tsx           <-- Layout utama dengan Sidebar & Navbar Admin
+│   │   ├── dashboard/page.tsx
+│   │   ├── generus/
+│   │   ├── kurikulum/
+│   │   ├── kbm/
+│   │   ├── proker/
+│   │   ├── master-data/
+│   │   │
+│   │   ├── elearning/           <-- MODUL BARU E-LEARNING
+│   │   │   ├── bank-soal/
+│   │   │   │   ├── page.tsx            <-- List Bank Soal
+│   │   │   │   ├── add/page.tsx        <-- Form Input Soal
+│   │   │   │   └── _components/        <-- Komponen spesifik bank soal
+│   │   │   ├── ujian/
+│   │   │   │   └── page.tsx            <-- Setup Kuis/Ujian
+│   │   │   └── cerdas-cermat/
+│   │   │       └── page.tsx            <-- Dashboard kontrol Cerdas Cermat
+│   │   │
+│   │   └── ... (menu admin lainnya)
+│   │
+│   ├── (public)/                <-- AREA PUBLIK (TANPA LOGIN)
+│   │   ├── layout.tsx           <-- Layout khusus publik (misal navbar simple, full screen)
+│   │   │
+│   │   ├── games/               <-- MENU GAME INDEPENDEN
+│   │   │   ├── page.tsx         <-- Landing page daftar game (Bisa diakses publik)
+│   │   │   ├── hijaiyah/
+│   │   │   │   └── page.tsx     <-- Game tebak hijaiyah (Phaser.js / React Canvas)
+│   │   │   └── tajwid/
+│   │   │       └── page.tsx     <-- Game lainnya
+│   │   │
+│   │   ├── cerdas-cermat/       <-- TAMPILAN PUBLIK CERDAS CERMAT
+│   │   │   ├── layar/page.tsx   <-- Layar proyektor untuk penonton
+│   │   │   └── [peserta_id]/    <-- Layar tombol bel peserta
+│   │   │
+│   │   └── ujian/               <-- TAMPILAN SISWA MENGERJAKAN UJIAN
+│   │       └── [session_id]/page.tsx
+│   │
+│   ├── globals.css
+│   └── layout.tsx               <-- Root layout (Font, Provider global)
+│
+├── components/                  <-- KOMPONEN GLOBAL YG DIPAKAI BERSAMA
+│   ├── ui/                      <-- Button, Input, Modal, Breadcrumb
+│   └── shared/                  <-- Sidebar, Navbar, dll
+│
+└── lib/                         <-- LOGIKA APLIKASI
+    ├── supabase/                <-- Config & Client Supabase
+    ├── services/                <-- Fetching data (bankSoalService.ts, gameService.ts)
+    ├── actions/                 <-- Server actions (Post/Put/Delete)
+    └── types/                   <-- TypeScript Interfaces
 
 akun: 
 superadmin@pjpsuperapp.com
@@ -1172,4 +1229,53 @@ WITH CHECK (
       (p.role = 'admin_kelompok' AND work_programs.level = 'kelompok')
     )
   )
+);
+
+
+=================================================================================
+new feature at 5 May 2026
+question bank
+
+-- 1. Create Enum for Difficulty Level
+CREATE TYPE difficulty_level AS ENUM ('easy', 'medium', 'hard', 'HOTS');
+
+-- 2. Create Question Bank Table
+CREATE TABLE public.question_bank (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    -- [PERBAIKAN] category_id diubah menjadi BIGINT dan referensi ke material_category
+    category_id BIGINT NOT NULL REFERENCES public.material_category(id) ON DELETE CASCADE,
+    -- [PERBAIKAN] material_id tetap UUID tapi referensi ke tabel material
+    material_id UUID NOT NULL REFERENCES public.material(id) ON DELETE CASCADE,
+    
+    question TEXT NOT NULL,
+    explanation TEXT,
+    difficulty difficulty_level NOT NULL DEFAULT 'medium',
+    
+    -- Storing array of objects: [{ "text": "Answer A", "points": 10 }, { "text": "Answer B", "points": 0 }]
+    options JSONB NOT NULL DEFAULT '[]'::jsonb,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    created_by UUID REFERENCES auth.users(id)
+);
+
+-- Indexing to speed up queries based on material and category
+CREATE INDEX idx_question_bank_material ON public.question_bank(material_id);
+CREATE INDEX idx_question_bank_category ON public.question_bank(category_id);
+
+-- 3. Mengaktifkan Row Level Security (RLS)
+ALTER TABLE public.question_bank ENABLE ROW LEVEL SECURITY;
+
+-- 4. Membuat Policies (Aturan Hak Akses)
+-- Mengizinkan semua user yang sudah login untuk membaca soal
+CREATE POLICY "Allow authenticated read access"
+ON public.question_bank
+FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Hanya mengizinkan superadmin atau admin_desa untuk Create, Update, Delete (CUD)
+CREATE POLICY "Allow admin CUD access"
+ON public.question_bank
+FOR ALL USING (
+  (SELECT role FROM public.profile WHERE user_id = auth.uid()) IN ('superadmin', 'admin_desa')
+) WITH CHECK (
+  (SELECT role FROM public.profile WHERE user_id = auth.uid()) IN ('superadmin', 'admin_desa')
 );

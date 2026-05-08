@@ -8,6 +8,7 @@ import {
 } from "react-icons/lu";
 import { FaMosque } from "react-icons/fa6";
 import { FaProjectDiagram } from "react-icons/fa";
+import { GraduationCap } from "lucide-react";
 
 export const NAV_DATA = [
   {
@@ -52,6 +53,16 @@ export const NAV_DATA = [
           {
             title: "Laporan KBM",
             url: "/kbmreport",
+          },
+        ],
+      },
+      {
+        title: "E-Learning",
+        icon: GraduationCap, // Ikon Sekolah untuk E-Learning
+        items: [
+          {
+            title: "Bank Soal",
+            url: "/elearning/question-bank",
           },
         ],
       },
