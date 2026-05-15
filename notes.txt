@@ -1301,3 +1301,112 @@ UPDATE public.question_bank SET category_id = NULL;
 ALTER TABLE public.question_bank 
 ADD CONSTRAINT question_bank_material_category_id_fkey FOREIGN KEY (material_category_id) REFERENCES public.material_category(id) ON DELETE CASCADE,
 ADD CONSTRAINT question_bank_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.category(id) ON DELETE CASCADE;
+
+realtime quizz
+-- ==========================================
+-- 1. BUAT TABEL (Jika belum ada)
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS public.quiz_sessions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    created_by UUID REFERENCES auth.users(id) DEFAULT auth.uid(),
+    title TEXT NOT NULL,
+    status TEXT DEFAULT 'waiting', -- waiting, started, finished
+    duration_per_question INT DEFAULT 30,
+    interval_seconds INT DEFAULT 5,
+    questions_data JSONB NOT NULL,
+    current_question_index INT DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS public.quiz_participants (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    session_id UUID REFERENCES public.quiz_sessions(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    score INT DEFAULT 0,
+    is_joined BOOLEAN DEFAULT true,
+    last_answered_at TIMESTAMPTZ
+);
+
+-- ==========================================
+-- 2. AKTIFKAN REALTIME
+-- ==========================================
+-- Kita hapus dulu dari publikasi jika sudah ada untuk menghindari error duplikat
+-- lalu tambahkan kembali
+BEGIN;
+  -- Cek dan tambahkan ke realtime
+  -- Perhatian: Jika anda mendapatkan error di bagian ini, 
+  -- anda bisa mengabaikannya atau menjalankannya lewat UI Supabase (Database -> Replication)
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.quiz_sessions;
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.quiz_participants;
+COMMIT;
+
+-- ==========================================
+-- 3. ENABLE RLS
+-- ==========================================
+ALTER TABLE public.quiz_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.quiz_participants ENABLE ROW LEVEL SECURITY;
+
+-- ==========================================
+-- 4. POLICIES UNTUK QUIZ_SESSIONS
+-- ==========================================
+
+CREATE POLICY "Allow select for all authenticated users"
+ON public.quiz_sessions FOR SELECT
+TO authenticated
+USING (true);
+
+CREATE POLICY "Allow insert for admins"
+ON public.quiz_sessions FOR INSERT
+TO authenticated
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.profile
+    WHERE profile.user_id = auth.uid()
+    AND profile.role IN ('admin_desa', 'superadmin', 'admin_kelompok')
+  )
+);
+
+CREATE POLICY "Allow update for creators only"
+ON public.quiz_sessions FOR UPDATE
+TO authenticated
+USING (auth.uid() = created_by)
+WITH CHECK (auth.uid() = created_by);
+
+CREATE POLICY "Allow delete for creators only"
+ON public.quiz_sessions FOR DELETE
+TO authenticated
+USING (auth.uid() = created_by);
+
+-- ==========================================
+-- 5. POLICIES UNTUK QUIZ_PARTICIPANTS
+-- ==========================================
+
+CREATE POLICY "Allow select participants for all"
+ON public.quiz_participants FOR SELECT
+TO authenticated
+USING (true);
+
+CREATE POLICY "Allow insert for anyone"
+ON public.quiz_participants FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+CREATE POLICY "No direct update for participants"
+ON public.quiz_participants FOR UPDATE
+TO authenticated
+USING (false); 
+
+-- ==========================================
+-- 6. BUAT FUNGSI SKOR (RPC)
+-- ==========================================
+
+CREATE OR REPLACE FUNCTION public.increment_participant_score(p_id UUID, p_increment INT)
+RETURNS void AS $$
+BEGIN
+  UPDATE public.quiz_participants
+  SET score = score + p_increment,
+      last_answered_at = now()
+  WHERE id = p_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
