@@ -1400,6 +1400,7 @@ USING (false);
 -- ==========================================
 -- 6. BUAT FUNGSI SKOR (RPC)
 -- ==========================================
+Karena kita tidak ingin skor dimanipulasi dengan mudah dari sisi client, kita gunakan **PostgreSQL Function (RPC)** di Supabase.
 
 CREATE OR REPLACE FUNCTION public.increment_participant_score(p_id UUID, p_increment INT)
 RETURNS void AS $$
