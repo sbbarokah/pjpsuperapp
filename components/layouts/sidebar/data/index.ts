@@ -64,6 +64,10 @@ export const NAV_DATA = [
             title: "Bank Soal",
             url: "/elearning/question-bank",
           },
+          {
+            title: "Kuis",
+            url: "/elearning/quizz",
+          },
         ],
       },
       {

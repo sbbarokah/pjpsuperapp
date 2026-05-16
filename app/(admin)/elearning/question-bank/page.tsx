@@ -14,7 +14,9 @@ import {
   Wand2,
   Layers,
   ShoppingCart, // Ikon keranjang
-  XCircle // Ikon hapus dari keranjang
+  XCircle, // Ikon hapus dari keranjang
+  Rocket,
+  Printer
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client"; 
 import Swal from "sweetalert2";
@@ -199,19 +201,33 @@ export default function QuestionBankListPage() {
       
       {/* FLOATING ACTION BUTTON: KE HALAMAN PRINT */}
       {cart.length > 0 && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex flex-col md:flex-row items-center gap-3 animate-in slide-in-from-bottom-5 duration-500">
+          
+          {/* Button 1: Live Kuis */}
+          <a 
+            href="/elearning/quizz/create"
+            className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white px-7 py-4 rounded-full shadow-2xl transition-all active:scale-95 font-black text-sm whitespace-nowrap group"
+          >
+            <div className="p-1.5 bg-indigo-500 rounded-lg group-hover:rotate-12 transition-transform">
+              <Rocket size={18} fill="currentColor" />
+            </div>
+            <span>BUAT KUIS LIVE</span>
+          </a>
+
+          {/* Button 2: Cetak Paket (Dengan Badge Counter) */}
           <a 
             href="/elearning/question-bank/print"
-            className="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full shadow-2xl transition-all active:scale-95 font-bold"
+            className="flex items-center gap-3 bg-slate-900 hover:bg-black text-white px-7 py-4 rounded-full shadow-2xl transition-all active:scale-95 font-black text-sm whitespace-nowrap group"
           >
-            <div className="relative">
-              <ShoppingCart size={20} />
-              <span className="absolute -top-3 -right-3 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-blue-600">
+            <div className="relative p-1.5 bg-slate-800 rounded-lg group-hover:scale-110 transition-transform">
+              <Printer size={18} />
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-slate-900 font-bold">
                 {cart.length}
               </span>
             </div>
-            <span>Buat Paket Ujian</span>
+            <span>CETAK PAKET UJIAN</span>
           </a>
+          
         </div>
       )}
 
@@ -226,10 +242,10 @@ export default function QuestionBankListPage() {
             <p className="text-slate-500 mt-1 text-sm font-medium italic">Pilih soal untuk dimasukkan ke keranjang ujian.</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <a href="/admin/elearning/bank-soal/parse" className="flex items-center gap-2 bg-green-600 text-white px-5 py-3 rounded-xl font-bold text-sm hover:bg-green-700 transition-all shadow-lg shadow-green-600/20">
+            <a href="/elearning/question-bank/parse" className="flex items-center gap-2 bg-green-600 text-white px-5 py-3 rounded-xl font-bold text-sm hover:bg-green-700 transition-all shadow-lg shadow-green-600/20">
               <Wand2 size={18}/> Parse Soal
             </a>
-            <a href="/admin/elearning/bank-soal/add" className="flex items-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">
+            <a href="/elearning/question-bank/add" className="flex items-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">
               <Plus size={20}/> Tambah Manual
             </a>
           </div>
@@ -310,7 +326,7 @@ export default function QuestionBankListPage() {
 
                     {/* ACTIONS */}
                     <div className="flex flex-col gap-2 shrink-0 self-center">
-                      <a href={`/admin/elearning/bank-soal/edit/${q.id}`} className="p-2.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"><Edit size={18}/></a>
+                      <a href={`/elearning/question-bank/edit/${q.id}`} className="p-2.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"><Edit size={18}/></a>
                       <button onClick={() => handleDelete(q.id, q.question)} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={18}/></button>
                     </div>
                   </div>

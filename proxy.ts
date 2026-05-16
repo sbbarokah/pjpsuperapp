@@ -101,7 +101,9 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Daftar rute yang bisa diakses tanpa login (Public)
-  const publicRoutes = ["/login", "/privacy-policy"];
+  const publicRoutes = ["/login", "/privacy-policy", "/quizz"];
+
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
   
   // Daftar rute yang tidak boleh diakses jika sudah login (Auth Only)
   const authRoutes = ["/login"];
@@ -110,7 +112,7 @@ export async function proxy(request: NextRequest) {
 
   // 1. Jika user BELUM login
   // Cek apakah pathname saat ini TIDAK ada di dalam publicRoutes
-  if (!user && !publicRoutes.includes(pathname)) {
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

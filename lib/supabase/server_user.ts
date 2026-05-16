@@ -35,7 +35,7 @@ export async function createClient() {
         } catch (error) {
           // Tangani error jika cookies di-set di Server Component (read-only)
           // Ini wajar terjadi saat revalidasi
-          console.log("[createClient] Unable to set cookies in Server Component:", error);
+          // console.log("[createClient] Unable to set cookies in Server Component:", error);
         }
       },
     },

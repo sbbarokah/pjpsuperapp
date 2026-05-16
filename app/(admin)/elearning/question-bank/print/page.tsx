@@ -56,7 +56,7 @@ export default function ExamPrintPage() {
               Anda telah menghapus semua soal dari paket ini. Silakan kembali untuk memilih soal.
             </p>
             <Link 
-              href="/admin/elearning/bank-soal"
+              href="/elearning/question-bank"
               className="inline-flex items-center justify-center gap-2 w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 active:scale-95 transition-all"
             >
               <ArrowLeft size={20}/> Kembali ke Bank Soal
@@ -110,7 +110,7 @@ export default function ExamPrintPage() {
         {/* === BAGIAN NO-PRINT (Kontrol & Pengaturan) === */}
         <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200 print:hidden no-print">
           <Link
-            href="/admin/elearning/bank-soal"
+            href="/elearning/question-bank"
             className="flex items-center gap-2 text-slate-600 font-bold hover:text-blue-600 transition-colors"
           >
             <ArrowLeft size={18} /> Kembali/Edit Seleksi

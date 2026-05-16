@@ -1411,3 +1411,27 @@ BEGIN
   WHERE id = p_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+// pengaturan agar quiz untuk peserta tidak harus login / auth
+-- Hapus policy lama yang membatasi hanya untuk user login
+DROP POLICY IF EXISTS "Allow insert for anyone" ON public.quiz_participants;
+DROP POLICY IF EXISTS "Allow select participants for all" ON public.quiz_participants;
+DROP POLICY IF EXISTS "Allow select for all authenticated users" ON public.quiz_sessions;
+
+-- 1. Izinkan siapa pun (anon & authenticated) mendaftar kuis
+CREATE POLICY "Allow insert for anyone" 
+ON public.quiz_participants FOR INSERT 
+TO anon, authenticated 
+WITH CHECK (true);
+
+-- 2. Izinkan siapa pun melihat daftar peserta/skor (Leaderboard)
+CREATE POLICY "Allow select participants for all" 
+ON public.quiz_participants FOR SELECT 
+TO anon, authenticated 
+USING (true);
+
+-- 3. Izinkan siapa pun melihat status sesi kuis (untuk sinkronisasi mulai/selesai)
+CREATE POLICY "Allow select sessions for all" 
+ON public.quiz_sessions FOR SELECT 
+TO anon, authenticated 
+USING (true);
