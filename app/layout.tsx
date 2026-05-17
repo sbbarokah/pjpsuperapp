@@ -7,6 +7,7 @@ import "@/css/style.css";
 
 import type { Metadata } from "next";
 import Providers from "./providers"; // client provider wrapper
+import FcmListener from "@/components/fcm-listener";
 
 export const metadata: Metadata = {
   title: {
@@ -21,7 +22,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         {/* Providers is a client component (ThemeProvider, SidebarProvider, etc) */}
-        <Providers>{children}</Providers>
+        <Providers>
+          <FcmListener />
+          {children}
+        </Providers>
       </body>
     </html>
   );

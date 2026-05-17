@@ -1435,3 +1435,19 @@ CREATE POLICY "Allow select sessions for all"
 ON public.quiz_sessions FOR SELECT 
 TO anon, authenticated 
 USING (true);
+
+// fitur notifikasi
+CREATE TABLE user_devices (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  device_uuid TEXT NOT NULL UNIQUE,
+  fcm_token TEXT NOT NULL,
+  last_active TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Mengizinkan user mengelola token mereka sendiri
+ALTER TABLE user_devices ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage their own device tokens" 
+ON user_devices FOR ALL 
+USING (auth.uid() = user_id);

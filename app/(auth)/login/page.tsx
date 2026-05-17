@@ -29,6 +29,59 @@ export default function SignIn() {
     });
   };
 
+  // const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  //   e.preventDefault();
+  //   setLoading(true);
+  //   setError(null); // Reset error setiap kali submit
+
+  //   // 1. Coba login
+  //   const { data: authData, error: signInError } =
+  //     await supabase.auth.signInWithPassword({
+  //       email: data.email,
+  //       password: data.password,
+  //     });
+
+  //   if (signInError) {
+  //     setError(signInError.message); // Tampilkan pesan error (cth: password salah)
+  //     setLoading(false);
+  //     return;
+  //   }
+
+  //   // 2. Login berhasil, SEKARANG cek role dari tabel 'profile'
+  //   if (authData.user) {
+  //     const { data: profile, error: profileError } = await supabase
+  //       .from("profile")
+  //       .select("role")
+  //       .eq("user_id", authData.user.id)
+  //       .single();
+
+  //     if (profileError || !profile) {
+  //       // Jika profile tidak ditemukan, ini masalah serius
+  //       setError("Gagal memuat profil pengguna. Silakan hubungi admin.");
+  //       setLoading(false);
+  //       await supabase.auth.signOut(); // Pastikan dia logout
+  //       return;
+  //     }
+
+  //     // 3. [PERMINTAAN ANDA] Cek jika role adalah 'user'
+  //     if (profile.role === "user") {
+  //       setError("Mohon maaf, untuk saat ini fitur generus belum tersedia.");
+  //       setLoading(false);
+  //       await supabase.auth.signOut(); // Langsung logout-kan lagi
+  //       return;
+  //     }
+
+  //     // 4. Sukses! Role adalah admin (atau peran lain yang diizinkan)
+  //     router.push("/"); // Ganti dengan rute tujuan Anda
+  //     router.refresh();
+  //     // setLoading(false) tidak perlu karena halaman akan berganti
+  //   } else {
+  //     // Ini seharusnya tidak terjadi jika signInError null, tapi sebagai fallback
+  //     setError("Gagal mendapatkan data pengguna setelah login.");
+  //     setLoading(false);
+  //   }
+  // };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -56,14 +109,13 @@ export default function SignIn() {
         .single();
 
       if (profileError || !profile) {
-        // Jika profile tidak ditemukan, ini masalah serius
         setError("Gagal memuat profil pengguna. Silakan hubungi admin.");
         setLoading(false);
         await supabase.auth.signOut(); // Pastikan dia logout
         return;
       }
 
-      // 3. [PERMINTAAN ANDA] Cek jika role adalah 'user'
+      // 3. Cek jika role adalah 'user'
       if (profile.role === "user") {
         setError("Mohon maaf, untuk saat ini fitur generus belum tersedia.");
         setLoading(false);
@@ -71,12 +123,21 @@ export default function SignIn() {
         return;
       }
 
-      // 4. Sukses! Role adalah admin (atau peran lain yang diizinkan)
-      router.push("/"); // Ganti dengan rute tujuan Anda
+      // ===================================================================
+      // 4. TENTUKAN AKSI SUKSES (Kirim Trigger ke Flutter Sebelum Redirect)
+      // ===================================================================
+      if (typeof window !== "undefined" && window.FlutterChannel) {
+        window.FlutterChannel.postMessage(
+          JSON.stringify({ action: "request_fcm" })
+        );
+        console.log("Trigger 'request_fcm' dikirim ke Flutter Wrapper.");
+      }
+
+      // 5. Dialihkan ke Halaman Utama
+      router.push("/"); 
       router.refresh();
-      // setLoading(false) tidak perlu karena halaman akan berganti
+      
     } else {
-      // Ini seharusnya tidak terjadi jika signInError null, tapi sebagai fallback
       setError("Gagal mendapatkan data pengguna setelah login.");
       setLoading(false);
     }
