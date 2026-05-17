@@ -7,6 +7,21 @@ export default function FcmListener() {
   const supabase = createClient();
 
   useEffect(() => {
+    // ===================================================================
+    // KODE ANALYTICS: Deteksi Platform Pengguna
+    // ===================================================================
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      // Jika window.FlutterChannel ada, berarti dibuka dari aplikasi Flutter mobile
+      const currentPlatform = (window as any).FlutterChannel ? 'mobile_app' : 'web_browser';
+      
+      // Kirim data properti user ke Google Analytics
+      (window as any).gtag('set', 'user_properties', {
+        pjp_platform_env: currentPlatform
+      });
+      
+      console.log(`Analytics set user_property [pjp_platform_env]: ${currentPlatform}`);
+    }
+    
     // 1. Mendefinisikan fungsi global yang akan dipanggil oleh Flutter
     window.receiveFlutterData = async (fcmToken: string, deviceUuid: string) => {
       console.log("Data diterima dari Flutter:", { fcmToken, deviceUuid });

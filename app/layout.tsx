@@ -6,6 +6,7 @@ import "@/css/satoshi.css";
 import "@/css/style.css";
 
 import type { Metadata } from "next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import Providers from "./providers"; // client provider wrapper
 import FcmListener from "@/components/fcm-listener";
 
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <FcmListener />
           {children}
+          <GoogleAnalytics gaId="G-622694WTW8" />
         </Providers>
       </body>
     </html>
