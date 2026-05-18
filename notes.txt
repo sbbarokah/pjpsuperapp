@@ -1504,4 +1504,4 @@ AND profile.role IN ('admin_desa', 'superadmin', 'admin_daerah')
 );
 
 -- Izin: Mengizinkan service-role/server (API backend Next.js) untuk memproses semua data tanpa batas RLS
--- (Secara default, service_role bypass RLS, jadi aman untuk API /api/send-notification)
+-- (Secara default, service_role bypass RLS, jadi aman untuk API /api/notifications/send)

@@ -1,4 +1,4 @@
-// app/api/send-notification/route.ts
+// app/api/notifications/send/route.ts
 import { NextResponse } from "next/server";
 import admin from "firebase-admin";
 import { createClient } from "@/lib/supabase/server_user"; // Gunakan server client Anda

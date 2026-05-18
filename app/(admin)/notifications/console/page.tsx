@@ -202,7 +202,7 @@ export default function BroadcastConsolePage() {
           });
 
         // Tembakkan langsung ke API send-notification internal Next.js Anda untuk push FCM perangkat
-        const response = await fetch("/api/send-notification", {
+        const response = await fetch("/api/notifications/send", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
