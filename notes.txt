@@ -1451,3 +1451,57 @@ ALTER TABLE user_devices ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can manage their own device tokens" 
 ON user_devices FOR ALL 
 USING (auth.uid() = user_id);
+
+
+// fitur notifikasi
+-- ======================================================
+-- 1. BUAT TABEL RIWAYAT NOTIFIKASI USER
+-- ======================================================
+
+CREATE TABLE IF NOT EXISTS public.user_notifications (
+id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+created_at TIMESTAMPTZ DEFAULT now(),
+user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+title TEXT NOT NULL,
+body TEXT NOT NULL,
+target_path TEXT DEFAULT '/', -- Route tujuan di aplikasi saat notifikasi di-klik
+is_read BOOLEAN DEFAULT false, -- Mengetahui apakah sudah dibaca oleh user
+category TEXT DEFAULT 'reminder' -- Kategori: 'reminder', 'info', 'system', dsb.
+);
+
+-- ======================================================
+-- 2. AKTIFKAN ROW LEVEL SECURITY (RLS)
+-- ======================================================
+ALTER TABLE public.user_notifications ENABLE ROW LEVEL SECURITY;
+
+-- ======================================================
+-- 3. KEBIJAKAN KEAMANAN (RLS POLICIES)
+-- ======================================================
+
+-- Izin: User hanya bisa melihat notifikasi miliknya sendiri
+CREATE POLICY "Users can view their own notifications"
+ON public.user_notifications FOR SELECT
+TO authenticated
+USING (auth.uid() = user_id);
+
+-- Izin: User hanya bisa mengubah status baca (is_read) notifikasi miliknya sendiri
+CREATE POLICY "Users can update their own notification read status"
+ON public.user_notifications FOR UPDATE
+TO authenticated
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);
+
+-- Izin: Hanya Admin yang bisa menyisipkan (insert) notifikasi untuk dikirim ke user lain
+CREATE POLICY "Only admins can insert notifications"
+ON public.user_notifications FOR INSERT
+TO authenticated
+WITH CHECK (
+EXISTS (
+SELECT 1 FROM public.profile
+WHERE profile.user_id = auth.uid()
+AND profile.role IN ('admin_desa', 'superadmin', 'admin_daerah')
+)
+);
+
+-- Izin: Mengizinkan service-role/server (API backend Next.js) untuk memproses semua data tanpa batas RLS
+-- (Secara default, service_role bypass RLS, jadi aman untuk API /api/send-notification)
