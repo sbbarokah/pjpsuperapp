@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import Swal from "sweetalert2";
 
 // --- MODEL DATA NOTIFIKASI ---
 interface DbNotification {
@@ -110,10 +111,32 @@ export default function NotificationsPage() {
     await supabase.from("user_notifications").delete().eq("id", id);
   };
 
-  const handleClearAll = async () => {
+  const handleClearAll2 = async () => {
     if (!userId || !window.confirm("Kosongkan seluruh isi kotak masuk Anda?")) return;
     setNotifications([]);
     await supabase.from("user_notifications").delete().eq("user_id", userId);
+  };
+  const handleClearAll = () => {
+    Swal.fire({
+      title: "Anda yakin?",
+      text: `Anda akan mengosongkan seluruh isi kotak masuk Anda. Aksi ini tidak dapat dibatalkan.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6", // Biru
+      cancelButtonColor: "#d33", // Merah
+      confirmButtonText: "Ya, hapus!",
+      cancelButtonText: "Batal",
+      // Tambahkan styling untuk dark mode jika perlu
+      customClass: {
+        popup: 'dark:bg-boxdark dark:text-white',
+        confirmButton: 'bg-primary',
+      }
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        setNotifications([]);
+        await supabase.from("user_notifications").delete().eq("user_id", userId);
+      }
+    });
   };
 
   // --- FILTER & RENDER LOGIC ---
