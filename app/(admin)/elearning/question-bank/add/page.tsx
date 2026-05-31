@@ -10,9 +10,13 @@ import {
   HelpCircle, 
   CheckCircle2,
   AlertCircle,
-  Loader2
+  Loader2,
+  FileText,
+  AlignLeftIcon,
+  Sparkles
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
 // --- TIPE DATA ---
 type PilihanJawaban = {
@@ -42,8 +46,13 @@ export default function QuestionBankForm() {
     material_id: "", // ID Materi
     pertanyaan: "",
     pembahasan: "",
-    level_kesulitan: "medium" 
+    level_kesulitan: "medium",
+    jenis_soal: "pilihan_ganda"
   });
+
+  const [kunciUraian, setKunciUraian] = useState("");
+  const [rubrikEsai, setRubrikEsai] = useState("");
+  const [poinMaksimal, setPoinMaksimal] = useState(5);
 
   // State untuk Pilihan Jawaban (Default 4 pilihan: A, B, C, D)
   const [options, setOptions] = useState<PilihanJawaban[]>([
@@ -131,12 +140,42 @@ export default function QuestionBankForm() {
     setSuccessMsg("");
     setErrorMsg("");
 
-    // Validasi Poin
-    const totalPoints = options.reduce((acc, opt) => acc + Number(opt.poin), 0);
-    if (totalPoints === 0) {
-      setErrorMsg("Tentukan minimal satu jawaban yang memiliki poin > 0");
-      setIsSubmitting(false);
-      return;
+    let optionsPayload: any[] = [];
+
+    if (formData.jenis_soal === "pilihan_ganda") {
+      const totalPoints = options.reduce((acc, opt) => acc + Number(opt.poin), 0);
+      if (totalPoints === 0) {
+        setErrorMsg("Tentukan minimal satu jawaban pilihan ganda yang memiliki poin > 0");
+        setIsSubmitting(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      optionsPayload = options.map(opt => ({
+        text: opt.teks,
+        points: opt.poin
+      }));
+    } else if (formData.jenis_soal === "uraian") {
+      if (!kunciUraian.trim()) {
+        setErrorMsg("Harap isi kunci jawaban singkat untuk soal uraian.");
+        setIsSubmitting(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      optionsPayload = [{
+        text: kunciUraian.trim(),
+        points: Number(poinMaksimal)
+      }];
+    } else if (formData.jenis_soal === "esai") {
+      if (!rubrikEsai.trim()) {
+        setErrorMsg("Harap isi pedoman penskoran/rubrik penilaian untuk soal esai.");
+        setIsSubmitting(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      optionsPayload = [{
+        text: rubrikEsai.trim(),
+        points: Number(poinMaksimal)
+      }];
     }
 
     try {
@@ -151,10 +190,8 @@ export default function QuestionBankForm() {
         question: formData.pertanyaan,
         explanation: formData.pembahasan || null,
         difficulty: formData.level_kesulitan,
-        options: options.map(opt => ({
-          text: opt.teks,
-          points: opt.poin
-        })),
+        question_type: formData.jenis_soal,
+        options: optionsPayload,
         created_by: user?.id || null
       };
 
@@ -171,7 +208,8 @@ export default function QuestionBankForm() {
         material_id: formData.material_id,
         pertanyaan: "",
         pembahasan: "",
-        level_kesulitan: "medium"
+        level_kesulitan: "medium",
+        jenis_soal: "pilihan_ganda"
       });
       setOptions([
         { id: crypto.randomUUID(), teks: "", poin: 0 },
@@ -284,7 +322,84 @@ export default function QuestionBankForm() {
           </div>
         </div>
 
-        {/* SECTION 2: KONTEN SOAL */}
+        {/* SECTION 2: SELEKTOR JENIS SOAL */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">Pilih Format / Jenis Soal</label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            {/* OPSI 1: PILIHAN GANDA */}
+            <button
+              type="button"
+              onClick={() => {
+                setFormData(prev => ({ ...prev, jenis_soal: "pilihan_ganda" }));
+                setErrorMsg("");
+              }}
+              className={cn(
+                "p-4 rounded-2xl border-2 text-left flex items-start gap-4 transition-all active:scale-98",
+                formData.jenis_soal === "pilihan_ganda" 
+                  ? "border-blue-600 bg-blue-50/20" 
+                  : "border-slate-100 bg-white hover:border-slate-200"
+              )}
+            >
+              <div className={cn("p-3 rounded-xl", formData.jenis_soal === "pilihan_ganda" ? "bg-blue-600 text-white" : "bg-slate-50 text-slate-400")}>
+                <HelpCircle size={20} />
+              </div>
+              <div>
+                <span className="font-black text-sm text-slate-800 block">Pilihan Ganda</span>
+                <span className="text-[10px] text-slate-400 font-medium mt-0.5 block">Penilaian otomatis dengan pilihan jawaban A-D.</span>
+              </div>
+            </button>
+
+            {/* OPSI 2: URAIAN */}
+            <button
+              type="button"
+              onClick={() => {
+                setFormData(prev => ({ ...prev, jenis_soal: "uraian" }));
+                setErrorMsg("");
+              }}
+              className={cn(
+                "p-4 rounded-2xl border-2 text-left flex items-start gap-4 transition-all active:scale-98",
+                formData.jenis_soal === "uraian" 
+                  ? "border-blue-600 bg-blue-50/20" 
+                  : "border-slate-100 bg-white hover:border-slate-200"
+              )}
+            >
+              <div className={cn("p-3 rounded-xl", formData.jenis_soal === "uraian" ? "bg-blue-600 text-white" : "bg-slate-50 text-slate-400")}>
+                <FileText size={20} />
+              </div>
+              <div>
+                <span className="font-black text-sm text-slate-800 block">Uraian Singkat</span>
+                <span className="text-[10px] text-slate-400 font-medium mt-0.5 block">Membutuhkan isian kata/kalimat kunci pendek.</span>
+              </div>
+            </button>
+
+            {/* OPSI 3: ESAI */}
+            <button
+              type="button"
+              onClick={() => {
+                setFormData(prev => ({ ...prev, jenis_soal: "esai" }));
+                setErrorMsg("");
+              }}
+              className={cn(
+                "p-4 rounded-2xl border-2 text-left flex items-start gap-4 transition-all active:scale-98",
+                formData.jenis_soal === "esai" 
+                  ? "border-blue-600 bg-blue-50/20" 
+                  : "border-slate-100 bg-white hover:border-slate-200"
+              )}
+            >
+              <div className={cn("p-3 rounded-xl", formData.jenis_soal === "esai" ? "bg-blue-600 text-white" : "bg-slate-50 text-slate-400")}>
+                <AlignLeftIcon />
+              </div>
+              <div>
+                <span className="font-black text-sm text-slate-800 block">Esai Bebas</span>
+                <span className="text-[10px] text-slate-400 font-medium mt-0.5 block">Analisis mendalam dengan kriteria rubrik penilaian.</span>
+              </div>
+            </button>
+
+          </div>
+        </div>
+
+        {/* SECTION 3: KONTEN SOAL */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex justify-between items-center mb-4 border-b pb-2">
              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -321,83 +436,156 @@ export default function QuestionBankForm() {
             </div>
 
             {/* PILIHAN JAWABAN DINAMIS */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <label className="block text-sm font-bold text-slate-700">Pilihan Jawaban & Poin</label>
-                <button 
-                  type="button" 
-                  onClick={addOption}
-                  className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center gap-1 transition-colors"
-                >
-                  <Plus size={14}/> Tambah Pilihan
-                </button>
-              </div>
+            {formData.jenis_soal === "pilihan_ganda" && (
+              /* ================= 1. PILIHAN GANDA INPUTS ================= */
+              <div className="space-y-4 animate-in fade-in duration-300">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-bold text-slate-700">Pilihan Jawaban & Poin</label>
+                  <button 
+                    type="button" 
+                    onClick={addOption}
+                    className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center gap-1 transition-colors"
+                  >
+                    <Plus size={14}/> Tambah Pilihan
+                  </button>
+                </div>
 
-              <div className="space-y-3">
-                {options.map((opt, index) => {
-                  const label = String.fromCharCode(65 + index); // A, B, C, D...
-                  const isCorrect = opt.poin > 0;
-                  
-                  return (
-                    <div key={opt.id} className={`flex items-start gap-3 p-3 rounded-xl border transition-all ${isCorrect ? 'border-green-400 bg-green-50/30' : 'border-slate-200 bg-white'}`}>
-                      {/* Label A, B, C */}
-                      <div className={`mt-2 font-black text-lg ${isCorrect ? 'text-green-600' : 'text-slate-400'}`}>
-                        {label}.
-                      </div>
-                      
-                      {/* Input Teks Jawaban */}
-                      <div className="flex-1">
-                        <textarea 
-                          required
-                          rows={2}
-                          value={opt.teks}
-                          onChange={(e) => handleOptionChange(opt.id, 'teks', e.target.value)}
-                          placeholder={`Teks pilihan jawaban ${label}...`}
-                          className="w-full p-2.5 text-sm rounded-lg border border-slate-200 bg-slate-50 outline-none focus:border-blue-500 transition-all resize-none"
-                        ></textarea>
-                      </div>
-
-                      {/* Input Poin */}
-                      <div className="w-24 shrink-0 flex flex-col gap-2">
-                        <div className="relative">
-                          <input 
-                            type="number" 
-                            min="0"
-                            value={opt.poin}
-                            onChange={(e) => handleOptionChange(opt.id, 'poin', Number(e.target.value))}
-                            className={`w-full p-2.5 pl-3 text-sm font-bold rounded-lg border outline-none transition-all ${isCorrect ? 'border-green-400 bg-green-50 text-green-700' : 'border-slate-200 bg-slate-50'}`}
-                            title="Poin jika menjawab ini"
-                          />
-                          <span className="absolute right-3 top-2.5 text-xs font-bold text-slate-400">Poin</span>
+                <div className="space-y-3">
+                  {options.map((opt, index) => {
+                    const label = String.fromCharCode(65 + index); // A, B, C, D...
+                    const isCorrect = opt.poin > 0;
+                    
+                    return (
+                      <div key={opt.id} className={`flex items-start gap-3 p-3 rounded-xl border transition-all ${isCorrect ? 'border-green-400 bg-green-50/30' : 'border-slate-200 bg-white'}`}>
+                        {/* Label A, B, C */}
+                        <div className={`mt-2 font-black text-lg ${isCorrect ? 'text-green-600' : 'text-slate-400'}`}>
+                          {label}.
                         </div>
                         
-                        {/* Tombol Cepat Set Benar */}
+                        {/* Input Teks Jawaban */}
+                        <div className="flex-1">
+                          <textarea 
+                            required
+                            rows={2}
+                            value={opt.teks}
+                            onChange={(e) => handleOptionChange(opt.id, 'teks', e.target.value)}
+                            placeholder={`Teks pilihan jawaban ${label}...`}
+                            className="w-full p-2.5 text-sm rounded-lg border border-slate-200 bg-slate-50 outline-none focus:border-blue-500 transition-all resize-none font-medium"
+                          ></textarea>
+                        </div>
+
+                        {/* Input Poin */}
+                        <div className="w-28 shrink-0 flex flex-col gap-2">
+                          <div className="relative">
+                            <input 
+                              type="number" 
+                              min="0"
+                              value={opt.poin}
+                              onChange={(e) => handleOptionChange(opt.id, 'poin', Number(e.target.value))}
+                              className={`w-full p-2.5 pr-8 text-sm font-bold rounded-lg border outline-none transition-all ${isCorrect ? 'border-green-400 bg-green-50 text-green-700' : 'border-slate-200 bg-slate-50'}`}
+                              title="Poin jika menjawab ini"
+                            />
+                            <span className="absolute right-2.5 top-2.5 text-[10px] font-black uppercase text-slate-400">Poin</span>
+                          </div>
+                          
+                          {/* Tombol Cepat Set Benar */}
+                          <button 
+                            type="button"
+                            onClick={() => setCorrectAnswer(opt.id)}
+                            className={`text-[10px] font-bold py-1.5 rounded-lg border transition-colors ${isCorrect ? 'bg-green-500 text-white border-green-600' : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-50'}`}
+                          >
+                            {isCorrect ? 'Jawaban Benar' : 'Set Benar (5)'}
+                          </button>
+                        </div>
+
+                        {/* Tombol Hapus Pilihan */}
                         <button 
-                          type="button"
-                          onClick={() => setCorrectAnswer(opt.id)}
-                          className={`text-[10px] font-bold py-1 rounded border transition-colors ${isCorrect ? 'bg-green-500 text-white border-green-600' : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-50'}`}
+                          type="button" 
+                          onClick={() => removeOption(opt.id)}
+                          className="mt-2 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Hapus Pilihan"
                         >
-                          {isCorrect ? 'Jawaban Benar' : 'Set Benar (5)'}
+                          <Trash2 size={16}/>
                         </button>
                       </div>
-
-                      {/* Tombol Hapus Pilihan */}
-                      <button 
-                        type="button" 
-                        onClick={() => removeOption(opt.id)}
-                        className="mt-2 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Hapus Pilihan"
-                      >
-                        <Trash2 size={16}/>
-                      </button>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-slate-500 mt-3 flex items-center gap-1.5 font-medium">
+                  <AlertCircle size={14} className="text-blue-500" /> Nilai poin bisa dikustomisasi. Anda bisa memberikan poin sebagian (misal: 3) untuk jawaban yang mendekati benar.
+                </p>
               </div>
-              <p className="text-xs text-slate-500 mt-3 flex items-center gap-1">
-                <AlertCircle size={14}/> Nilai poin bisa dikustomisasi. Anda bisa memberikan poin sebagian (misal: 5) untuk jawaban yang mendekati benar.
-              </p>
-            </div>
+            )}
+
+            {formData.jenis_soal === "uraian" && (
+              /* ================= 2. URAIAN SINGKAT INPUTS ================= */
+              <div className="space-y-4 p-5 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-200 animate-in fade-in duration-300">
+                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-bold text-sm">
+                  <Sparkles size={16} className="text-blue-500" /> Atur Parameter Penilaian Uraian Singkat
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="md:col-span-3 space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600">Kata Kunci / Kunci Jawaban Singkat</label>
+                    <input 
+                      type="text"
+                      required
+                      value={kunciUraian}
+                      onChange={(e) => setKunciUraian(e.target.value)}
+                      placeholder="Contoh: Kalimat thoyyibah, ikhlas, tauhid, rukun iman..."
+                      className="w-full p-3 rounded-xl border border-slate-300 bg-white outline-none focus:border-blue-500 text-sm font-semibold transition-all"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 block text-center">Poin Maksimal</label>
+                    <input 
+                      type="number"
+                      min="1"
+                      value={poinMaksimal}
+                      onChange={(e) => setPoinMaksimal(Math.max(1, Number(e.target.value)))}
+                      className="w-full p-3 rounded-xl border border-slate-300 bg-white outline-none focus:border-blue-500 text-sm font-black text-center transition-all"
+                    />
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-400 font-medium">
+                  Kata kunci di atas akan digunakan sistem untuk melakukan pencocokan (*string matching*) atau menjadi acuan utama bagi penguji saat mengoreksi jawaban peserta kuis secara manual.
+                </p>
+              </div>
+            )}
+
+            {formData.jenis_soal === "esai" && (
+              /* ================= 3. ESAI BEBAS INPUTS ================= */
+              <div className="space-y-4 p-5 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-200 animate-in fade-in duration-300">
+                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-bold text-sm">
+                  <Sparkles size={16} className="text-purple-500" /> Atur Parameter Penilaian Esai Bebas
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="md:col-span-3 space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600">Pedoman Penskoran / Rubrik Penilaian</label>
+                    <textarea 
+                      required
+                      rows={3}
+                      value={rubrikEsai}
+                      onChange={(e) => setRubrikEsai(e.target.value)}
+                      placeholder="Sebutkan syarat poin, contoh: Poin 5 jika menjelaskan rukun wudhu secara berurutan, poin 3 jika tidak berurutan, poin 0 jika salah..."
+                      className="w-full p-3 rounded-xl border border-slate-300 bg-white outline-none focus:border-blue-500 text-sm font-medium transition-all resize-y"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 block text-center">Poin Maksimal</label>
+                    <input 
+                      type="number"
+                      min="1"
+                      value={poinMaksimal}
+                      onChange={(e) => setPoinMaksimal(Math.max(1, Number(e.target.value)))}
+                      className="w-full p-3 rounded-xl border border-slate-300 bg-white outline-none focus:border-blue-500 text-sm font-black text-center transition-all"
+                    />
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-400 font-medium">
+                  Rubrik ini sangat penting sebagai panduan korektor (*examiner*) saat membaca dan menilai lembar esai terbuka milik peserta secara objektif.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

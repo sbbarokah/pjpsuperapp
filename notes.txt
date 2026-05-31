@@ -1505,3 +1505,50 @@ AND profile.role IN ('admin_desa', 'superadmin', 'admin_daerah')
 
 -- Izin: Mengizinkan service-role/server (API backend Next.js) untuk memproses semua data tanpa batas RLS
 -- (Secara default, service_role bypass RLS, jadi aman untuk API /api/notifications/send)
+
+-- ====================================================================
+-- SKRIP MIGRASI: PENYESUAIAN STRUKTUR TABEL BANK SOAL (QUESTION BANK)
+-- ====================================================================
+
+-- 1. Tambahkan kolom material_category_id (jika belum ada)
+-- Kolom ini merujuk ke public.material_category (Aqidah, Fiqih, dll)
+ALTER TABLE public.question_bank
+ADD COLUMN IF NOT EXISTS material_category_id BIGINT;
+
+-- 2. Tambahkan kolom question_type (jenis_soal) dengan CHECK constraint
+-- Mendukung 3 tipe: 'pilihan_ganda', 'uraian', 'esai'
+ALTER TABLE public.question_bank
+ADD COLUMN IF NOT EXISTS question_type TEXT DEFAULT 'pilihan_ganda' 
+CONSTRAINT chk_question_type CHECK (question_type IN ('pilihan_ganda', 'uraian', 'esai'));
+
+-- 3. Bersihkan relasi foreign key lama yang berpotensi keliru / tabrakan nama
+ALTER TABLE public.question_bank
+DROP CONSTRAINT IF EXISTS question_bank_category_id_fkey,
+DROP CONSTRAINT IF EXISTS question_bank_material_category_id_fkey,
+DROP CONSTRAINT IF EXISTS question_bank_material_id_fkey;
+
+-- 4. Set relasi foreign key yang benar dan kokoh
+-- a. category_id mengarah ke public.category (ID Kelas/Tingkat)
+ALTER TABLE public.question_bank
+ADD CONSTRAINT question_bank_category_id_fkey
+FOREIGN KEY (category_id) REFERENCES public.category(id) ON DELETE CASCADE;
+
+-- b. material_category_id mengarah ke public.material_category (Kategori Materi)
+ALTER TABLE public.question_bank
+ADD CONSTRAINT question_bank_material_category_id_fkey
+FOREIGN KEY (material_category_id) REFERENCES public.material_category(id) ON DELETE CASCADE;
+
+-- c. material_id mengarah ke public.material (Materi Spesifik)
+ALTER TABLE public.question_bank
+ADD CONSTRAINT question_bank_material_id_fkey
+FOREIGN KEY (material_id) REFERENCES public.material(id) ON DELETE CASCADE;
+
+-- 5. Lakukan migrasi data lama (Opsional / Antisipasi data kosong)
+-- Jika sebelumnya data kategori materi disimpan di category_id, pindahkan ke material_category_id
+UPDATE public.question_bank
+SET material_category_id = category_id
+WHERE material_category_id IS NULL AND category_id IS NOT NULL;
+
+-- 6. Buat indeks baru untuk mengoptimalkan query filter di halaman Bank Soal
+CREATE INDEX IF NOT EXISTS idx_question_bank_material_cat ON public.question_bank(material_category_id);
+CREATE INDEX IF NOT EXISTS idx_question_bank_q_type ON public.question_bank(question_type);

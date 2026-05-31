@@ -9,14 +9,13 @@ import {
   Loader2, 
   Edit, 
   Trash2,
-  CheckCircle2,
-  AlertCircle,
   Wand2,
   Layers,
   ShoppingCart, // Ikon keranjang
   XCircle, // Ikon hapus dari keranjang
   Rocket,
-  Printer
+  Printer,
+  FileText
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client"; 
 import Swal from "sweetalert2";
@@ -25,6 +24,7 @@ import Swal from "sweetalert2";
 import { useDispatch, useSelector } from "react-redux";
 import { IRootState } from "@/store/store";
 import { toggleCartItem } from "@/store/qPackageSlice";
+import Link from "next/link";
 
 // --- Tipe Data ---
 interface CategoryData {
@@ -45,7 +45,9 @@ interface Question {
   material_id: string;
   question: string;
   difficulty: 'easy' | 'medium' | 'hard' | 'HOTS';
-  options: { teks: string; text?: string; poin?: number; points?: number }[];
+  question_type: 'pilihan_ganda' | 'uraian' | 'esai';
+  explanation?: string | null;
+  options: { text: string; points: number }[];
   category?: { name: string };
   material_category?: { name: string };
   material?: { material_name: string };
@@ -68,6 +70,7 @@ export default function QuestionBankListPage() {
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedMaterial, setSelectedMaterial] = useState<string>("");
+  const [selectedType, setSelectedType] = useState<string>("");
 
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [loadingMaster, setLoadingMaster] = useState(true);
@@ -91,7 +94,7 @@ export default function QuestionBankListPage() {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      if (!qError && qData) setQuestions(qData);
+      if (!qError && qData) setQuestions(qData as Question[]);
     } catch (error) {
       console.error("Error fetching initial data:", error);
     } finally {
@@ -124,7 +127,9 @@ export default function QuestionBankListPage() {
 
   // 3. Filter Query
   useEffect(() => {
-    if (!selectedClass && !selectedCategory && !selectedMaterial && questions.length > 0) return;
+    // Abaikan fetch terfilter jika data baru di-load pertama kali dan tidak ada filter aktif
+    if (!selectedClass && !selectedCategory && !selectedMaterial && !selectedType && questions.length > 0) return;
+    
     const fetchFilteredQuestions = async () => {
       setLoadingQuestions(true);
       let query = supabase
@@ -135,14 +140,17 @@ export default function QuestionBankListPage() {
       if (selectedClass) query = query.eq('category_id', selectedClass);
       if (selectedCategory) query = query.eq('material_category_id', selectedCategory);
       if (selectedMaterial) query = query.eq('material_id', selectedMaterial);
-      if (!selectedClass && !selectedCategory && !selectedMaterial) query = query.limit(10);
+      if (selectedType) query = query.eq('question_type', selectedType); // Terapkan filter jenis soal di query DB
+      
+      // Batasi 10 jika semua filter dikosongkan kembali oleh user
+      if (!selectedClass && !selectedCategory && !selectedMaterial && !selectedType) query = query.limit(10);
 
       const { data, error } = await query;
-      if (!error && data) setQuestions(data);
+      if (!error && data) setQuestions(data as Question[]);
       setLoadingQuestions(false);
     };
     fetchFilteredQuestions();
-  }, [selectedClass, selectedCategory, selectedMaterial]); 
+  }, [selectedClass, selectedCategory, selectedMaterial, selectedType]); 
 
   // --- HANDLER: REDUX CART ---
   const handleToggleCart = (q: Question) => {
@@ -192,6 +200,21 @@ export default function QuestionBankListPage() {
     return (
       <span className={`px-2.5 py-1 text-[10px] font-black uppercase rounded-md border ${styles[level] || styles.medium}`}>
         {level === 'easy' ? 'Mudah' : level === 'medium' ? 'Sedang' : level === 'hard' ? 'Sulit' : 'HOTS'}
+      </span>
+    );
+  };
+
+  // Render Badge Jenis Soal (Pilihan Ganda, Uraian, Esai)
+  const renderTypeBadge = (type: string) => {
+    const styles: Record<string, { label: string; class: string }> = {
+      pilihan_ganda: { label: "Pilihan Ganda", class: "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-950/20 dark:text-blue-400" },
+      uraian: { label: "Uraian Singkat", class: "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/20 dark:text-amber-400" },
+      esai: { label: "Esai Bebas", class: "bg-purple-50 text-purple-700 border-purple-100 dark:bg-purple-950/20 dark:text-purple-400" }
+    };
+    const current = styles[type] || styles.pilihan_ganda;
+    return (
+      <span className={`px-2.5 py-1 text-[10px] font-black uppercase rounded-md border ${current.class}`}>
+        {current.label}
       </span>
     );
   };
@@ -251,27 +274,40 @@ export default function QuestionBankListPage() {
           </div>
         </div>
 
-        {/* FILTER SECTION */}
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* FILTER SECTION (TERMASUK FILTER JENIS SOAL) */}
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Filter 1: Kelas */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 mb-2 uppercase flex items-center gap-2"><Layers size={14}/> Kelas</label>
-            <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 bg-slate-50 dark:bg-slate-700 dark:text-white outline-none text-sm">
+            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase flex items-center gap-1.5"><Layers size={14}/> Kelas</label>
+            <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white outline-none text-sm font-bold focus:border-blue-500 transition-all">
               <option value="">-- Semua Kelas --</option>
               {classesData.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
+          {/* Filter 2: Bidang / Kategori Studi */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 mb-2 uppercase flex items-center gap-2"><Filter size={14}/> Kategori</label>
-            <select value={selectedCategory} onChange={(e) => {setSelectedCategory(e.target.value); setSelectedMaterial("");}} className="w-full p-3 rounded-xl border border-slate-300 bg-slate-50 dark:bg-slate-700 dark:text-white outline-none text-sm">
+            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase flex items-center gap-1.5"><Filter size={14}/> Kategori</label>
+            <select value={selectedCategory} onChange={(e) => {setSelectedCategory(e.target.value); setSelectedMaterial("");}} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white outline-none text-sm font-bold focus:border-blue-500 transition-all">
               <option value="">-- Semua Kategori --</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
+          {/* Filter 3: Materi Spesifik */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 mb-2 uppercase flex items-center gap-2"><Search size={14}/> Materi</label>
-            <select value={selectedMaterial} onChange={(e) => setSelectedMaterial(e.target.value)} disabled={!selectedCategory || loadingMaterials} className="w-full p-3 rounded-xl border border-slate-300 bg-slate-50 dark:bg-slate-700 dark:text-white outline-none text-sm disabled:opacity-50">
+            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase flex items-center gap-1.5"><Search size={14}/> Materi</label>
+            <select value={selectedMaterial} onChange={(e) => setSelectedMaterial(e.target.value)} disabled={!selectedCategory || loadingMaterials} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white outline-none text-sm font-bold focus:border-blue-500 transition-all disabled:opacity-50">
               <option value="">-- Pilih Materi --</option>
               {materials.map(m => <option key={m.id} value={m.id}>{m.material_name}</option>)}
+            </select>
+          </div>
+          {/* Filter 4: Jenis Soal */}
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase flex items-center gap-1.5"><FileText size={14}/> Jenis Soal</label>
+            <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white outline-none text-sm font-bold focus:border-blue-500 transition-all">
+              <option value="">-- Semua Jenis --</option>
+              <option value="pilihan_ganda">Pilihan Ganda</option>
+              <option value="uraian">Uraian Singkat</option>
+              <option value="esai">Esai Bebas</option>
             </select>
           </div>
         </div>
@@ -291,43 +327,101 @@ export default function QuestionBankListPage() {
             <div className="grid grid-cols-1 gap-4">
               {questions.map((q) => {
                 const isSelected = cartIds.has(q.id);
+                const qType = q.question_type || "pilihan_ganda";
+
                 return (
-                  <div key={q.id} className={`group bg-white dark:bg-slate-800 p-6 rounded-2xl border transition-all shadow-sm flex gap-4 ${isSelected ? 'border-blue-500 bg-blue-50/30 ring-1 ring-blue-500' : 'border-slate-200 dark:border-slate-700'}`}>
+                  <div key={q.id} className={`group bg-white dark:bg-slate-800 p-6 rounded-2xl border transition-all shadow-sm flex gap-4 ${isSelected ? 'border-blue-500 bg-blue-50/20 ring-1 ring-blue-500' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}>
                     
                     {/* TOGGLE CART BUTTON */}
                     <button 
                       onClick={() => handleToggleCart(q)}
-                      className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${isSelected ? 'bg-red-500 text-white shadow-red-200' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`}
+                      className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isSelected ? 'bg-red-500 text-white shadow-red-200' : 'bg-slate-100 text-slate-600 hover:bg-blue-600 hover:text-white'}`}
                       title={isSelected ? "Hapus dari Paket" : "Tambah ke Paket"}
                     >
                       {isSelected ? <XCircle size={20} /> : <ShoppingCart size={20} />}
                     </button>
 
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                        {renderTypeBadge(qType)}
                         {renderDifficultyBadge(q.difficulty)}
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          {q.category?.name} • {q.material_category?.name} • {q.material?.material_name}
+                          {q.category?.name || "Kelas"} • {q.material_category?.name || "Kategori"} • {q.material?.material_name || "Materi"}
                         </span>
                       </div>
-                      <h3 className="text-base font-bold text-slate-800 dark:text-white leading-relaxed">
+                      
+                      <h3 className="text-base font-black text-slate-800 dark:text-white leading-relaxed">
                         {q.question}
                       </h3>
                       
-                      {/* Jawaban Singkat Preview */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mt-3 opacity-60 text-xs italic">
-                        {q.options?.map((opt, idx) => (
-                          <div key={idx} className={Number(opt.points ?? opt.poin ?? 0) > 0 ? 'text-green-600 font-bold' : ''}>
-                            {String.fromCharCode(65 + idx)}. {opt.text || opt.teks}
+                      {/* PREVIEW KONTEN CARD BERDASARKAN QUESTION_TYPE */}
+                      {qType === "pilihan_ganda" && q.options && q.options.length > 0 && (
+                        /* Layout Pilihan Ganda: Grid Pilihan Jawaban dengan highlight Kunci */
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 mt-3 text-xs">
+                          {q.options.map((opt, idx) => {
+                            const isCorrect = Number(opt.points) > 0;
+                            return (
+                              <div 
+                                key={idx} 
+                                className={`p-2.5 rounded-xl border flex items-center gap-2 ${
+                                  isCorrect 
+                                    ? 'bg-green-50 border-green-300 text-green-800 font-bold dark:bg-green-950/20 dark:text-green-400' 
+                                    : 'bg-slate-50 border-slate-100 text-slate-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300'
+                                }`}
+                              >
+                                <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-black ${
+                                  isCorrect ? 'bg-green-500 text-white' : 'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300'
+                                }`}>
+                                  {String.fromCharCode(65 + idx)}
+                                </span>
+                                <span className="truncate">{opt.text}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {qType === "uraian" && q.options && q.options[0] && (
+                        /* Layout Uraian Singkat: Badge Kunci Jawaban Singkat */
+                        <div className="mt-3 p-3 bg-amber-50/50 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900/20 rounded-xl flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2 text-amber-900 dark:text-amber-400 font-bold">
+                            <span className="px-2 py-0.5 bg-amber-500 text-white rounded text-[10px] font-black uppercase">Kunci Singkat</span>
+                            <span>{q.options[0].text}</span>
                           </div>
-                        ))}
-                      </div>
+                          <span className="text-[10px] font-black text-amber-700 uppercase bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded">
+                            {q.options[0].points} Poin Maksimal
+                          </span>
+                        </div>
+                      )}
+
+                      {qType === "esai" && q.options && q.options[0] && (
+                        /* Layout Esai Bebas: Banner Rubrik Penilaian / Pedoman Penskoran */
+                        <div className="mt-3 p-3 bg-purple-50/50 dark:bg-purple-950/10 border border-purple-100 dark:border-purple-900/20 rounded-xl text-xs space-y-2">
+                          <div className="flex items-center justify-between border-b border-purple-100/55 dark:border-purple-900/20 pb-1.5">
+                            <span className="px-2 py-0.5 bg-purple-500 text-white rounded text-[10px] font-black uppercase">Pedoman Penskoran / Rubrik</span>
+                            <span className="text-[10px] font-black text-purple-700 uppercase bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded">
+                              {q.options[0].points} Poin Maksimal
+                            </span>
+                          </div>
+                          <p className="text-purple-900 dark:text-purple-300 font-medium italic leading-relaxed whitespace-pre-line">
+                            {q.options[0].text}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* TAMPILAN PEMBAHASAN SOAL (JIKA ADA) */}
+                      {q.explanation && (
+                        <div className="text-xs p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30 animate-in fade-in duration-300">
+                          <strong className="text-blue-800 dark:text-blue-300 block mb-1">Pembahasan:</strong>
+                          <span className="text-blue-700 dark:text-blue-400 whitespace-pre-wrap">{q.explanation}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* ACTIONS */}
                     <div className="flex flex-col gap-2 shrink-0 self-center">
-                      <a href={`/elearning/question-bank/edit/${q.id}`} className="p-2.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"><Edit size={18}/></a>
-                      <button onClick={() => handleDelete(q.id, q.question)} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={18}/></button>
+                      <Link href={`/elearning/question-bank/${q.id}/edit`} className="p-2.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all" title="Edit Soal"><Edit size={18}/></Link>
+                      <button onClick={() => handleDelete(q.id, q.question)} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all" title="Hapus Soal"><Trash2 size={18}/></button>
                     </div>
                   </div>
                 );
