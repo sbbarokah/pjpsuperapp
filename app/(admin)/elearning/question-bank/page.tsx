@@ -20,7 +20,8 @@ import {
   HelpCircle,
   AlignLeft,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  RefreshCw
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client"; 
 import Swal from "sweetalert2";
@@ -124,6 +125,14 @@ export default function QuestionBankListPage() {
   };
 
   useEffect(() => { fetchInitialData(); }, []);
+
+  const handleResetFilters = () => {
+    setSelectedClass("");
+    setSelectedCategory("");
+    setSelectedMaterial("");
+    setSelectedType("");
+    setCurrentPage(1);
+  };
 
   // 2. Fetch Materi berdasarkan Kategori
   useEffect(() => {
@@ -402,12 +411,26 @@ export default function QuestionBankListPage() {
           {/* Filter 4: Jenis Soal */}
           <div>
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase flex items-center gap-1.5"><FileText size={14}/> Jenis Soal</label>
-            <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white outline-none text-sm font-bold focus:border-blue-500 transition-all">
-              <option value="">-- Semua Jenis --</option>
-              <option value="pilihan_ganda">Pilihan Ganda</option>
-              <option value="uraian">Uraian Singkat</option>
-              <option value="esai">Esai Bebas</option>
-            </select>
+            <div className="flex gap-2">
+              <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="flex-1 p-3 rounded-xl border border-slate-250 dark:border-slate-650 bg-slate-50 dark:bg-slate-700 dark:text-white outline-none text-xs font-bold focus:ring-2 focus:ring-blue-500 transition-all">
+                <option value="">-- Semua Jenis --</option>
+                <option value="pilihan_ganda">Pilihan Ganda</option>
+                <option value="uraian">Uraian Singkat</option>
+                <option value="esai">Esai Bebas</option>
+              </select>
+              
+              {/* Tombol Refresh / Reset ketika ada filter yang aktif */}
+              {(selectedClass || selectedCategory || selectedMaterial || selectedType) && (
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="p-3 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/20 dark:text-red-400 rounded-xl border border-red-100 dark:border-red-900/30 transition-all flex items-center justify-center shrink-0 animate-in fade-in zoom-in duration-200"
+                  title="Reset Semua Filter"
+                >
+                  <RefreshCw size={14} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
