@@ -15,7 +15,12 @@ import {
   XCircle, // Ikon hapus dari keranjang
   Rocket,
   Printer,
-  FileText
+  FileText,
+  Database,
+  HelpCircle,
+  AlignLeft,
+  ChevronRight,
+  ChevronLeft
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client"; 
 import Swal from "sweetalert2";
@@ -25,6 +30,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { IRootState } from "@/store/store";
 import { toggleCartItem } from "@/store/qPackageSlice";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 // --- Tipe Data ---
 interface CategoryData {
@@ -72,9 +78,23 @@ export default function QuestionBankListPage() {
   const [selectedMaterial, setSelectedMaterial] = useState<string>("");
   const [selectedType, setSelectedType] = useState<string>("");
 
+  const [counts, setCounts] = useState({
+    total: 0,
+    pilihan_ganda: 0,
+    uraian: 0,
+    esai: 0
+  });
+
+  // State Navigasi Pagination
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage] = useState<number>(5); // Jumlah item tampil per halaman
+  const [totalFilteredQuestions, setTotalFilteredQuestions] = useState<number>(0);
+
+  // State Loading Kontrol
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [loadingMaster, setLoadingMaster] = useState(true);
   const [loadingMaterials, setLoadingMaterials] = useState(false);
+  const [loadingCounts, setLoadingCounts] = useState(true);
 
   // 1. Initial Load: Ambil Data Master & 10 Soal Terbaru
   const fetchInitialData = async () => {
@@ -125,32 +145,77 @@ export default function QuestionBankListPage() {
     fetchMaterials();
   }, [selectedCategory]);
 
-  // 3. Filter Query
   useEffect(() => {
-    // Abaikan fetch terfilter jika data baru di-load pertama kali dan tidak ada filter aktif
-    if (!selectedClass && !selectedCategory && !selectedMaterial && !selectedType && questions.length > 0) return;
-    
-    const fetchFilteredQuestions = async () => {
+    setCurrentPage(1);
+  }, [selectedClass, selectedCategory, selectedMaterial, selectedType]);
+
+  // 4. Utama: Efek Sinkronisasi Query Data Soal, Perhitungan Counts, dan Pagination Range
+  useEffect(() => {
+    const fetchQuestionsAndCounts = async () => {
       setLoadingQuestions(true);
-      let query = supabase
-        .from('question_bank')
-        .select(`*, category (name), material_category (name), material (material_name)`)
-        .order('created_at', { ascending: false });
+      setLoadingCounts(true);
+      try {
+        // A. Fungsi Helper untuk menghitung jumlah soal di DB secara efisien (menggunakan head: true)
+        const getDbCount = async (type?: string) => {
+          let query = supabase.from('question_bank').select('*', { count: 'exact', head: true });
+          if (selectedClass) query = query.eq('category_id', selectedClass);
+          if (selectedCategory) query = query.eq('material_category_id', selectedCategory);
+          if (selectedMaterial) query = query.eq('material_id', selectedMaterial);
+          if (type) query = query.eq('question_type', type);
+          
+          const { count, error } = await query;
+          if (error) throw error;
+          return count || 0;
+        };
 
-      if (selectedClass) query = query.eq('category_id', selectedClass);
-      if (selectedCategory) query = query.eq('material_category_id', selectedCategory);
-      if (selectedMaterial) query = query.eq('material_id', selectedMaterial);
-      if (selectedType) query = query.eq('question_type', selectedType); // Terapkan filter jenis soal di query DB
-      
-      // Batasi 10 jika semua filter dikosongkan kembali oleh user
-      if (!selectedClass && !selectedCategory && !selectedMaterial && !selectedType) query = query.limit(10);
+        // Mengambil hitungan grup secara paralel berdasarkan filter aktif saat ini
+        const [total, pg, ur, es] = await Promise.all([
+          getDbCount(),
+          getDbCount('pilihan_ganda'),
+          getDbCount('uraian'),
+          getDbCount('esai')
+        ]);
 
-      const { data, error } = await query;
-      if (!error && data) setQuestions(data as Question[]);
-      setLoadingQuestions(false);
+        setCounts({
+          total,
+          pilihan_ganda: pg,
+          uraian: ur,
+          esai: es
+        });
+        setTotalFilteredQuestions(total);
+        setLoadingCounts(false);
+
+        // B. Tarik data soal ber-pagination menggunakan range pembatas
+        let query = supabase
+          .from('question_bank')
+          .select(`*, category (name), material_category (name), material (material_name)`)
+          .order('created_at', { ascending: false });
+
+        if (selectedClass) query = query.eq('category_id', selectedClass);
+        if (selectedCategory) query = query.eq('material_category_id', selectedCategory);
+        if (selectedMaterial) query = query.eq('material_id', selectedMaterial);
+        if (selectedType) query = query.eq('question_type', selectedType);
+
+        // Hitung batas range pagination
+        const from = (currentPage - 1) * itemsPerPage;
+        const to = from + itemsPerPage - 1;
+        query = query.range(from, to);
+
+        const { data, error } = await query;
+        if (error) throw error;
+        setQuestions(data as Question[]);
+
+      } catch (err) {
+        console.error("Gagal sinkronisasi data bank soal:", err);
+      } finally {
+        setLoadingQuestions(false);
+        setLoadingCounts(false);
+      }
     };
-    fetchFilteredQuestions();
-  }, [selectedClass, selectedCategory, selectedMaterial, selectedType]); 
+
+    fetchQuestionsAndCounts();
+  }, [selectedClass, selectedCategory, selectedMaterial, selectedType, currentPage, itemsPerPage]);
+
 
   // --- HANDLER: REDUX CART ---
   const handleToggleCart = (q: Question) => {
@@ -188,6 +253,9 @@ export default function QuestionBankListPage() {
       }
     });
   };
+
+  // --- CALCULATION PAGINATION ---
+  const totalPages = Math.ceil(totalFilteredQuestions / itemsPerPage) || 1;
 
   // Render Badge
   const renderDifficultyBadge = (level: string) => {
@@ -272,6 +340,37 @@ export default function QuestionBankListPage() {
               <Plus size={20}/> Tambah Manual
             </a>
           </div>
+        </div>
+
+        {/* SECTION: STATISTIK JUMLAH SOAL YANG TERSEDIA (DIPENGARUHI FILTER AKTIF) */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: "Semua Format", value: counts.total, icon: Database, color: "text-slate-600 dark:text-slate-300", bg: "bg-slate-100/55 dark:bg-slate-700" },
+            { label: "Pilihan Ganda", value: counts.pilihan_ganda, icon: HelpCircle, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50/50 dark:bg-blue-950/20" },
+            { label: "Uraian Singkat", value: counts.uraian, icon: FileText, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50/50 dark:bg-amber-950/20" },
+            { label: "Esai Bebas", value: counts.esai, icon: AlignLeft, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50/50 dark:bg-purple-950/20" },
+          ].map((card, idx) => (
+            <div 
+              key={idx} 
+              className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-150 dark:border-slate-700 shadow-sm flex items-center justify-between gap-3 overflow-hidden relative"
+            >
+              <div className="space-y-1">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">{card.label}</span>
+                {loadingCounts ? (
+                  <div className="w-8 h-8 bg-slate-100 dark:bg-slate-700 rounded-lg animate-pulse mt-1" />
+                ) : (
+                  <span className="text-3xl font-black text-slate-800 dark:text-white block mt-0.5">{card.value}</span>
+                )}
+              </div>
+              <div className={cn("p-3.5 rounded-2xl shrink-0", card.bg, card.color)}>
+                <card.icon size={20} />
+              </div>
+              {/* Status Filter Indicator */}
+              {(selectedClass || selectedCategory || selectedMaterial) && (
+                <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full bg-blue-500" title="Filter aktif diterapkan" />
+              )}
+            </div>
+          ))}
         </div>
 
         {/* FILTER SECTION (TERMASUK FILTER JENIS SOAL) */}
@@ -429,6 +528,68 @@ export default function QuestionBankListPage() {
             </div>
           )}
         </div>
+
+        {/* --- SECTION: SISTEM NAVIGASI PAGINATION YANG RESPONSIF --- */}
+        {totalFilteredQuestions > 0 && (
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-[2rem] border border-slate-150 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* Range Info */}
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-450 text-center sm:text-left">
+              Menampilkan <span className="font-black text-slate-800 dark:text-white">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="font-black text-slate-800 dark:text-white">{Math.min(currentPage * itemsPerPage, totalFilteredQuestions)}</span> dari <span className="font-black text-slate-850 dark:text-slate-200">{totalFilteredQuestions}</span> soal terdaftar
+            </span>
+
+            {/* Halaman Kontrol */}
+            <div className="flex items-center gap-1.5">
+              <button
+                disabled={currentPage === 1 || loadingQuestions}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-750 transition-all disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              {/* Tampilkan nomor-nomor halaman */}
+              {Array.from({ length: totalPages }).map((_, i) => {
+                const pageNum = i + 1;
+                // Logika menyederhanakan deretan nomor halaman jika terlalu panjang
+                const isNearCurrent = Math.abs(currentPage - pageNum) <= 1;
+                const isEdge = pageNum === 1 || pageNum === totalPages;
+
+                if (!isNearCurrent && !isEdge) {
+                  // Munculkan elipsis pembatas
+                  if (pageNum === 2 || pageNum === totalPages - 1) {
+                    return <span key={pageNum} className="text-xs text-slate-450 px-1 font-bold">...</span>;
+                  }
+                  return null;
+                }
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    disabled={loadingQuestions}
+                    className={cn(
+                      "w-10 h-10 rounded-xl text-xs font-black transition-all",
+                      currentPage === pageNum
+                        ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25"
+                        : "border border-slate-150 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300"
+                    )}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              <button
+                disabled={currentPage === totalPages || loadingQuestions}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-750 transition-all disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
