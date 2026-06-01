@@ -88,7 +88,7 @@ export default function QuestionBankListPage() {
 
   // State Navigasi Pagination
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage] = useState<number>(5); // Jumlah item tampil per halaman
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   const [totalFilteredQuestions, setTotalFilteredQuestions] = useState<number>(0);
 
   // State Loading Kontrol
@@ -131,6 +131,7 @@ export default function QuestionBankListPage() {
     setSelectedCategory("");
     setSelectedMaterial("");
     setSelectedType("");
+    setItemsPerPage(10); // Reset ke ukuran default 10
     setCurrentPage(1);
   };
 
@@ -554,14 +555,33 @@ export default function QuestionBankListPage() {
 
         {/* --- SECTION: SISTEM NAVIGASI PAGINATION YANG RESPONSIF --- */}
         {totalFilteredQuestions > 0 && (
-          <div className="bg-white dark:bg-slate-800 p-4 rounded-[2rem] border border-slate-150 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-            {/* Range Info */}
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-450 text-center sm:text-left">
-              Menampilkan <span className="font-black text-slate-800 dark:text-white">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="font-black text-slate-800 dark:text-white">{Math.min(currentPage * itemsPerPage, totalFilteredQuestions)}</span> dari <span className="font-black text-slate-850 dark:text-slate-200">{totalFilteredQuestions}</span> soal terdaftar
-            </span>
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-[2rem] border border-slate-150 dark:border-slate-700 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+            {/* Info Range & Selector Ukuran Data */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-450 text-center sm:text-left">
+                Menampilkan <span className="font-black text-slate-800 dark:text-white">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="font-black text-slate-800 dark:text-white">{Math.min(currentPage * itemsPerPage, totalFilteredQuestions)}</span> dari <span className="font-black text-slate-850 dark:text-slate-200">{totalFilteredQuestions}</span> soal terdaftar
+              </span>
+              
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Tampilkan:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="p-1.5 px-2.5 text-xs font-black rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-750 text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
 
             {/* Halaman Kontrol */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 justify-center w-full md:w-auto">
               <button
                 disabled={currentPage === 1 || loadingQuestions}
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
@@ -580,7 +600,7 @@ export default function QuestionBankListPage() {
                 if (!isNearCurrent && !isEdge) {
                   // Munculkan elipsis pembatas
                   if (pageNum === 2 || pageNum === totalPages - 1) {
-                    return <span key={pageNum} className="text-xs text-slate-450 px-1 font-bold">...</span>;
+                    return <span key={pageNum} className="text-xs text-slate-455 px-1 font-bold">...</span>;
                   }
                   return null;
                 }
