@@ -11,6 +11,7 @@ interface QuestionOption {
 export interface QuestionItem {
   id: string;
   question: string;
+  question_type: 'pilihan_ganda' | 'uraian' | 'esai';
   options: QuestionOption[];
   difficulty?: string;
   // Anda bisa menambahkan properti lain jika diperlukan nanti

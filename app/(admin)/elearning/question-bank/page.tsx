@@ -29,7 +29,7 @@ import Swal from "sweetalert2";
 // Import Redux Hooks & Actions
 import { useDispatch, useSelector } from "react-redux";
 import { IRootState } from "@/store/store";
-import { toggleCartItem } from "@/store/qPackageSlice";
+import { clearCart, toggleCartItem } from "@/store/qPackageSlice";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -233,8 +233,27 @@ export default function QuestionBankListPage() {
       id: q.id,
       question: q.question,
       difficulty: q.difficulty,
-      options: q.options
+      options: q.options,
+      question_type: q.question_type
     }));
+  };
+
+  const handleClearCart = () => {
+    Swal.fire({
+      title: "Kosongkan Draf Soal?",
+      text: `Apakah Anda yakin ingin mengosongkan semua soal di dalam draf ujian?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Ya, hapus!",
+      cancelButtonText: "Batal",
+      customClass: { popup: 'dark:bg-boxdark dark:text-white' }
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        dispatch(clearCart());
+      }
+    });
   };
 
   // --- HANDLER: DELETE ---
@@ -302,32 +321,41 @@ export default function QuestionBankListPage() {
       
       {/* FLOATING ACTION BUTTON: KE HALAMAN PRINT */}
       {cart.length > 0 && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex flex-col md:flex-row items-center gap-3 animate-in slide-in-from-bottom-5 duration-500">
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-500 no-print">
           
           {/* Button 1: Live Kuis */}
-          <a 
+          <Link 
             href="/elearning/quizz/create"
-            className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white px-7 py-4 rounded-full shadow-2xl transition-all active:scale-95 font-black text-sm whitespace-nowrap group"
+            className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-full shadow-2xl transition-all active:scale-95 font-black text-sm whitespace-nowrap group"
           >
             <div className="p-1.5 bg-indigo-500 rounded-lg group-hover:rotate-12 transition-transform">
               <Rocket size={18} fill="currentColor" />
             </div>
             <span>BUAT KUIS LIVE</span>
-          </a>
+          </Link>
 
           {/* Button 2: Cetak Paket (Dengan Badge Counter) */}
-          <a 
+          <Link 
             href="/elearning/question-bank/print"
-            className="flex items-center gap-3 bg-slate-900 hover:bg-black text-white px-7 py-4 rounded-full shadow-2xl transition-all active:scale-95 font-black text-sm whitespace-nowrap group"
+            className="flex items-center gap-3 bg-slate-900 hover:bg-black text-white px-6 py-4 rounded-full shadow-2xl transition-all active:scale-95 font-black text-sm whitespace-nowrap group"
           >
             <div className="relative p-1.5 bg-slate-800 rounded-lg group-hover:scale-110 transition-transform">
               <Printer size={18} />
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-slate-900 font-bold">
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-slate-900 font-bold animate-bounce">
                 {cart.length}
               </span>
             </div>
             <span>CETAK PAKET UJIAN</span>
-          </a>
+          </Link>
+
+          {/* Button 3: Bersihkan Keranjang */}
+          <button 
+            onClick={handleClearCart}
+            className="flex items-center justify-center p-4 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-2xl transition-all active:scale-95 group"
+            title="Kosongkan Keranjang"
+          >
+            <Trash2 size={18} className="group-hover:scale-110 transition-transform" />
+          </button>
           
         </div>
       )}
