@@ -89,6 +89,12 @@ export const NAV_DATA = [
         items: [],
       },
       {
+        title: "Log Aktivitas",
+        url: "/activity-log",
+        icon: BellIcon, // Ganti Icons.User
+        items: [],
+      },
+      {
         title: "Master Data",
         icon: LuDatabase, // Ganti Icons.Alphabet
         items: [
