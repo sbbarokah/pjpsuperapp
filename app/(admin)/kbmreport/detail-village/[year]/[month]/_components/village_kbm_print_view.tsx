@@ -115,6 +115,33 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
   const handlePrint = useReactToPrint({
     contentRef: contentRef,
     documentTitle: `Laporan KBM Desa ${context.villageName} - ${monthName} ${year}`,
+    pageStyle: `
+      @page {
+        size: A4;
+        margin: 5mm;
+      }
+      @media print {
+        body { -webkit-print-color-adjust: exact; }
+        .no-print { display: none !important; }
+
+        /* Simulasi Scale 85% */
+        #print-content-wrapper {
+          transform: scale(0.85);
+          transform-origin: top left;
+          width: 117.6%; /* 100 / 0.85 = 117.6, untuk menutupi sisa ruang */
+        }
+      }
+    `,
+    // pageStyle: `
+    //   @page {
+    //     size: A4;
+    //     margin: 5mm;
+    //   }
+    //   @media print {
+    //     body { -webkit-print-color-adjust: exact; }
+    //     .no-print { display: none !important; }
+    //   }
+    // `,
   });
 
   const sectionConfig = [
@@ -190,7 +217,7 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
               </div>
             </div>
             
-            <div className="flex flex-col gap-2 max-h-[280px] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
               {context.groups.map((group) => {
                 const isSelected = visibleGroupIds.has(Number(group.id));
                 return (
@@ -229,7 +256,7 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
               </div>
             </div>
             
-            <div className="flex flex-col gap-2 max-h-[280px] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
               {context.categories.map((cat) => {
                 const isSelected = visibleCategoryIds.has(Number(cat.id));
                 return (
@@ -261,8 +288,27 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
       {/* ====================================================================
           AREA KERTAS CETAK LAPORAN (SINKRON KE PDF / PRINT)
           ==================================================================== */}
-      <div ref={contentRef} className="bg-white rounded-[2rem] p-10 print:p-0 w-full text-black">
-        <div className="print:bg-white print:text-black">
+      <div ref={contentRef} id="print-content-wrapper" className="bg-white rounded-[2rem] p-10 print:p-0 w-full text-black">
+
+        <div className="print:block print:w-full print:text-black">
+
+          <div className="mb-10 text-center border-b-4 border-double border-black pb-6 print:border-black">
+             <div className="text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-2">
+                Laporan Dokumen Resmi
+             </div>
+             <h1 className="text-3xl font-black text-black uppercase mb-3 tracking-tight">
+                Laporan Kegiatan Belajar Mengajar
+             </h1>
+             <div className="flex items-center justify-center gap-4 text-sm font-bold text-gray-700">
+                <span className="flex items-center gap-1.5 uppercase">
+                   <Calendar size={14} /> {monthName} {year}
+                </span>
+                <span className="text-gray-300">|</span>
+                <span className="uppercase">
+                   Desa Cicalengka
+                </span>
+             </div>
+          </div>
           
           <div className="flex flex-col gap-12">
             {sectionConfig.map((section: any) => {
@@ -289,6 +335,13 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
                );
             })}
           </div>
+
+          {/* Footer Dokumen Cetak */}
+          <div className="hidden print:flex justify-between items-end mt-16 pt-6 border-t border-black text-xs font-bold">
+             <span>Dicetak pada: {new Date().toLocaleDateString('id-ID')}</span>
+             <span>PJP Super App</span>
+          </div>
+
         </div>
       </div>
     </div>

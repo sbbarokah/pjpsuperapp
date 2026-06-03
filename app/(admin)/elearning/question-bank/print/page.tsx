@@ -386,7 +386,7 @@ export default function ExamPrintPage() {
               <div className="text-center border-b-4 border-double border-black pb-5 mb-8">
                 <h1 className="text-2xl font-black uppercase tracking-wider leading-tight">{printTitle}</h1>
                 {printSubtitle && <h2 className="text-base font-bold mt-1 text-slate-700 print:text-black">{printSubtitle}</h2>}
-                <h3 className="text-xs font-bold mt-1 uppercase text-slate-500 print:text-black">Lembaga Pendidikan PJP Desa Cicalengka</h3>
+                <h3 className="text-xs font-bold mt-1 uppercase text-slate-500 print:text-black">PJP Desa Cicalengka</h3>
               </div>
 
               {/* === IDENTITAS PESERTA UJIAN === */}
