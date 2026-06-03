@@ -1,6 +1,7 @@
 "use client";
 
 import { VillageDetailContext } from "@/lib/types/report.types";
+import { useMemo } from "react";
 import { FaCheckCircle, FaCircle } from "react-icons/fa";
 
 type SectionType = 'MATERIALS' | 'CHALLENGES' | 'SOLUTIONS' | 'SUCCESS' | 'ACHIEVEMENT';
@@ -8,11 +9,13 @@ type SectionType = 'MATERIALS' | 'CHALLENGES' | 'SOLUTIONS' | 'SUCCESS' | 'ACHIE
 export function VillageDescriptiveSection({ 
   context, 
   type,
-  visibleGroupIds
+  visibleGroupIds,
+  visibleCategoryIds
 }: { 
   context: VillageDetailContext; 
   type: SectionType; 
   visibleGroupIds: Set<number>;
+  visibleCategoryIds: Set<number>;
 }) {
   const { categories, groups, materialCategories, matrix } = context;
 
@@ -20,14 +23,18 @@ export function VillageDescriptiveSection({
     return groups.filter(g => visibleGroupIds.has(Number(g.id)));
   }, [groups, visibleGroupIds]);
 
+  const activeCategories = useMemo(() => {
+    return categories.filter(c => visibleCategoryIds.has(Number(c.id)));
+  }, [categories, visibleCategoryIds]);
+
   return (
     <div className="flex flex-col gap-6">
-      {categories.map((cat) => {
+      {activeCategories.map((cat) => {
         
         // --- 1. RENDER KATEGORI MATERI SPESIFIK ---
         if (type === 'MATERIALS') {
           const hasData = activeGroupsAll.some(g => {
-            const cell = matrix.get(cat.id)?.get(g.id);
+            const cell = matrix.get(Number(cat.id))?.get(Number(g.id));
             return cell?.materials && cell.materials.length > 0;
           });
 
@@ -39,7 +46,7 @@ export function VillageDescriptiveSection({
               
               {materialCategories.map(matCat => {
                  const groupsWithNotes = activeGroupsAll.map(g => {
-                    const cell = matrix.get(cat.id)?.get(g.id);
+                    const cell = matrix.get(Number(cat.id))?.get(Number(g.id));
                     const relevantMats = cell?.materials.filter(m => String(m.material_category_id) === String(matCat.id)) || [];
                     return { group: g, materials: relevantMats };
                  }).filter(item => item.materials.length > 0);
@@ -74,7 +81,7 @@ export function VillageDescriptiveSection({
 
         // --- 2. RENDER ESAI DESKRIPTIF (KENDALA, SOLUSI, DAN SUKSES) ---
         const getData = (gId: number) => {
-            const cell = matrix.get(cat.id)?.get(gId);
+            const cell = matrix.get(Number(cat.id))?.get(Number(gId));
             if (type === 'CHALLENGES') return cell?.challenges;
             if (type === 'SOLUTIONS') return cell?.solutions;
             if (type === 'SUCCESS') return cell?.success_notes;
@@ -83,7 +90,7 @@ export function VillageDescriptiveSection({
         };
 
         const activeGroups = activeGroupsAll.filter(g => {
-            const txt = getData(g.id);
+            const txt = getData(Number(g.id));
             return txt && txt.trim().length > 0;
         });
 
@@ -99,7 +106,7 @@ export function VillageDescriptiveSection({
                       {g.name}
                    </div>
                    <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap flex-grow pt-1 font-medium leading-relaxed">
-                      {getData(g.id)}
+                      {getData(Number(g.id))}
                    </p>
                 </div>
               ))}

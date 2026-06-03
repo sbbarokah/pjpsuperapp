@@ -1,20 +1,28 @@
 "use client";
 
 import { VillageDetailContext } from "@/lib/types/report.types";
+import React from "react";
+import { useMemo } from "react";
 
 
 export function VillageCensusTable({ 
   context, 
-  visibleGroupIds 
+  visibleGroupIds,
+  visibleCategoryIds
 }: { 
   context: VillageDetailContext; 
   visibleGroupIds: Set<number>;
+  visibleCategoryIds: Set<number>;
 }) {
   const { groups, categories, matrix } = context;
 
   const activeGroups = useMemo(() => {
     return groups.filter(g => visibleGroupIds.has(Number(g.id)));
   }, [groups, visibleGroupIds]);
+
+  const activeCategories = useMemo(() => {
+    return categories.filter(c => visibleCategoryIds.has(Number(c.id)));
+  }, [categories, visibleCategoryIds]);
 
   const getRowTotal = (catId: number) => {
     let l = 0, p = 0, t = 0;
@@ -58,7 +66,7 @@ export function VillageCensusTable({
           </tr>
         </thead>
         <tbody>
-          {categories.map(cat => {
+          {activeCategories.map(cat => {
             const rowTotal = getRowTotal(Number(cat.id));
             return (
               <tr key={cat.id} className="hover:bg-slate-50 transition-colors">

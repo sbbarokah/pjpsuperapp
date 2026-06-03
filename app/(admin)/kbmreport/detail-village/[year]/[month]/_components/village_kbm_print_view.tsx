@@ -1,23 +1,21 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useReactToPrint } from "react-to-print";
-import { FaFilePdf, FaPrint } from "react-icons/fa";
-import Breadcrumb from "@/components/ui/breadcrumb";
 
 // Import komponen-komponen bagian laporan
 import { VillageCensusTable } from "./cencus_table";
 import { VillageAttendanceTable } from "./attendance_table";
 import { VillageDescriptiveSection } from "./descriptive_section";
 import { VillageDetailContext } from "@/lib/types/report.types";
+import { Calendar, Eye, EyeOff, Layers, MinusSquare, Printer, Sliders, Tag, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface VillagePrintViewProps {
   context: VillageDetailContext;
   monthName: string;
   year: number;
 }
-
-type SectionType = 'MATERIALS' | 'CHALLENGES' | 'SOLUTIONS' | 'SUCCESS' | 'ACHIEVEMENT';
 
 export function VillageKBMPrintView({ context, monthName, year }: VillagePrintViewProps) {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -33,27 +31,62 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
     success: true,
   });
 
-  // --- STATE KONTROL VISIBILITAS KELOMPOK (COLUMN-LEVEL FILTERING) ---
+  // --- STATE KONTROL VISIBILITAS KELOMPOK (MENGGUNAKAN SET<NUMBER>) ---
   const [visibleGroupIds, setVisibleGroupIds] = useState<Set<number>>(() => {
     return new Set(context.groups.map(g => Number(g.id)));
   });
 
-  // Toggle Seksi Laporan
-  const toggleSection = (key: keyof typeof visibleSections) => {
-    setVisibleSections((prev: any) => ({
+  // --- STATE KONTROL VISIBILITAS KATEGORI / KELAS (MENGGUNAKAN SET<NUMBER>) ---
+  const [visibleCategoryIds, setVisibleCategoryIds] = useState<Set<number>>(() => {
+    return new Set(context.categories.map(c => Number(c.id)));
+  });
+
+  const [emptySections, setEmptySections] = useState({
+    census: false,
+    attendance: false,
+    materials: false,
+    achievement: false,
+    challenges: false,
+    solutions: false,
+    success: false,
+  });
+
+  const toggleEmptyMode = (key: keyof typeof emptySections) => {
+    setEmptySections(prev => ({
       ...prev,
       [key]: !prev[key]
     }));
   };
 
-  // Toggle Kelompok Individual
+  // Toggle Seksi Laporan
+  const toggleSection = (key: keyof typeof visibleSections) => {
+    setVisibleSections(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  // Toggle Kelompok Individual (Set-based toggle)
   const toggleGroup = (groupId: number) => {
-    setVisibleGroupIds((prev: any) => {
+    setVisibleGroupIds(prev => {
       const next = new Set(prev);
       if (next.has(groupId)) {
         next.delete(groupId);
       } else {
         next.add(groupId);
+      }
+      return next;
+    });
+  };
+
+  // Toggle Kategori/Kelas Individual (Set-based toggle)
+  const toggleCategory = (categoryId: number) => {
+    setVisibleCategoryIds(prev => {
+      const next = new Set(prev);
+      if (next.has(categoryId)) {
+        next.delete(categoryId);
+      } else {
+        next.add(categoryId);
       }
       return next;
     });
@@ -69,10 +102,30 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
     setVisibleGroupIds(new Set());
   };
 
+  // Set Semua Kategori Aktif
+  const handleSelectAllCategories = () => {
+    setVisibleCategoryIds(new Set(context.categories.map(c => Number(c.id))));
+  };
+
+  // Sembunyikan Semua Kategori
+  const handleDeselectAllCategories = () => {
+    setVisibleCategoryIds(new Set());
+  };
+
   const handlePrint = useReactToPrint({
     contentRef: contentRef,
     documentTitle: `Laporan KBM Desa ${context.villageName} - ${monthName} ${year}`,
   });
+
+  const sectionConfig = [
+    { key: 'census', label: '1. Sensus Generus', comp: VillageCensusTable },
+    { key: 'attendance', label: '2. Rata-Rata Kehadiran', comp: VillageAttendanceTable },
+    { key: 'materials', label: '3. Evaluasi Materi', comp: VillageDescriptiveSection, type: 'MATERIALS' },
+    { key: 'achievement', label: '4. Keberhasilan Program', comp: VillageDescriptiveSection, type: 'ACHIEVEMENT' },
+    { key: 'challenges', label: '5. Tantangan / Kendala', comp: VillageDescriptiveSection, type: 'CHALLENGES' },
+    { key: 'solutions', label: '6. Solusi / Usulan', comp: VillageDescriptiveSection, type: 'SOLUTIONS' },
+    { key: 'success', label: '7. Catatan Sukses', comp: VillageDescriptiveSection, type: 'SUCCESS' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -90,7 +143,7 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
             </div>
             <div>
               <h3 className="text-lg font-black text-black dark:text-white leading-tight">Konfigurator Kertas Cetak</h3>
-              <p className="text-xs text-gray-500 mt-1">Sesuaikan elemen bab dan kelompok yang ingin ditampilkan pada dokumen laporan / PDF.</p>
+              <p className="text-xs text-gray-500 mt-1">Sesuaikan elemen bab, kelompok, dan kategori kelas yang ingin ditampilkan pada dokumen laporan / PDF.</p>
             </div>
           </div>
           
@@ -102,59 +155,42 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
           </button>
         </div>
 
-        {}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
-          {/* Kolom Kiri: Visibilitas Bab Laporan */}
+          {/* Kolom 1: Visibilitas Bab Laporan */}
           <div className="space-y-3">
-            <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest flex items-center gap-1.5 mb-1">
-              <Layers size={14} /> Visibilitas Bab Laporan
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {[
-                { key: 'census', label: "1. Sensus Generus" },
-                { key: 'attendance', label: "2. Rata-Rata Kehadiran" },
-                { key: 'materials', label: "3. Evaluasi Materi" },
-                { key: 'achievement', label: "4. Keberhasilan Program" },
-                { key: 'challenges', label: "5. Tantangan / Kendala" },
-                { key: 'solutions', label: "6. Solusi / Usulan" },
-                { key: 'success', label: "7. Catatan Sukses" },
-              ].map((sec) => {
-                const isActive = visibleSections[sec.key as keyof typeof visibleSections];
-                return (
-                  <button
-                    key={sec.key}
-                    type="button"
-                    onClick={() => toggleSection(sec.key as any)}
-                    className={cn(
-                      "flex items-center justify-between p-3 rounded-xl border text-xs font-bold text-left transition-all active:scale-98",
-                      isActive 
-                        ? "bg-primary/5 border-primary text-primary" 
-                        : "bg-gray-50 border-stroke text-gray-400 dark:bg-meta-4 dark:border-strokedark"
-                    )}
-                  >
-                    <span>{sec.label}</span>
-                    {isActive ? <Eye size={14} /> : <EyeOff size={14} />}
-                  </button>
-                );
-              })}
+            <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Kontrol Bab Laporan</span>
+            <div className="grid grid-cols-1 gap-2">
+              {sectionConfig.map((sec) => (
+                <div key={sec.key} className="flex items-center justify-between p-3 rounded-xl border border-stroke bg-gray-50 dark:bg-meta-4">
+                  <span className="text-xs font-bold">{sec.label}</span>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => toggleSection(sec.key as any)} className={cn("p-1.5 rounded-lg", visibleSections[sec.key as keyof typeof visibleSections] ? "bg-primary text-white" : "bg-gray-200")}>
+                      {visibleSections[sec.key as keyof typeof visibleSections] ? <Eye size={14} /> : <EyeOff size={14} />}
+                    </button>
+                    <button type="button" onClick={() => toggleEmptyMode(sec.key as any)} className={cn("p-1.5 rounded-lg", emptySections[sec.key as keyof typeof emptySections] ? "bg-amber-500 text-white" : "bg-gray-200")}>
+                      <MinusSquare size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Kolom Kanan: Pemilihan Sektor Kelompok */}
-          <div className="space-y-3 border-t md:border-t-0 md:border-l border-stroke dark:border-strokedark pt-4 md:pt-0 md:pl-6">
+          {/* Kolom 2: Pemilihan Sektor Kelompok */}
+          <div className="space-y-3 border-t md:border-t-0 md:border-l border-stroke dark:border-slate-750 pt-4 md:pt-0 md:pl-6">
             <div className="flex items-center justify-between gap-4 mb-2">
-              <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest flex items-center gap-1.5">
+              <span className="text-[10px] font-black uppercase text-gray-455 tracking-widest flex items-center gap-1.5">
                 <Users size={14} /> Sektor Kelompok Aktif
               </span>
               <div className="flex gap-2 text-[10px] font-black uppercase tracking-wider">
                 <button type="button" onClick={handleSelectAllGroups} className="text-primary hover:underline">Pilih Semua</button>
                 <span className="text-gray-300">|</span>
-                <button type="button" onClick={handleDeselectAllGroups} className="text-red-500 hover:underline">Sembunyikan Semua</button>
+                <button type="button" onClick={handleDeselectAllGroups} className="text-red-500 hover:underline">Sembunyikan</button>
               </div>
             </div>
             
-            <div className="flex flex-wrap gap-2 max-h-[140px] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-2 max-h-[280px] overflow-y-auto pr-1">
               {context.groups.map((group) => {
                 const isSelected = visibleGroupIds.has(Number(group.id));
                 return (
@@ -163,17 +199,56 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
                     type="button"
                     onClick={() => toggleGroup(Number(group.id))}
                     className={cn(
-                      "px-3.5 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 flex items-center gap-1.5",
+                      "p-3 rounded-xl text-xs font-bold border transition-all active:scale-95 flex items-center justify-between",
                       isSelected
                         ? "bg-slate-900 border-slate-900 text-white dark:bg-white dark:text-slate-900 dark:border-white"
-                        : "bg-white border-stroke text-gray-500 dark:bg-slate-800 dark:border-slate-700"
+                        : "bg-white border-stroke text-gray-500 dark:bg-slate-800 dark:border-slate-700 hover:border-slate-200"
                     )}
                   >
+                    <span className="truncate">{group.name}</span>
                     <span className={cn(
-                      "w-1.5 h-1.5 rounded-full",
+                      "w-2 h-2 rounded-full",
                       isSelected ? "bg-green-400" : "bg-gray-300"
                     )} />
-                    {group.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Kolom 3: Pemilihan Kategori / Kelas (Tingkat) */}
+          <div className="space-y-3 border-t md:border-t-0 md:border-l border-stroke dark:border-slate-750 pt-4 md:pt-0 md:pl-6">
+            <div className="flex items-center justify-between gap-4 mb-2">
+              <span className="text-[10px] font-black uppercase text-gray-455 tracking-widest flex items-center gap-1.5">
+                <Tag size={14} /> Kategori / Kelas Aktif
+              </span>
+              <div className="flex gap-2 text-[10px] font-black uppercase tracking-wider">
+                <button type="button" onClick={handleSelectAllCategories} className="text-primary hover:underline">Pilih Semua</button>
+                <span className="text-gray-300">|</span>
+                <button type="button" onClick={handleDeselectAllCategories} className="text-red-500 hover:underline">Sembunyikan</button>
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-2 max-h-[280px] overflow-y-auto pr-1">
+              {context.categories.map((cat) => {
+                const isSelected = visibleCategoryIds.has(Number(cat.id));
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => toggleCategory(Number(cat.id))}
+                    className={cn(
+                      "p-3 rounded-xl text-xs font-bold border transition-all active:scale-95 flex items-center justify-between",
+                      isSelected
+                        ? "bg-blue-600 border-blue-600 text-white"
+                        : "bg-white border-stroke text-gray-500 dark:bg-slate-800 dark:border-slate-700 hover:border-slate-200"
+                    )}
+                  >
+                    <span className="truncate">{cat.name}</span>
+                    <span className={cn(
+                      "w-2 h-2 rounded-full",
+                      isSelected ? "bg-blue-300" : "bg-gray-300"
+                    )} />
                   </button>
                 );
               })}
@@ -186,111 +261,36 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
       {/* ====================================================================
           AREA KERTAS CETAK LAPORAN (SINKRON KE PDF / PRINT)
           ==================================================================== */}
-      {}
-      <div className="bg-white rounded-[2rem] border border-stroke dark:border-strokedark p-10 md:p-14 shadow-default print:shadow-none print:border-none print:rounded-none print:p-0 print:m-0 w-full text-black">
-        
-        {/* Wrapper untuk memaksa background putih dan teks hitam pekat saat diprint */}
-        <div className="print:bg-white print:text-black print:p-4">
+      <div ref={contentRef} className="bg-white rounded-[2rem] p-10 print:p-0 w-full text-black">
+        <div className="print:bg-white print:text-black">
           
-          {/* Judul KOP Laporan */}
-          <div className="mb-10 text-center border-b-4 border-double border-black pb-6">
-            <h2 className="text-3xl font-black text-black uppercase mb-2">
-              Laporan KBM Desa {context.villageName}
-            </h2>
-            <p className="text-lg text-gray-700 font-bold flex items-center justify-center gap-2">
-              <Calendar size={18} className="print:text-black text-primary" />
-              Bulan {monthName} Tahun {year}
-            </p>
-            <p className="text-xs font-black tracking-widest uppercase text-gray-400 mt-2 print:text-black">
-              Lembaga Pendidikan PJP Desa {context.villageName}
-            </p>
-          </div>
-
           <div className="flex flex-col gap-12">
-            
-            {/* 1. SENSUS GENERUS */}
-            {visibleSections.census && (
-              <section className="break-inside-avoid space-y-4">
-                <h3 className="text-lg font-black uppercase text-black border-l-4 border-black pl-3 tracking-tight">
-                  1. Sensus Generus
-                </h3>
-                <VillageCensusTable context={context} visibleGroupIds={visibleGroupIds} />
-              </section>
-            )}
+            {sectionConfig.map((section: any) => {
+               if (!visibleSections[section.key as keyof typeof visibleSections]) return null;
+               
+               const Component = section.comp;
+               const isEmpty = emptySections[section.key as keyof typeof emptySections];
 
-            {/* 2. KEHADIRAN KBM */}
-            {visibleSections.attendance && (
-              <section className="break-inside-avoid space-y-4">
-                <h3 className="text-lg font-black uppercase text-black border-l-4 border-black pl-3 tracking-tight">
-                  2. Rata-Rata Kehadiran (%)
-                </h3>
-                <VillageAttendanceTable context={context} visibleGroupIds={visibleGroupIds} />
-              </section>
-            )}
-
-            {/* 3. EVALUASI MATERI */}
-            {visibleSections.materials && (
-              <section className="break-inside-avoid space-y-4">
-                <h3 className="text-lg font-black uppercase text-black border-l-4 border-black pl-3 tracking-tight">
-                  3. Evaluasi Materi Kurikulum
-                </h3>
-                <VillageDescriptiveSection context={context} type="MATERIALS" visibleGroupIds={visibleGroupIds} />
-              </section>
-            )}
-            
-            {/* 4. KEBERHASILAN PROGRAM */}
-            {visibleSections.achievement && (
-              <section className="break-inside-avoid space-y-4">
-                <h3 className="text-lg font-black uppercase text-black border-l-4 border-black pl-3 tracking-tight">
-                  4. Info Keberhasilan Program Generus
-                </h3>
-                <VillageDescriptiveSection context={context} type="ACHIEVEMENT" visibleGroupIds={visibleGroupIds} />
-              </section>
-            )}
-            
-            {/* 5. TANTANGAN / KENDALA */}
-            {visibleSections.challenges && (
-              <section className="break-inside-avoid space-y-4">
-                <h3 className="text-lg font-black uppercase text-black border-l-4 border-black pl-3 tracking-tight">
-                  5. Tantangan / Kendala
-                </h3>
-                <VillageDescriptiveSection context={context} type="CHALLENGES" visibleGroupIds={visibleGroupIds} />
-              </section>
-            )}
-
-            {/* 6. SOLUSI / USULAN */}
-            {visibleSections.solutions && (
-              <section className="break-inside-avoid space-y-4">
-                <h3 className="text-lg font-black uppercase text-black border-l-4 border-black pl-3 tracking-tight">
-                  6. Solusi / Usulan
-                </h3>
-                <VillageDescriptiveSection context={context} type="SOLUTIONS" visibleGroupIds={visibleGroupIds} />
-              </section>
-            )}
-            
-            {/* 7. CATATAN SUKSES */}
-            {visibleSections.success && (
-              <section className="break-inside-avoid space-y-4">
-                <h3 className="text-lg font-black uppercase text-black border-l-4 border-black pl-3 tracking-tight">
-                  7. Catatan Sukses Lainnya
-                </h3>
-                <VillageDescriptiveSection context={context} type="SUCCESS" visibleGroupIds={visibleGroupIds} />
-              </section>
-            )}
+               return (
+                 <section key={section.key} className="break-inside-avoid space-y-4">
+                   <h3 className="text-lg font-black uppercase border-l-4 border-black pl-3">{section.label}</h3>
+                   {isEmpty ? (
+                     <div className="border border-stroke rounded-xl p-8 text-center text-gray-500 text-sm font-bold">-</div>
+                   ) : (
+                     <Component 
+                        context={context} 
+                        visibleGroupIds={visibleGroupIds} 
+                        visibleCategoryIds={visibleCategoryIds}
+                        // Jika komponen deskriptif, tambahkan prop type
+                        {...(section.type ? { type: section.type } : {})}
+                     />
+                   )}
+                 </section>
+               );
+            })}
           </div>
-
-          {/* Footer Dokumen Cetak */}
-          <div className="hidden print:flex justify-between items-end mt-16 pt-6 border-t border-black text-xs font-bold">
-             <span>Dicetak pada: {new Date().toLocaleDateString('id-ID')} - Sistem Informasi KBM</span>
-             <span>PJP Super App - Laporan Konsolidasi</span>
-          </div>
-
         </div>
       </div>
     </div>
   );
-}
-
-function useState(arg0: { census: boolean; attendance: boolean; materials: boolean; achievement: boolean; challenges: boolean; solutions: boolean; success: boolean; }): [any, any] {
-  throw new Error("Function not implemented.");
 }

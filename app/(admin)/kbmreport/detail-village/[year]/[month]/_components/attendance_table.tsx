@@ -1,20 +1,27 @@
 "use client";
 
 import { VillageDetailContext } from "@/lib/types/report.types";
-
+import React from "react";
+import { useMemo } from "react";
 
 export function VillageAttendanceTable({ 
   context, 
-  visibleGroupIds 
+  visibleGroupIds,
+  visibleCategoryIds
 }: { 
   context: VillageDetailContext; 
   visibleGroupIds: Set<number>;
+  visibleCategoryIds: Set<number>;
 }) {
   const { groups, categories, matrix } = context;
 
   const activeGroups = useMemo(() => {
     return groups.filter(g => visibleGroupIds.has(Number(g.id)));
   }, [groups, visibleGroupIds]);
+
+  const activeCategories = useMemo(() => {
+    return categories.filter(c => visibleCategoryIds.has(Number(c.id)));
+  }, [categories, visibleCategoryIds]);
 
   return (
     <div className="rounded-xl border border-stroke bg-white p-4 shadow-default dark:border-strokedark dark:bg-boxdark overflow-x-auto">
@@ -39,12 +46,12 @@ export function VillageAttendanceTable({
           </tr>
         </thead>
         <tbody>
-          {categories.map((cat: any) => {
+          {activeCategories.map((cat: any) => {
             return (
               <tr key={cat.id} className="hover:bg-slate-50 transition-colors">
                 <td className="p-3 border border-stroke dark:border-strokedark font-bold text-slate-800">{cat.name}</td>
                 {activeGroups.map((g: any) => {
-                  const cell = matrix.get(cat.id)?.get(g.id);
+                  const cell = matrix.get(Number(cat.id))?.get(Number(g.id));
                   const h = cell?.avg_present?.toFixed(0);
                   const i = cell?.avg_permission?.toFixed(0);
                   const a = cell?.avg_absent?.toFixed(0);

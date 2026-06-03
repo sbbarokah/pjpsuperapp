@@ -1,11 +1,7 @@
 import Breadcrumb from "@/components/ui/breadcrumb";
 import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
-import { notFound } from "next/navigation";
 import { monthOptions } from "@/lib/constants";
 import { getVillageDetailData } from "@/lib/services/reportService";
-import { VillageCensusTable } from "./_components/cencus_table";
-import { VillageAttendanceTable } from "./_components/attendance_table";
-import { VillageDescriptiveSection } from "./_components/descriptive_section";
 import { VillageKBMPrintView } from "./_components/village_kbm_print_view";
 
 export const metadata = {
