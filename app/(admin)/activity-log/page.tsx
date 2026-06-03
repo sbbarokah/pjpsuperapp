@@ -15,36 +15,16 @@ import {
   AlertCircle, 
   Loader2 
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { id } from "date-fns/locale";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
-// --- TIPE DATA COUPLING ---
-interface BaseActivityItem {
-  id: string;
-  created_at: string;
-  period_month: number;
-  period_year: number;
-  question_type?: 'attendance' | 'evaluation' | 'muslimun';
-  group?: { name: string };
-  category?: { name: string };
-}
-
-// --- MOCK SUPABASE OR API INSTANCE ---
-const mockActivityFetch = (): BaseActivityItem[] => {
-  const types: ('attendance' | 'evaluation' | 'muslimun')[] = ['muslimun', 'attendance', 'evaluation'];
-  return Array.from({ length: 45 }).map((_, i) => {
-    const currentType = types[i % 3];
-    return {
-      id: `act-${i + 1}`,
-      created_at: new Date(Date.now() - i * 4 * 3600000).toISOString(),
-      period_month: (new Date().getMonth() + 1),
-      period_year: 2026,
-      question_type: currentType,
-      group: { name: `Kelompok Sektor ${i % 2 === 0 ? "Utara" : "Selatan"} ${Math.floor(i / 3) + 1}` },
-      category: { name: i % 2 === 0 ? "Cabang 1" : "Cabang 2" }
-    };
-  });
-};
 
 export default function ActivityLogPage() {
+  const supabase = createClient();
+  
   // State Filter Utama
   const [activeTab, setActiveTab] = useState<"all" | "muslimun" | "attendance" | "evaluation">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,25 +34,39 @@ export default function ActivityLogPage() {
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   
   // Master State Data
-  const [allActivities, setAllActivities] = useState<BaseActivityItem[]>([]);
+  const [allActivities, setAllActivities] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalConfig, setModalConfig] = useState<{ show: boolean; title: string; text: string } | null>(null);
 
-  // 1. Ambil Data Semua Log Aktivitas
+  // Load Data
   useEffect(() => {
-    const fetchAllLogs = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      try {
-        const result = mockActivityFetch();
-        setAllActivities(result);
-      } catch (error) {
-        console.error("Gagal memuat log data aktivitas:", error);
-      } finally {
-        setLoading(false);
-      }
+      // 1. Ambil data master untuk mapping nama
+      const [gRes, cRes] = await Promise.all([
+        supabase.from("group").select("id, name"),
+        supabase.from("category").select("id, name")
+      ]);
+      setGroups(gRes.data || []);
+      setCategories(cRes.data || []);
+
+      // 2. Ambil data dari view (tanpa join)
+      const { data, error } = await supabase
+        .from("activity_log_view")
+        .select("*")
+        .order("created_at", { ascending: false });
+      
+      if (data) setAllActivities(data);
+      setLoading(false);
     };
-    fetchAllLogs();
+    fetchData();
   }, []);
+
+  // Membuat Lookup Map
+  const groupMap = useMemo(() => new Map(groups.map(g => [g.id, g.name])), [groups]);
+  const catMap = useMemo(() => new Map(categories.map(c => [c.id, c.name])), [categories]);
 
   // Format Waktu Relatif via date-fns locale Indonesia
   const timeAgo = (dateString: string) => {
@@ -94,38 +88,28 @@ export default function ActivityLogPage() {
   // 2. Pemrosesan Data: Memfilter Log berdasarkan Tab Aktif & Pencarian Nama Kelompok Binaan
   const filteredActivities = useMemo(() => {
     return allActivities.filter((item) => {
-      // Saring berdasarkan tab
-      if (activeTab !== "all" && item.question_type !== activeTab) return false;
-      
-      // Saring berdasarkan kata kunci pencarian
-      const matchesSearch = item.group?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            item.category?.name?.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      return matchesSearch;
+      if (activeTab !== "all" && item.activity_type !== activeTab) return false;
+      const groupName = groupMap.get(item.group_id) || "";
+      const catName = catMap.get(item.category_id) || "";
+      const searchLower = searchQuery.toLowerCase();
+      return groupName.toLowerCase().includes(searchLower) || catName.toLowerCase().includes(searchLower);
     });
-  }, [allActivities, activeTab, searchQuery]);
+  }, [allActivities, activeTab, searchQuery, groupMap, catMap]);
 
   // 3. Statistik Ringkas Total Counter Badge yang Adaptif terhadap Pencarian
   const counts = useMemo(() => {
-    const base = allActivities.filter(item => 
-      item.group?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
     return {
-      all: base.length,
-      muslimun: base.filter(item => item.question_type === 'muslimun').length,
-      attendance: base.filter(item => item.question_type === 'attendance').length,
-      evaluation: base.filter(item => item.question_type === 'evaluation').length,
+      all: filteredActivities.length,
+      muslimun: filteredActivities.filter(item => item.activity_type === 'muslimun').length,
+      attendance: filteredActivities.filter(item => item.activity_type === 'attendance').length,
+      evaluation: filteredActivities.filter(item => item.activity_type === 'evaluation').length,
     };
-  }, [allActivities, searchQuery]);
+  }, [filteredActivities]);
 
-  // 4. Kalkulasi Pembatas Halaman Range Pagination
   const totalItems = filteredActivities.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-  
   const paginatedActivities = useMemo(() => {
-    const from = (currentPage - 1) * itemsPerPage;
-    const to = from + itemsPerPage;
-    return filteredActivities.slice(from, to);
+    return filteredActivities.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   }, [filteredActivities, currentPage, itemsPerPage]);
 
   // Render Ikon Visual Indikator Kategori Laporan secara Cepat
@@ -171,7 +155,7 @@ export default function ActivityLogPage() {
             </div>
           </div>
           <Link
-            href="/admin"
+            href="/"
             className="text-xs font-black uppercase tracking-wider text-slate-500 hover:text-primary transition-colors bg-slate-100 dark:bg-slate-700 px-4 py-2.5 rounded-xl self-start sm:self-center"
           >
             &larr; Dasbor Utama
@@ -249,53 +233,24 @@ export default function ActivityLogPage() {
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-750">
               {paginatedActivities.map((act) => {
-                const meta = renderActivityMeta(act.question_type || "muslimun");
+                const meta = renderActivityMeta(act.activity_type);
                 return (
-                  <div 
-                    key={act.id} 
-                    className="p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-700/20 transition-colors group"
-                  >
-                    <div className="flex items-start gap-4 min-w-0">
-                      {/* Badge Bulat Ikonik Kategori */}
-                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-inner mt-0.5", meta.iconStyle)}>
-                        {meta.icon}
-                      </div>
-
-                      <div className="space-y-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-black text-slate-800 dark:text-white text-sm group-hover:text-primary transition-colors truncate">
-                            {act.group?.name || "Sektor Kelompok"}
-                          </span>
-                          <span className="text-[9px] font-black text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded uppercase tracking-wider">
-                            {act.category?.name || "Wilayah"}
-                          </span>
+                  <div key={act.id} className="p-5 flex justify-between items-center hover:bg-slate-50/50 dark:hover:bg-slate-700/20 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", meta.iconStyle)}>{meta.icon}</div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-sm">{groupMap.get(act.group_id) || "Sektor Kelompok"}</span>
+                          {catMap.get(act.category_id) && (
+                            <span className="text-[9px] font-black text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 rounded uppercase">{catMap.get(act.category_id)}</span>
+                          )}
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                          Berhasil memproses dokumen <span className="font-bold text-slate-700 dark:text-slate-300">{meta.label}</span> untuk jangka waktu periode <code className="bg-slate-100 dark:bg-slate-900 px-1 py-0.5 rounded font-mono text-blue-600 font-bold">{act.period_month}/{act.period_year}</code>
+                        <p className="text-xs text-slate-500 font-medium">
+                          {meta.label} - <code className="font-bold text-blue-600">{act.period_month}/{act.period_year}</code>
                         </p>
                       </div>
                     </div>
-
-                    {/* Kolom Kanan: Rute Tautan & Detik Waktu Relatif */}
-                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto shrink-0 pt-3 sm:pt-0 border-t sm:border-none border-slate-100 dark:border-slate-700 gap-1">
-                      <span className="text-[11px] text-slate-400 font-semibold flex items-center gap-1.5">
-                        <Clock size={12} /> {timeAgo(act.created_at)}
-                      </span>
-                      <Link
-                        href={`/${meta.route}/edit/${act.id}`}
-                        onClick={() => {
-                          setModalConfig({
-                            show: true,
-                            title: "Simulasi Navigasi",
-                            text: `Mengonfirmasi koreksi untuk ${meta.label} [ID: ${act.id}]`
-                          });
-                        }}
-                        className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 hover:underline tracking-wider"
-                      >
-                        Koreksi Berkas &rarr;
-                      </Link>
-                    </div>
-
+                    <span className="text-[11px] text-slate-400 font-semibold">{timeAgo(act.created_at)}</span>
                   </div>
                 );
               })}

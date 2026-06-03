@@ -1552,3 +1552,43 @@ WHERE material_category_id IS NULL AND category_id IS NOT NULL;
 -- 6. Buat indeks baru untuk mengoptimalkan query filter di halaman Bank Soal
 CREATE INDEX IF NOT EXISTS idx_question_bank_material_cat ON public.question_bank(material_category_id);
 CREATE INDEX IF NOT EXISTS idx_question_bank_q_type ON public.question_bank(question_type);
+
+
+// menambahkan activity log view untuk menggabungkan history muslimun, kehadiran dan Penilaian
+CREATE OR REPLACE VIEW public.activity_log_view AS
+SELECT 
+  id, 
+  created_at, 
+  period_month, 
+  period_year, 
+  'muslimun' AS activity_type, 
+  group_id, 
+  NULL::BIGINT AS category_id, -- Menyisipkan NULL sebagai pengganti category_id
+  author_user_id 
+FROM public.meeting_reports
+
+UNION ALL
+
+SELECT 
+  id, 
+  created_at, 
+  period_month, 
+  period_year, 
+  'attendance' AS activity_type, 
+  group_id, 
+  category_id, 
+  author_user_id 
+FROM public.attendance_recap
+
+UNION ALL
+
+SELECT 
+  id, 
+  created_at, 
+  period_month, 
+  period_year, 
+  'evaluation' AS activity_type, 
+  group_id, 
+  category_id, 
+  author_user_id 
+FROM public.evaluation_recap;
