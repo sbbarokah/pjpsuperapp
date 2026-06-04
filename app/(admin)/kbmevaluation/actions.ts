@@ -222,21 +222,45 @@ export async function getGenerusForFormAction(
  * [REVISI] Mengambil SEMUA daftar materi untuk populasi dropdown
  * Kita tidak memfilter by category di sini, karena filtering dilakukan di client (per row)
  */
-export async function getAllMaterialsForFormAction(): Promise<MaterialsResponse> {
+export async function getAllMaterialsForFormAction(
+  categoryId?: number, 
+  filterByClass: boolean = true
+): Promise<MaterialsResponse> {
   const authCheck = await checkAuth();
   if (!authCheck.success) return { success: false, error: authCheck.message };
   
   const supabase = await createAdminClient();
-  
-  const { data, error } = await supabase
-    .from("material")
-    .select("*, material_category (name)")
-    .order("material_name");
+
+  let query;
+
+  if (filterByClass && categoryId) {
+    // KONDISI 1: Filter aktif, gunakan !inner agar filter bekerja (hanya materi kelas tsb)
+    query = supabase
+      .from("material")
+      .select(`
+        *, 
+        material_category (name),
+        material_category_assignment!inner (category_id)
+      `)
+      .eq("material_category_assignment.category_id", categoryId);
+  } else {
+    // KONDISI 2: Filter tidak aktif, ambil semua (tidak pakai !inner)
+    query = supabase
+      .from("material")
+      .select(`
+        *, 
+        material_category (name),
+        material_category_assignment (category_id)
+      `);
+  }
+
+  const { data, error } = await query.order("material_name");
     
   if (error) {
     console.error("getAllMaterialsForFormAction Error:", error.message);
     return { success: false, error: error.message };
   }
+  
   return { success: true, data: data as MaterialWithRelations[] };
 }
 

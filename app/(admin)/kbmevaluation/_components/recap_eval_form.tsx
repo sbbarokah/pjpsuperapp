@@ -79,6 +79,7 @@ export function EvaluationRecapForm({
   const [materialCategories, setMaterialCategories] = useState<MaterialCategoryModel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [evaluationRows, setEvaluationRows] = useState<EvaluationRowState[]>([]);
+  const [includeAllMaterials, setIncludeAllMaterials] = useState(false);
 
   // --- Efek untuk memuat data di Mode Edit ---
   useEffect(() => {
@@ -183,7 +184,7 @@ export function EvaluationRecapForm({
     
     const [studentResponse, materialResponse, matCatResponse] = await Promise.all([
       getGenerusForFormAction(Number(formData.group_id), Number(formData.category_id)),
-      getAllMaterialsForFormAction(), // Ambil materi untuk kategori siswa
+      getAllMaterialsForFormAction(Number(formData.category_id), !includeAllMaterials), // Ambil materi untuk kategori siswa
       getMaterialCategoriesForFormAction() // Ambil SEMUA kategori materi
     ]);
 
@@ -392,6 +393,18 @@ export function EvaluationRecapForm({
             disabled={isEditMode}
             required
           />
+        </div>
+
+        <div className="mb-4">
+          <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-black dark:text-white">
+            <input
+              type="checkbox"
+              checked={includeAllMaterials}
+              onChange={(e) => setIncludeAllMaterials(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            Ambil semua data materi (abaikan filter kelas)
+          </label>
         </div>
 
         {/* --- Tombol Muat Data --- */}
