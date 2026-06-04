@@ -224,7 +224,7 @@ export async function getGenerusForFormAction(
  */
 export async function getAllMaterialsForFormAction(
   categoryId?: number, 
-  filterByClass: boolean = true
+  filterByClass: boolean = false
 ): Promise<MaterialsResponse> {
   const authCheck = await checkAuth();
   if (!authCheck.success) return { success: false, error: authCheck.message };

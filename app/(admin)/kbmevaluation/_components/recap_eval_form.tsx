@@ -184,7 +184,7 @@ export function EvaluationRecapForm({
     
     const [studentResponse, materialResponse, matCatResponse] = await Promise.all([
       getGenerusForFormAction(Number(formData.group_id), Number(formData.category_id)),
-      getAllMaterialsForFormAction(Number(formData.category_id), !includeAllMaterials), // Ambil materi untuk kategori siswa
+      getAllMaterialsForFormAction(Number(formData.category_id), includeAllMaterials), // Ambil materi untuk kategori siswa
       getMaterialCategoriesForFormAction() // Ambil SEMUA kategori materi
     ]);
 
@@ -403,7 +403,7 @@ export function EvaluationRecapForm({
               onChange={(e) => setIncludeAllMaterials(e.target.checked)}
               className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
             />
-            Ambil semua data materi (abaikan filter kelas)
+            Aktifkan filter kelas untuk materi (hanya tampilkan materi yang sesuai kelas)
           </label>
         </div>
 
