@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, use, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Rocket, Loader2, Timer, CheckCircle, XCircle, Trophy } from "lucide-react";
+import { Rocket, Loader2, Timer, CheckCircle, XCircle, Trophy, Users } from "lucide-react";
 
 export default function ParticipantQuizPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -16,16 +16,13 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
   const [timeLeft, setTimeLeft] = useState(0);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+  const [participants, setParticipants] = useState<any[]>([]);
+
   const timerRef = useRef<any>(null);
 
   useEffect(() => {
-    // 1. Ambil data sesi awal
-    supabase.from("quiz_sessions").select("*").eq("id", id).single().then(({ data }) => {
-        setSession(data);
-        if (data.status === 'started') setStep('play');
-    });
+    fetchSessionAndParticipants();
 
-    // 2. Subscribe ke Realtime Sesi (Untuk ganti soal atau status)
     const sessChannel = supabase
       .channel('quiz_sync')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'quiz_sessions', filter: `id=eq.${id}` }, (payload) => {
@@ -34,11 +31,14 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
         
         if (newData.status === 'started') {
           setStep('play');
-          setHasAnswered(false); // Reset status jawaban untuk soal baru
+          setHasAnswered(false);
           setTimeLeft(newData.duration_per_question);
           startLocalTimer(newData.duration_per_question);
         }
-        if (newData.status === 'finished') setStep('finished');
+        if (newData.status === 'finished') {
+            setStep('finished');
+            fetchSessionAndParticipants(); 
+        }
       })
       .subscribe();
 
@@ -47,6 +47,13 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
         if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [id]);
+
+  const fetchSessionAndParticipants = async () => {
+    const { data: sess } = await supabase.from("quiz_sessions").select("*").eq("id", id).single();
+    const { data: parts } = await supabase.from("quiz_participants").select("*").eq("session_id", id).order('score', { ascending: false });
+    setSession(sess);
+    setParticipants(parts || []);
+  };
 
   const startLocalTimer = (seconds: number) => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -176,12 +183,33 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
 
   if (step === 'finished') {
     return (
-        <div className="min-h-screen bg-blue-600 flex items-center justify-center p-6 text-white font-sans">
-            <div className="text-center space-y-8">
-                <Trophy size={120} className="mx-auto text-yellow-300 animate-pulse" />
-                <h1 className="text-4xl font-black uppercase">KUIS SELESAI!</h1>
-                <p className="text-2xl font-medium">Terima kasih telah berpartisipasi, {name}.</p>
-                <button onClick={() => window.location.reload()} className="px-10 py-4 bg-white text-blue-600 rounded-2xl font-black hover:bg-slate-100 transition-all">KELUAR</button>
+        <div className="min-h-screen bg-slate-100 p-6 font-sans">
+            <div className="max-w-md mx-auto bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200 space-y-8">
+                <div className="text-center space-y-2">
+                    <Trophy size={64} className="mx-auto text-yellow-500" />
+                    <h1 className="text-3xl font-black uppercase text-slate-800">KUIS SELESAI!</h1>
+                </div>
+                
+                <div className="space-y-4">
+                    <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <Users size={16} /> Papan Skor
+                    </h2>
+                    <div className="space-y-3">
+                        {participants.map((p, idx) => (
+                            <div key={p.id} className={`flex justify-between items-center p-4 rounded-2xl ${p.id === participantId ? 'bg-blue-50 border-2 border-blue-200' : 'bg-slate-50'}`}>
+                                <div className="flex items-center gap-3">
+                                    <span className={`w-8 h-8 flex items-center justify-center rounded-full text-xs font-black ${idx === 0 ? 'bg-yellow-400 text-white' : 'bg-white text-slate-400'}`}>{idx + 1}</span>
+                                    <span className={`font-black ${p.id === participantId ? 'text-blue-700' : 'text-slate-700'}`}>{p.name} {p.id === participantId && '(Anda)'}</span>
+                                </div>
+                                <span className="font-black text-blue-600">{p.score} pts</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <button onClick={() => window.location.reload()} className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black hover:bg-slate-900 transition-all">
+                    KELUAR
+                </button>
             </div>
         </div>
     )
