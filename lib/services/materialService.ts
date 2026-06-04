@@ -5,27 +5,42 @@ const supabase = createAdminClient();
 
 interface MaterialFilters {
   categoryId?: number;
+  classId?: number;
+  search?: string;
 }
 
 /**
  * Mengambil daftar materi dengan relasi,
  * difilter berdasarkan kategori.
  */
-export async function getMaterialsList(
-  filters: MaterialFilters
-): Promise<MaterialWithRelations[]> {
-  
+export async function getMaterialsList(filters: MaterialFilters) {
+  const isFilteringByClass = !!filters.classId;
+  const assignmentRelation = isFilteringByClass 
+    ? "material_category_assignment!inner" 
+    : "material_category_assignment";
+
   let query = supabase
     .from("material")
     .select(`
       *,
-      material_category (name)
+      material_category (name),
+      ${assignmentRelation} (
+        category (id, name)
+      )
     `)
     .order("material_name");
 
-  // Terapkan filter kategori jika ada
   if (filters.categoryId) {
     query = query.eq("material_category_id", filters.categoryId);
+  }
+
+  if (filters.classId) {
+    query = query.eq("material_category_assignment.category_id", filters.classId);
+  }
+
+  // Tambahkan filter search
+  if (filters.search && filters.search.length >= 3) {
+    query = query.ilike("material_name", `%${filters.search}%`);
   }
 
   const { data, error } = await query;

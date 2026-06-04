@@ -1,7 +1,7 @@
 import Breadcrumb from "@/components/ui/breadcrumb";
 import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
 import { getMaterialsList } from "@/lib/services/materialService";
-import { getMaterialCategories } from "@/lib/services/masterService";
+import { getCategories, getMaterialCategories } from "@/lib/services/masterService";
 import { Suspense } from "react";
 import Link from "next/link";
 import { MaterialListClient } from "./_components/material_list_client";
@@ -13,6 +13,8 @@ export const metadata = {
 interface MateriPageProps {
   searchParams: Promise<{
     category?: string;
+    class?: string;
+    q?: string;
   }>;
 }
 
@@ -26,10 +28,19 @@ const ListSkeleton = () => (
   </div>
 );
 
-async function MaterialList({ categoryId, profile }: { categoryId?: number, profile: any }) {
-  const materials = await getMaterialsList({ categoryId });
-  const categories = await getMaterialCategories();
-  return <MaterialListClient materials={materials} categories={categories} profile={profile} />;
+async function MaterialList({ categoryId, classId, search, profile }: { categoryId?: number, classId?: number, search?: string, profile: any }) {
+  const materials = await getMaterialsList({ categoryId, classId, search });
+  const categories = await getMaterialCategories(); // Untuk filter
+  const allClass = await getCategories(); // Data kelas untuk modal assign
+
+  return (
+    <MaterialListClient 
+      materials={materials} 
+      categories={categories} 
+      allClass={allClass} 
+      profile={profile} 
+    />
+  );
 }
 
 export default async function MaterialPage(awaitedParams: Promise<MateriPageProps>) {
@@ -43,8 +54,11 @@ export default async function MaterialPage(awaitedParams: Promise<MateriPageProp
   const canCreate = profile.role === 'superadmin' || profile.role === 'admin_desa';
   const { searchParams } = await awaitedParams;
   const params = await searchParams;
+
   const categoryId = params.category ? Number(params.category) : undefined;
-  
+  const classId = params.class ? Number(params.class) : undefined;
+  const search = params.q ? String(params.q) : undefined;
+
   return (
     <>
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
@@ -60,7 +74,7 @@ export default async function MaterialPage(awaitedParams: Promise<MateriPageProp
       </div>
 
       <Suspense fallback={<ListSkeleton />}>
-        <MaterialList categoryId={categoryId} profile={profile} />
+        <MaterialList categoryId={categoryId} classId={classId} search={search} profile={profile} />
       </Suspense>
     </>
   );

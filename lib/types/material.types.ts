@@ -1,4 +1,4 @@
-import { MaterialCategoryModel } from "./master.types";
+import { CategoryModel, MaterialCategoryModel } from "./master.types";
 import { Profile } from "./user.types";
 
 export type MaterialModel = {
@@ -11,10 +11,15 @@ export type MaterialModel = {
   material_category_id: number;
 };
 
+export type MaterialAssignmentModel = {
+  category: Pick<CategoryModel, 'id' | 'name'> | null;
+};
+
 // Tipe data gabungan untuk tampilan list
 export type MaterialWithRelations = MaterialModel & {
   author: Pick<Profile, 'full_name'> | null;
   material_category: Pick<MaterialCategoryModel, 'name'> | null;
+  material_category_assignment: MaterialAssignmentModel[];
 };
 
 // DTO untuk form

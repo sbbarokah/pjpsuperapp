@@ -1592,3 +1592,50 @@ SELECT
   category_id, 
   author_user_id 
 FROM public.evaluation_recap;
+
+
+// material & category
+-- Pastikan tabel sudah ada
+CREATE TABLE IF NOT EXISTS public.material_category_assignment (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  material_id UUID REFERENCES public.material(id) ON DELETE CASCADE,
+  category_id BIGINT REFERENCES public.category(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(material_id, category_id)
+);
+
+-- Aktifkan RLS
+ALTER TABLE public.material_category_assignment ENABLE ROW LEVEL SECURITY;
+
+-- 1. Kebijakan Read (Untuk semua user terautentikasi)
+DROP POLICY IF EXISTS "Allow read access for authenticated users" ON public.material_category_assignment;
+CREATE POLICY "Allow read access for authenticated users" 
+ON public.material_category_assignment FOR SELECT 
+TO authenticated USING (true);
+
+-- 2. Kebijakan Write (Insert/Delete/Update untuk Admin)
+-- Catatan: Menggunakan casting '::text' atau memastikan perbandingan id antar tabel sinkron
+DROP POLICY IF EXISTS "Allow all for admin" ON public.material_category_assignment;
+CREATE POLICY "Allow all for admin" 
+ON public.material_category_assignment FOR ALL 
+TO authenticated 
+USING (
+  EXISTS (
+    SELECT 1 FROM public.profile 
+    WHERE profile.user_id = auth.uid() -- Pastikan kolom ini sesuai dengan skema tabel profile Anda
+    AND (
+      profile.role = 'superadmin' 
+      OR profile.role = 'admin_desa'
+    )
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.profile 
+    WHERE profile.user_id = auth.uid() 
+    AND (
+      profile.role = 'superadmin' 
+      OR profile.role = 'admin_desa'
+    )
+  )
+);
