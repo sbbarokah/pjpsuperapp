@@ -259,7 +259,7 @@ export function MeetingReportForm({
           onChange={handleChange}
         />
         <InputGroupV2
-          label="Unsur Pengurus (Manajemen)"
+          label="Unsur Pengurus"
           name="element_management"
           type="text"
           placeholder="cth: Bpk. H. Adimin"
