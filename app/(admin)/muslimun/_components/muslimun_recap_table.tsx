@@ -22,6 +22,23 @@ export function MuslimunRecapTable({ reports, groups }: MuslimunRecapTableProps)
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
     documentTitle: `Rekap_Musyawarah_5_Unsur_${format(new Date(), "yyyy-MM-dd")}`,
+    pageStyle: `
+      @page {
+        size: A4;
+        margin: 5mm;
+      }
+      @media print {
+        body { -webkit-print-color-adjust: exact; }
+        .no-print { display: none !important; }
+
+        /* Simulasi Scale 85% */
+        #print-content-wrapper {
+          transform: scale(0.85);
+          transform-origin: top left;
+          width: 117.6%; /* 100 / 0.85 = 117.6, untuk menutupi sisa ruang */
+        }
+      }
+    `,
   });
 
   return (
@@ -68,22 +85,6 @@ export function MuslimunRecapTable({ reports, groups }: MuslimunRecapTableProps)
           Cetak Laporan A4
         </button>
       </div>
-
-      {/* ================= AREA AREA YANG AKAN DICETAK ================= */}
-      {/* Suntikan CSS khusus printer agar presisi memotong halaman di kertas A4 */}
-      <style jsx global>{`
-        @media print {
-          @page {
-            size: A4 portrait;
-            margin: 15mm 15mm 15mm 15mm; /* Margin proporsional standar A4 */
-          }
-          body {
-            background-color: #fff !important;
-            color: #000 !important;
-            font-size: 11pt !important; /* Ukuran font ideal printer */
-          }
-        }
-      `}</style>
 
       <div 
         ref={componentRef} 
