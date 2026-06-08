@@ -5,7 +5,7 @@ import { useReactToPrint } from "react-to-print";
 import { MeetingReportWithRelations } from "@/lib/types/mreport.types";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { FaCheckCircle, FaTimesCircle, FaPrint, FaLayout } from "react-icons/fa";
+import { CheckCircle2, XCircle, Printer, Layout } from "lucide-react";
 
 interface MuslimunRecapTableProps {
   reports: MeetingReportWithRelations[];
@@ -49,7 +49,8 @@ export function MuslimunRecapTable({ reports, groups }: MuslimunRecapTableProps)
         {/* Tombol Navigasi Pilih Format */}
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-black dark:text-white mr-2 flex items-center gap-1.5">
-            <FaLayout className="text-gray-500" /> Format Dokumen:
+            <Layout size={18} className="text-gray-500" />
+            Format Dokumen:
           </span>
           <button
             type="button"
@@ -81,7 +82,7 @@ export function MuslimunRecapTable({ reports, groups }: MuslimunRecapTableProps)
           onClick={() => handlePrint()}
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-center font-medium text-white hover:bg-opacity-90 shadow-md transition-all"
         >
-          <FaPrint />
+          <Printer size={18} />
           Cetak Laporan A4
         </button>
       </div>
@@ -122,11 +123,11 @@ export function MuslimunRecapTable({ reports, groups }: MuslimunRecapTableProps)
                     <td className="p-2.5 border border-stroke dark:border-strokedark print:border-gray-400 text-center">
                       {report ? (
                         <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-xs print:text-green-700 print:bg-transparent print:p-0 print:font-semibold">
-                          Terlaksana
+                          <CheckCircle2 size={14} className="print:hidden" /> Terlaksana
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full text-xs print:text-red-700 print:bg-transparent print:p-0 print:font-semibold">
-                          Belum
+                          <XCircle size={14} className="print:hidden" /> Belum
                         </span>
                       )}
                     </td>
