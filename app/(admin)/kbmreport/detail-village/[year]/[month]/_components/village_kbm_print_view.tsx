@@ -112,7 +112,7 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
     setVisibleCategoryIds(new Set());
   };
 
-  const handlePrint = useReactToPrint({
+  const handlePrintWeb = useReactToPrint({
     contentRef: contentRef,
     documentTitle: `Laporan KBM Desa ${context.villageName} - ${monthName} ${year}`,
     pageStyle: `
@@ -132,17 +132,28 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
         }
       }
     `,
-    // pageStyle: `
-    //   @page {
-    //     size: A4;
-    //     margin: 5mm;
-    //   }
-    //   @media print {
-    //     body { -webkit-print-color-adjust: exact; }
-    //     .no-print { display: none !important; }
-    //   }
-    // `,
   });
+
+  // 2. Fungsi Interseptor untuk Mendeteksi Flutter Mobile App
+  const handlePrintAction = () => {
+    if (typeof window !== "undefined" && (window as any).FlutterChannel) {
+      // Ambil HTML mentah dari konten laporan
+      const printHtml = contentRef.current?.innerHTML || "";
+      const docTitle = `Laporan KBM Desa ${context.villageName} - ${monthName} ${year}`;
+
+      // Tembakkan data ke Flutter Channel
+      (window as any).FlutterChannel.postMessage(
+        JSON.stringify({
+          action: "trigger_print",
+          htmlContent: printHtml,
+          title: docTitle,
+        })
+      );
+    } else {
+      // Jika di browser desktop, jalankan normal
+      handlePrintWeb();
+    }
+  };
 
   const sectionConfig = [
     { key: 'census', label: '1. Sensus Generus', comp: VillageCensusTable },
@@ -175,7 +186,7 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
           </div>
           
           <button
-            onClick={handlePrint}
+            onClick={handlePrintAction}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-center font-black text-xs uppercase tracking-wider text-white hover:bg-opacity-90 shadow-lg shadow-red-600/20 transition active:scale-95 self-start sm:self-center"
           >
             <Printer size={16} /> Cetak / Download PDF

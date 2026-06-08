@@ -19,18 +19,48 @@ export function GroupKbmReportPrintView({ context, monthName, year }: KbmReportP
   // 2. Hook untuk handle print
   const handlePrint = useReactToPrint({
     contentRef: contentRef, // Gunakan contentRef (versi terbaru react-to-print)
-    documentTitle: `Laporan KBM - ${context.groupName} - ${monthName} ${year}`,
-    // onBeforeGetContent: () => {
-    //     // Opsional: Logika sebelum print (misal set loading state)
-    // },
   });
+
+  const handlePrintWeb = useReactToPrint({
+    contentRef: contentRef,
+    documentTitle: `Laporan_KBM_${context.groupName.replace(/\s+/g, "_")}_${monthName}_${year}`,
+    pageStyle: `
+      @page { size: A4; margin: 5mm; }
+      @media print {
+        body { -webkit-print-color-adjust: exact; }
+        .no-print { display: none !important; }
+        #print-content-wrapper { transform: scale(0.85); transform-origin: top left; width: 117.6%; }
+      }
+    `,
+  });
+
+  // 2. Fungsi Interseptor untuk Mendeteksi Flutter Mobile App
+  const handlePrintAction = () => {
+    if (typeof window !== "undefined" && (window as any).FlutterChannel) {
+      // Ambil HTML mentah dari konten laporan
+      const printHtml = contentRef.current?.innerHTML || "";
+      const docTitle = `Laporan_KBM_${context.groupName.replace(/\s+/g, "_")}_${monthName}_${year}`;
+
+      // Tembakkan data ke Flutter Channel
+      (window as any).FlutterChannel.postMessage(
+        JSON.stringify({
+          action: "trigger_print",
+          htmlContent: printHtml,
+          title: docTitle,
+        })
+      );
+    } else {
+      // Jika di browser desktop, jalankan normal
+      handlePrintWeb();
+    }
+  };
 
   return (
     <>
       {/* --- Tombol Download PDF (Muncul di UI Web) --- */}
       <div className="mb-6 flex justify-end">
         <button
-          onClick={() => handlePrint()}
+          onClick={() => handlePrintAction()}
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 shadow-md transition"
         >
           <FaFilePdf />

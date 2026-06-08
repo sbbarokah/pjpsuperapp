@@ -18,28 +18,39 @@ export function MuslimunRecapTable({ reports, groups }: MuslimunRecapTableProps)
   // State untuk memilih format tampilan (default: format 1)
   const [activeFormat, setActiveFormat] = useState<1 | 2>(1);
 
-  // Fungsi cetak dari react-to-print
-  const handlePrint = useReactToPrint({
+  // 1. Fungsi Cetak Asli Web (Tetap Dipertahankan)
+  const handlePrintWeb = useReactToPrint({
     contentRef: componentRef,
     documentTitle: `Rekap_Musyawarah_5_Unsur_${format(new Date(), "yyyy-MM-dd")}`,
     pageStyle: `
-      @page {
-        size: A4;
-        margin: 5mm;
-      }
+      @page { size: A4; margin: 5mm; }
       @media print {
         body { -webkit-print-color-adjust: exact; }
         .no-print { display: none !important; }
-
-        /* Simulasi Scale 85% */
-        #print-content-wrapper {
-          transform: scale(0.85);
-          transform-origin: top left;
-          width: 117.6%; /* 100 / 0.85 = 117.6, untuk menutupi sisa ruang */
-        }
+        #print-content-wrapper { transform: scale(0.85); transform-origin: top left; width: 117.6%; }
       }
     `,
   });
+
+  // 2. Fungsi Interseptor Khusus Mobile App
+  const handlePrintAction = () => {
+    if (typeof window !== "undefined" && (window as any).FlutterChannel) {
+      // Mengambil seluruh HTML mentah dari area tabel rekap yang ingin dicetak
+      const printHtml = componentRef.current?.innerHTML || "";
+      
+      // Kirim data HTML ke Flutter via Channel
+      (window as any).FlutterChannel.postMessage(
+        JSON.stringify({
+          action: "trigger_print",
+          htmlContent: printHtml,
+          title: `Rekap_Musyawarah_5_Unsur_${format(new Date(), "yyyy-MM-dd")}`
+        })
+      );
+    } else {
+      // Jika dibuka di browser PC biasa, jalankan print web normal
+      handlePrintWeb();
+    }
+  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -79,7 +90,7 @@ export function MuslimunRecapTable({ reports, groups }: MuslimunRecapTableProps)
         {/* Tombol Cetak / Print */}
         <button
           type="button"
-          onClick={() => handlePrint()}
+          onClick={() => handlePrintAction()}
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-center font-medium text-white hover:bg-opacity-90 shadow-md transition-all"
         >
           <Printer size={18} />
