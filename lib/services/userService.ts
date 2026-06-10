@@ -124,6 +124,94 @@ export async function getUsersForAdmin(
   return combinedUsers;
 }
 
+export async function getUsersForAdminServerSide({
+  admin,
+  search,
+  group,
+  category,
+  page,
+  limit,
+}: {
+  admin: CurrentAdminUser; // Sesuaikan dengan tipe/interface admin Anda
+  search: string;
+  group: string;
+  category: string;
+  page: number;
+  limit: number;
+}) {
+  const supabase = createAdminClient();
+  
+  let query = supabase
+    .from("profile")
+    .select(`
+      *,
+      village (name),
+      group (name),
+      category (name)
+    `, { count: "exact" }); // { count: "exact" } untuk mengambil total data keseluruhan
+
+  // Filter Hak Akses Admin (Logika lama Anda)
+  if (admin.role === "admin_desa") query = query.eq("village_id", admin.village_id);
+  if (admin.role === "admin_kelompok") query = query.eq("group_id", admin.group_id);
+
+  // --- [BARU] Filter Level Database ---
+  if (group) query = query.eq("group.name", group);
+  if (category) query = query.eq("category.name", category);
+  if (search) query = query.or(`full_name.ilike.%${search}%,username.ilike.%${search}%`);
+
+  // --- [BARU] Pagination Level Database ---
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+  query = query.range(from, to);
+
+  const { data: profiles, error, count } = await query;
+  
+  if (error) {
+    console.error("Error fetching filtered profiles:", error.message);
+    throw new Error(error.message);
+  }
+  
+  // Jika tidak ada profil yang cocok, langsung kembalikan array kosong
+  if (!profiles || profiles.length === 0) {
+    return {
+      users: [],
+      totalItems: 0
+    };
+  }
+
+  // 4. Dapatkan semua data user dari auth (Tetap tidak efisien)
+  const {
+    data: { users: authUsers },
+    error: authError,
+  } = await supabase.auth.admin.listUsers();
+
+  if (authError) {
+    console.error("Error fetching auth users:", authError.message);
+    throw new Error(authError.message);
+  }
+
+  // 5. Buat Map untuk pencarian email yang efisien
+  const authUserMap = new Map(authUsers.map((user) => [user.id, user]));
+
+  // 6. Gabungkan data (sekarang 'profiles' sudah terfilter)
+  const combinedUsers: UserAdminView[] = profiles.map((profile) => {
+    const authUser = authUserMap.get(profile.user_id);
+    return {
+      ...profile,
+      email: authUser?.email || "N/A",
+      // Pastikan 'group' dan 'class' adalah objek atau null
+      village: profile.village ? { name: profile.village.name } : null,
+      group: profile.group ? { name: profile.group.name } : null,
+      category: profile.category ? { name: profile.category.name } : null,
+    };
+  });
+
+  return {
+    users: combinedUsers,
+    totalItems: count || 0
+  };
+}
+
 /**
  * Mendapatkan detail satu pengguna berdasarkan user_id (Auth ID)
  * @param userId - ID dari auth.users

@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import Breadcrumb from "@/components/ui/breadcrumb";
 import { createClient } from "@/lib/supabase/server_user";
-import { getUsersForAdmin } from "@/lib/services/userService";
+import { getUsersForAdmin, getUsersForAdminServerSide } from "@/lib/services/userService";
 import {
   getGroups,
   getVillages,
@@ -17,6 +17,16 @@ import { ExportButton } from "./_components/export_button";
 export const metadata = {
   title: "Daftar Generus | Admin",
 };
+
+interface PageProps {
+  searchParams: Promise<{
+    search?: string;
+    group?: string;
+    category?: string;
+    page?: string;
+    limit?: string;
+  }>;
+}
 
 export type UserFormMasterData = {
   groups: Awaited<ReturnType<typeof getGroups>>;
@@ -46,7 +56,7 @@ function CardGridSkeleton() {
 }
 
 // --- Komponen Server untuk Fetching Data ---
-async function UserList() {
+async function UserList2() {
   // 1. Panggil client dari 'server_user.ts'
   const supabase = await createClient();
 
@@ -71,15 +81,64 @@ async function UserList() {
 
   // 3. Panggil service dengan data admin yang login
   const users = await getUsersForAdmin(adminProfile);
+  const allClass = await getCategories();
 
   // 4. [PERUBAHAN]
   //    Kita tidak me-render list di sini lagi.
   //    Kita kirim 'users' ke Client Component untuk di-filter dan di-render.
-  return <FilteredUserListClient users={users} />;
+  // return <FilteredUserListClient users={users} allClass={allClass} />;
+}
+
+async function UserList({ resolvedParams }: { resolvedParams: Awaited<PageProps["searchParams"]> }) {
+  const search = resolvedParams.search || "";
+  const group = resolvedParams.group || "";
+  const category = resolvedParams.category || "";
+  const page = Number(resolvedParams.page) || 1;
+  const limit = Number(resolvedParams.limit) || 10;
+
+  const supabase = await createClient();
+
+  // 1. Dapatkan session admin yang login
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return <p className="text-center">Sesi tidak valid.</p>;
+
+  const { data: adminProfile } = await supabase
+    .from("profile")
+    .select("role, village_id, group_id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!adminProfile) {
+    return <p className="text-center">Profil admin tidak ditemukan.</p>;
+  }
+
+  // 2. Ambil data terfilter & ter-paginate langsung dari DB
+  const { users, totalItems } = await getUsersForAdminServerSide({
+    admin: adminProfile,
+    search,
+    group,
+    category,
+    page,
+    limit,
+  });
+
+  const allClass = await getCategories();
+
+  return (
+    <FilteredUserListClient 
+      users={users} 
+      allClass={allClass} 
+      totalItems={totalItems}
+      currentPage={page}
+      itemsPerPage={limit}
+    />
+  );
 }
 
 // --- Halaman Utama ---
-export default function GenerusListPage() {
+export default async function GenerusListPage({ searchParams }: PageProps) {
+  const resolvedParams = await searchParams;
+
   return (
     <>
       {/* Header: Breadcrumb dan Tombol Tambah Baru */}
@@ -139,8 +198,8 @@ export default function GenerusListPage() {
 
       {/* Grid Data dengan Suspense */}
       <div className="mt-6">
-        <Suspense fallback={<CardGridSkeleton />}>
-          <UserList />
+        <Suspense key={JSON.stringify(resolvedParams)} fallback={<CardGridSkeleton />}>
+          <UserList resolvedParams={resolvedParams} />
         </Suspense>
       </div>
     </>

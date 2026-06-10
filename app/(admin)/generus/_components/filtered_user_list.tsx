@@ -1,39 +1,18 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { UserAdminView } from "@/lib/types/user.types"; // Perlu tipe UserAdminView
 import { UserCard } from "@/components/cards/carduser"; // Impor UserCard Anda
 import { DeleteUserButton } from "./delete_user_button"; // Asumsi path ini benar
 import Link from "next/link";
 import { FaEye, FaFilter } from "react-icons/fa";
 import { UserDetailModal } from "./user_detail_modal";
-
-// --- [BARU] Ikon Search (dari contoh Anda) ---
-const SearchIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 20 20"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    {...props}
-  >
-    <path
-      d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
-      stroke="#637381"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M17.5 17.5L14.1667 14.1667"
-      stroke="#637381"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+import { UpdateCategoryModal } from "./update_category_modal";
+import { ChevronLeft, ChevronRight, Eye, Layers, Search } from "lucide-react";
+import { updateUserAction } from "../actions";
+import { CategoryModel } from "@/lib/types/master.types";
+import { useRouter, useSearchParams } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 /**
  * [BARU] Komponen Select Dropdown internal yang ringan
@@ -82,69 +61,141 @@ const FilterSelect = ({
 );
 
 type FilteredUserListProps = {
-  users: UserAdminView[]; // Menerima list lengkap dari server
+  users: UserAdminView[];
+  allClass: CategoryModel[];
+  totalItems: number;
+  currentPage: number;
+  itemsPerPage: number;
 };
 
-export function FilteredUserListClient({ users }: FilteredUserListProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [groupFilter, setGroupFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
+export function FilteredUserListClient({ 
+  users, 
+  allClass, 
+  totalItems, 
+  currentPage, 
+  itemsPerPage 
+}: FilteredUserListProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // State lokal khusus penampung ketikan teks input (untuk Debounce)
+  const [searchInput, setSearchInput] = useState(searchParams.get("search") || "");
+  const [isInitialMount, setIsInitialMount] = useState(true);
 
-  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  // State Manajemen Modal
+  const [selectedUser, setSelectedUser] = useState<UserAdminView | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [userForCategory, setUserForCategory] = useState<UserAdminView | null>(null);
+
+  // Ambil nilai filter aktif saat ini dari URL params
+  const currentGroup = searchParams.get("group") || "";
+  const currentCategory = searchParams.get("category") || "";
+
+  // Logika Pusat Perubahan Filter & Pagination via URL Params
+  const updateUrlParams = (newParams: Record<string, string | number | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value === null || value === "") {
+        params.delete(key);
+      } else {
+        params.set(key, String(value));
+      }
+    });
+
+    // Otomatis reset ke page 1 jika filter utama berubah (bukan trigger ganti page)
+    if (!newParams.page) {
+      params.set("page", "1");
+    }
+
+    router.push(`?${params.toString()}`);
+  };
+
+  // Debounce Logic untuk Pencarian Teks Minimal 3 Karakter
+  useEffect(() => {
+    // Jika ini adalah render pertama kali (misal saat baru pindah halaman),
+    // lewati fungsi debounce agar tidak memaksa reset ke Page 1
+    if (isInitialMount) {
+      setIsInitialMount(false);
+      return;
+    }
+
+    const delayDebounce = setTimeout(() => {
+      if (searchInput.length === 0 || searchInput.length >= 3) {
+        updateUrlParams({ search: searchInput });
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchInput]);
 
   const handleViewDetails = (user: any) => {
     setSelectedUser(user);
     setIsModalOpen(true);
   };
 
+  const handleOpenCategoryModal = (user: any) => {
+    setUserForCategory(user);
+    setIsCategoryModalOpen(true);
+  };
+
+  // Fungsi Handler Eksekusi Update ke Server Action
+  const handleConfirmCategoryUpdate = async (userId: string, newCategoryName: string) => {
+    try {
+      // 1. Cari data objek kategori lengkap dari properti allClass untuk mendapatkan ID-nya
+      // Karena allClass berisi master CategoryModel yang dikirim dari server
+      const targetCategory = allClass.find(c => c.name === newCategoryName);
+
+      if (!targetCategory) {
+        return { 
+          success: false, 
+          message: `Kategori "${newCategoryName}" tidak ditemukan dalam master data.` 
+        };
+      }
+
+      // 2. Susun payload sesuai dengan struktur UpdateUserFormPayload yang dibutuhkan oleh updateUserAction
+      const payload = {
+        profileData: {
+          category_id: targetCategory.id // Ambil ID (bisa berupa number/string/bigint sesuai DB Anda)
+        }
+      };
+
+      // 3. Panggil Server Action milik Anda
+      const response = await updateUserAction(userId, payload);
+
+      if (response.success) {
+        router.refresh(); // Segarkan data RSC di client-side
+        return { success: true, message: response.message };
+      } else {
+        return { success: false, message: response.message };
+      }
+
+    } catch (err: any) {
+      console.error("handleConfirmCategoryUpdate Error:", err);
+      return { 
+        success: false, 
+        message: "Terjadi kesalahan saat memproses pembaruan kategori kelas." 
+      };
+    }
+  };
+
   const { uniqueGroups, uniqueCategories } = useMemo(() => {
     const groupSet = new Set<string>();
     const categorySet = new Set<string>();
 
-    for (const user of users) {
-      if (user.group?.name) {
-        groupSet.add(user.group.name);
-      }
-      if (user.category?.name) {
-        categorySet.add(user.category.name);
-      }
-    }
+    allClass.forEach(c => categorySet.add(c.name));
+    users.forEach(user => {
+      if (user.group?.name) groupSet.add(user.group.name);
+    });
 
     return {
       uniqueGroups: Array.from(groupSet).sort(),
       uniqueCategories: Array.from(categorySet).sort(),
     };
-  }, [users]);
+  }, [users, allClass]);
 
-  const filteredUsers = useMemo(() => {
-    const query = searchQuery.toLowerCase().trim();
-    const groupF = groupFilter.trim();
-    const categoryF = categoryFilter.trim();
-
-    // Terapkan filter secara berurutan (logika "AND")
-    return users
-      .filter((user) => {
-        // Filter 1: Group
-        if (!groupF) return true; // Lewati jika "Semua Kelompok"
-        return user.group?.name === groupF;
-      })
-      .filter((user) => {
-        // Filter 2: Category
-        if (!categoryF) return true; // Lewati jika "Semua Kelas"
-        return user.category?.name === categoryF;
-      })
-      .filter((user) => {
-        // Filter 3: Text Search
-        if (!query) return true; // Lewati jika search kosong
-        return (
-          user.full_name?.toLowerCase().includes(query) ||
-          user.username?.toLowerCase().includes(query) ||
-          user.email?.toLowerCase().includes(query) ||
-          user.village?.name?.toLowerCase().includes(query)
-        );
-      });
-  }, [users, searchQuery, groupFilter, categoryFilter]); // Filter ulang hanya jika data atau query berubah
+  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
 
   return (
     <div className="flex flex-col gap-6">
@@ -153,93 +204,177 @@ export function FilteredUserListClient({ users }: FilteredUserListProps) {
         {/* Search Bar (sebelumnya full-width, sekarang 1/3) */}
         <div className="w-full md:col-span-1">
           <label htmlFor="search" className="mb-2.5 block font-medium text-black dark:text-white">
-            Cari Nama
+            Cari Nama (min. 3 karakter)
           </label>
-          <div className="relative"> 
+          <div className="relative">
             <input
               id="search"
               type="search"
               placeholder="Cari..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex w-full items-center gap-3.5 rounded-full border bg-white py-3 pl-[53px] pr-5 outline-none transition-colors focus-visible:border-primary dark:border-dark-3 dark:bg-dark-2 dark:hover:border-dark-4 dark:hover:bg-dark-3 dark:hover:text-dark-6 dark:focus-visible:border-primary"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="flex w-full items-center gap-3.5 rounded-full border bg-white py-3 pl-[53px] pr-5 outline-none transition-colors focus-visible:border-primary dark:border-dark-3 dark:bg-dark-2 dark:hover:border-dark-4 dark:hover:bg-dark-3 dark:focus-visible:border-primary text-black dark:text-white"
             />
-            <SearchIcon className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 max-[1015px]:size-5" />
+            <Search size={18} className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-gray-500" />
           </div>
         </div>
-        
+
         {/* Filter Kelompok */}
         <FilterSelect
           label="Filter Kelompok"
           name="group_filter"
-          value={groupFilter}
-          onChange={(e) => setGroupFilter(e.target.value)}
+          value={currentGroup}
+          onChange={(e) => updateUrlParams({ group: e.target.value })}
           options={uniqueGroups}
           placeholder="Semua Kelompok"
         />
 
-        {/* Filter Kategori/Kelas */}
         <FilterSelect
           label="Filter Kelas"
           name="category_filter"
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
+          value={currentCategory}
+          onChange={(e) => updateUrlParams({ category: e.target.value })}
           options={uniqueCategories}
           placeholder="Semua Kelas"
         />
       </div>
 
-      {/* --- Grid Data (Logika lama dari UserList) --- */}
-      {users.length === 0 ? (
-        <div className="text-center text-gray-600 dark:text-gray-300">
-          Belum ada data Generus.
-          <Link
-            href="/generus/new"
-            className="ml-2 text-primary hover:underline"
-          >
-            Buat Baru
-          </Link>
-        </div>
-      ) : filteredUsers.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredUsers.map((user) => {
-            const userName = user.full_name?.trim() || user.username;
-            return (
-              <UserCard
-                key={user.user_id}
-                user={user}
-                href={`/generus/edit/${user.user_id}`}
-                // actions={<DeleteUserButton id={user.user_id} name={userName} />}
-                actions={
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            handleViewDetails(user);
-                        }}
-                        className="group flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 hover:bg-primary/20 transition-all"
-                        title="Lihat Detail"
-                    >
-                      <FaEye />
-                    </button>
-                    <DeleteUserButton id={user.user_id} name={user.full_name || user.username} />
-                </div>
-                }
-              />
-            );
-          })}
+      {/* --- GRID USER CARD --- */}
+      {totalItems === 0 ? (
+        <div className="text-center text-gray-600 dark:text-gray-300 py-10">
+          Tidak ada data Generus yang cocok dengan kriteria pencarian.
         </div>
       ) : (
-        <div className="text-center text-gray-600 dark:text-gray-300">
-          Tidak ada generus yang cocok dengan pencarian "{searchQuery}".
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {users.map((user) => (
+            <UserCard
+              key={user.user_id}
+              user={user}
+              href={`/generus/edit/${user.user_id}`}
+              actions={
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      handleOpenCategoryModal(user);
+                    }}
+                    className="group flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-all dark:text-amber-400"
+                    title="Ubah Kategori Kelas"
+                  >
+                    <Layers size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      handleViewDetails(user);
+                    }}
+                    className="group flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all"
+                    title="Lihat Detail"
+                  >
+                    <Eye size={14} />
+                  </button>
+                  <DeleteUserButton id={user.user_id} name={user.full_name || user.username} />
+                </div>
+              }
+            />
+          ))}
         </div>
       )}
 
-      <UserDetailModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        user={selectedUser} 
+      {/* --- PANEL PAGINATION CONTROL --- */}
+      {totalItems > 0 && (
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-[2rem] border border-stroke dark:border-slate-700 shadow-default flex flex-col md:flex-row items-center justify-between gap-4">
+          
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 text-center sm:text-left">
+              Menampilkan <span className="font-black text-slate-800 dark:text-white">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="font-black text-slate-800 dark:text-white">{Math.min(currentPage * itemsPerPage, totalItems)}</span> dari <span className="font-black text-slate-850 dark:text-slate-200">{totalItems}</span> data generus
+            </span>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                <Layers size={12} /> Tampilkan:
+              </span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => updateUrlParams({ limit: Number(e.target.value), page: 1 })}
+                className="p-1.5 px-2.5 text-xs font-black rounded-xl border border-stroke dark:border-slate-700 bg-gray-50 dark:bg-slate-750 text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-primary transition-all cursor-pointer"
+              >
+                <option value={10}>10 Baris</option>
+                <option value={25}>25 Baris</option>
+                <option value={50}>50 Baris</option>
+                <option value={100}>100 Baris</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 justify-center w-full md:w-auto">
+            <button
+              type="button"
+              disabled={currentPage === 1}
+              onClick={() => updateUrlParams({ page: Math.max(1, currentPage - 1) })}
+              className="w-10 h-10 rounded-xl border border-stroke dark:border-slate-700 flex items-center justify-center bg-white dark:bg-dark-2 hover:bg-gray-50 dark:hover:bg-slate-750 text-black dark:text-white transition-all disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            {Array.from({ length: totalPages }).map((_, i) => {
+              const pageNum = i + 1;
+              const isNearCurrent = Math.abs(currentPage - pageNum) <= 1;
+              const isEdge = pageNum === 1 || pageNum === totalPages;
+
+              if (!isNearCurrent && !isEdge) {
+                if (pageNum === 2 || pageNum === totalPages - 1) {
+                  return <span key={pageNum} className="text-xs text-slate-400 px-1 font-bold">...</span>;
+                }
+                return null;
+              }
+
+              return (
+                <button
+                  key={pageNum}
+                  type="button"
+                  onClick={() => updateUrlParams({ page: pageNum })}
+                  className={cn(
+                    "w-10 h-10 rounded-xl text-xs font-black transition-all border",
+                    currentPage === pageNum
+                      ? "bg-black border-black text-white dark:bg-white dark:text-black dark:border-white shadow-lg"
+                      : "border-stroke dark:border-slate-700 bg-white dark:bg-dark-2 hover:bg-gray-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300"
+                  )}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+
+            <button
+              type="button"
+              disabled={currentPage === totalPages}
+              onClick={() => updateUrlParams({ page: Math.min(totalPages, currentPage + 1) })}
+              className="w-10 h-10 rounded-xl border border-stroke dark:border-slate-700 flex items-center justify-center bg-white dark:bg-dark-2 hover:bg-gray-50 dark:hover:bg-slate-750 text-black dark:text-white transition-all disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+
+        </div>
+      )}
+
+      <UserDetailModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        user={selectedUser}
+      />
+
+      <UpdateCategoryModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        user={userForCategory}
+        categories={uniqueCategories} // Menggunakan list kategori unik yang sudah diproses useMemo Anda
+        onConfirm={handleConfirmCategoryUpdate}
       />
     </div>
   );
