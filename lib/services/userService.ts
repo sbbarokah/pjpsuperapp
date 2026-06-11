@@ -131,35 +131,45 @@ export async function getUsersForAdminServerSide({
   category,
   page,
   limit,
+  sortBy = "asc", // <--- Tambah parameter sort baru (default "asc" alias A-Z)
 }: {
-  admin: CurrentAdminUser; // Sesuaikan dengan tipe/interface admin Anda
+  admin: CurrentAdminUser;
   search: string;
   group: string;
   category: string;
   page: number;
   limit: number;
+  sortBy?: "asc" | "desc";
 }) {
   const supabase = createAdminClient();
   
+  // 1. [PERBAIKAN SINTAKS] Tambahkan !inner agar filter JOIN berfungsi memotong data profile
   let query = supabase
     .from("profile")
     .select(`
       *,
       village (name),
-      group (name),
-      category (name)
-    `, { count: "exact" }); // { count: "exact" } untuk mengambil total data keseluruhan
+      group${group ? "!inner" : ""} (name),
+      category${category ? "!inner" : ""} (name)
+    `, { count: "exact" }); 
 
-  // Filter Hak Akses Admin (Logika lama Anda)
+  // Filter Hak Akses Admin
   if (admin.role === "admin_desa") query = query.eq("village_id", admin.village_id);
   if (admin.role === "admin_kelompok") query = query.eq("group_id", admin.group_id);
 
-  // --- [BARU] Filter Level Database ---
+  // --- [PERBAIKAN FILTER] Menggunakan nama tabel relasi yang tepat sesuai inner join ---
   if (group) query = query.eq("group.name", group);
   if (category) query = query.eq("category.name", category);
-  if (search) query = query.or(`full_name.ilike.%${search}%,username.ilike.%${search}%`);
+  
+  if (search) {
+    query = query.or(`full_name.ilike.%${search}%,username.ilike.%${search}%`);
+  }
 
-  // --- [BARU] Pagination Level Database ---
+  // --- [FITUR BARU] Sorting Level Database ---
+  // Melakukan sort berdasarkan kolom full_name secara ascending (A-Z) atau descending (Z-A)
+  query = query.order("full_name", { ascending: sortBy === "asc" });
+
+  // --- Pagination Level Database ---
   const from = (page - 1) * limit;
   const to = from + limit - 1;
   query = query.range(from, to);
@@ -171,35 +181,21 @@ export async function getUsersForAdminServerSide({
     throw new Error(error.message);
   }
   
-  // Jika tidak ada profil yang cocok, langsung kembalikan array kosong
   if (!profiles || profiles.length === 0) {
-    return {
-      users: [],
-      totalItems: 0
-    };
+    return { users: [], totalItems: 0 };
   }
 
-  // 4. Dapatkan semua data user dari auth (Tetap tidak efisien)
-  const {
-    data: { users: authUsers },
-    error: authError,
-  } = await supabase.auth.admin.listUsers();
+  // Ambil data auth_user untuk email mapping
+  const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
+  if (authError) throw new Error(authError.message);
 
-  if (authError) {
-    console.error("Error fetching auth users:", authError.message);
-    throw new Error(authError.message);
-  }
-
-  // 5. Buat Map untuk pencarian email yang efisien
   const authUserMap = new Map(authUsers.map((user) => [user.id, user]));
 
-  // 6. Gabungkan data (sekarang 'profiles' sudah terfilter)
   const combinedUsers: UserAdminView[] = profiles.map((profile) => {
     const authUser = authUserMap.get(profile.user_id);
     return {
       ...profile,
       email: authUser?.email || "N/A",
-      // Pastikan 'group' dan 'class' adalah objek atau null
       village: profile.village ? { name: profile.village.name } : null,
       group: profile.group ? { name: profile.group.name } : null,
       category: profile.category ? { name: profile.category.name } : null,

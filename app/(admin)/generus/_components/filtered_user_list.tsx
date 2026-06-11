@@ -8,7 +8,7 @@ import Link from "next/link";
 import { FaEye, FaFilter } from "react-icons/fa";
 import { UserDetailModal } from "./user_detail_modal";
 import { UpdateCategoryModal } from "./update_category_modal";
-import { ChevronLeft, ChevronRight, Eye, Layers, Search } from "lucide-react";
+import { ArrowDownZA, ArrowUpAZ, ChevronLeft, ChevronRight, Eye, Filter, Layers, Search } from "lucide-react";
 import { updateUserAction } from "../actions";
 import { CategoryModel } from "@/lib/types/master.types";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -184,7 +184,10 @@ export function FilteredUserListClient({
     const groupSet = new Set<string>();
     const categorySet = new Set<string>();
 
+    // Kategori dibaca langsung dari master data allClass agar opsinya lengkap
     allClass.forEach(c => categorySet.add(c.name));
+
+    // Kelompok tetap dari users (atau jika ada master groups dari server, lebih baik gunakan itu)
     users.forEach(user => {
       if (user.group?.name) groupSet.add(user.group.name);
     });
@@ -196,13 +199,15 @@ export function FilteredUserListClient({
   }, [users, allClass]);
 
   const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+  const currentSort = searchParams.get("sort") || "asc";
 
   return (
     <div className="flex flex-col gap-6">
       {/* --- [BARU] Komponen Search Bar --- */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Search Bar (sebelumnya full-width, sekarang 1/3) */}
-        <div className="w-full md:col-span-1">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+  
+        {/* AREA SEARCH: Diperluas menjadi col-span-4 */}
+        <div className="w-full md:col-span-5">
           <label htmlFor="search" className="mb-2.5 block font-medium text-black dark:text-white">
             Cari Nama (min. 3 karakter)
           </label>
@@ -219,24 +224,57 @@ export function FilteredUserListClient({
           </div>
         </div>
 
-        {/* Filter Kelompok */}
-        <FilterSelect
-          label="Filter Kelompok"
-          name="group_filter"
-          value={currentGroup}
-          onChange={(e) => updateUrlParams({ group: e.target.value })}
-          options={uniqueGroups}
-          placeholder="Semua Kelompok"
-        />
+        {/* FILTER KELOMPOK: Mengambil col-span-3 */}
+        <div className="w-full md:col-span-3">
+          <FilterSelect
+            label="Filter Kelompok"
+            name="group_filter"
+            value={currentGroup}
+            onChange={(e) => updateUrlParams({ group: e.target.value })}
+            options={uniqueGroups}
+            placeholder="Semua Kelompok"
+          />
+        </div>
 
-        <FilterSelect
-          label="Filter Kelas"
-          name="category_filter"
-          value={currentCategory}
-          onChange={(e) => updateUrlParams({ category: e.target.value })}
-          options={uniqueCategories}
-          placeholder="Semua Kelas"
-        />
+        {/* FILTER KELAS: Mengambil col-span-4 */}
+        <div className="w-full md:col-span-3">
+          <FilterSelect
+            label="Filter Kelas"
+            name="category_filter"
+            value={currentCategory}
+            onChange={(e) => updateUrlParams({ category: e.target.value })}
+            options={uniqueCategories}
+            placeholder="Semua Kelas"
+          />
+        </div>
+        
+        {/* TOMBOL URUTAN: Dipersempit menjadi col-span-1 saja */}
+        <div className="w-full md:col-span-1 flex flex-col items-center md:items-start">
+          {/* Label pembantu, tetap rapi di desktop */}
+          <label className="mb-2.5 block font-medium text-black dark:text-white invisible md:visible">
+            Urutan
+          </label>
+          
+          <button
+            type="button"
+            title={currentSort === "asc" ? "Urutan: A - Z (Klik untuk Z - A)" : "Urutan: Z - A (Klik untuk A - Z)"}
+            onClick={() => updateUrlParams({ sort: currentSort === "asc" ? "desc" : "asc" })}
+            className={cn(
+              "flex h-[50px] w-[50px] items-center justify-center rounded-full border border-stroke bg-white outline-none transition-all",
+              "hover:border-primary hover:bg-gray-50 active:scale-95",
+              "dark:border-dark-3 dark:bg-dark-2 dark:hover:border-dark-4 dark:hover:bg-dark-3",
+              currentSort === "desc" 
+                ? "text-primary border-primary dark:text-primary dark:border-primary" 
+                : "text-gray-500 dark:text-gray-400"
+            )}
+          >
+            {currentSort === "asc" ? (
+              <ArrowUpAZ size={20} />
+            ) : (
+              <ArrowDownZA size={20} />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* --- GRID USER CARD --- */}

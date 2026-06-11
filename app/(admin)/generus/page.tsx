@@ -25,6 +25,7 @@ interface PageProps {
     category?: string;
     page?: string;
     limit?: string;
+    sort?: string;
   }>;
 }
 
@@ -95,6 +96,7 @@ async function UserList({ resolvedParams }: { resolvedParams: Awaited<PageProps[
   const category = resolvedParams.category || "";
   const page = Number(resolvedParams.page) || 1;
   const limit = Number(resolvedParams.limit) || 10;
+  const sort = resolvedParams.sort === "desc" ? "desc" : "asc";
 
   const supabase = await createClient();
 
