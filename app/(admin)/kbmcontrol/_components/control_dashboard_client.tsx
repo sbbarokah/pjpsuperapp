@@ -300,7 +300,7 @@ export function ControlDashboardClient({
               <History size={18} className="text-emerald-600" /> Log Aktivitas Kontrol
             </h4>
             <Link
-              href="/control/recap" 
+              href="/kbmcontrol/recap" 
               className="inline-flex items-center justify-center gap-1.5 rounded-full bg-emerald-600 px-4 py-1.5 text-center text-xs font-semibold text-white hover:bg-opacity-90 shadow-sm transition"
             >
               <Plus size={14} /> Buka Lembar Progres
