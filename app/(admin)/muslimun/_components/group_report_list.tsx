@@ -1,4 +1,4 @@
-import { formatReportDate } from "@/lib/utils";
+import { formatCreatedDate, formatReportDate } from "@/lib/utils";
 import { getMeetingReportsList } from "@/lib/services/mReportService";
 import { MeetingReportWithRelations } from "@/lib/types/mreport.types";
 import { Profile } from "@/lib/types/user.types";
@@ -26,6 +26,9 @@ function MeetingReportCard({ report }: { report: MeetingReportWithRelations }) {
           </p>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Periode: {report.period_month}/{report.period_year}
+          </p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
+            Dibuat: {formatCreatedDate(report.created_at)}
           </p>
         </div>
       </Link>

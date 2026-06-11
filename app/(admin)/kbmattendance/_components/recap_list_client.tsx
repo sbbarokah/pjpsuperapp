@@ -13,6 +13,7 @@ import { currentYear, monthOptions, yearOptions } from "@/lib/constants";
 import { CategoryModel, GroupModel } from "@/lib/types/master.types";
 import IconSearch from "@/components/icon/IconSearch";
 import { FiFilter } from "react-icons/fi";
+import { formatCreatedDate } from "@/lib/utils";
 
 interface ListProps {
   recaps: AttendanceRecapWithRelations[];
@@ -33,9 +34,15 @@ const RecapCard = ({
       <h3 className="font-semibold text-lg text-black dark:text-white truncate">
         {recap.group.name}
       </h3>
-      <p className="text-sm font-medium text-primary">
-        {recap.category.name}
-      </p>
+      <div className="flex justify-between items-center">
+        <p className="text-sm font-medium text-primary">
+          {recap.category.name}
+        </p>
+        {/* Tambahan informasi created_at */}
+        <p className="text-[10px] text-gray-500 dark:text-gray-400 italic">
+          Dibuat: {formatCreatedDate(recap.created_at)}
+        </p>
+      </div>
     </div>
     
     <div className="p-4 flex-grow">

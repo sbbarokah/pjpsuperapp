@@ -65,6 +65,20 @@ export function formatReportDate(dateString: string): string {
     }).format(date);
 }
 
+/**
+ * Format tanggal untuk metadata pembuatan (e.g., 11 Jun 2026, 10:27)
+ */
+export function formatCreatedDate(dateString: string): string {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    }).format(date);
+}
+
 export const getNameFallback = (fullName: any) => {
   if (!fullName) return "";
   

@@ -363,7 +363,7 @@ export function EvaluationRecapForm({
             value={formData.group_id}
             onChange={handleFormChange}
             options={groups.map((g) => ({ value: String(g.id), label: g.name }))}
-            disabled={isAdminKelompok || isEditMode}
+            disabled={isAdminKelompok}
             required
           />
           <SelectGroupV2
@@ -372,7 +372,7 @@ export function EvaluationRecapForm({
             value={formData.category_id}
             onChange={handleFormChange}
             options={categories.map((c) => ({ value: String(c.id), label: c.name }))}
-            disabled={isEditMode}
+            // disabled={isEditMode}
             required
           />
           <SelectGroupV2
@@ -381,7 +381,7 @@ export function EvaluationRecapForm({
             value={formData.period_month}
             onChange={handleFormChange}
             options={monthOptions}
-            disabled={isEditMode}
+            // disabled={isEditMode}
             required
           />
           <SelectGroupV2
@@ -390,7 +390,7 @@ export function EvaluationRecapForm({
             value={formData.period_year}
             onChange={handleFormChange}
             options={yearOptions}
-            disabled={isEditMode}
+            // disabled={isEditMode}
             required
           />
         </div>

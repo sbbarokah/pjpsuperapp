@@ -324,7 +324,7 @@ export function AttendanceRecapForm({
             value={formData.group_id}
             onChange={handleFormChange}
             options={groups.map((g) => ({ value: String(g.id), label: g.name }))}
-            disabled={isAdminKelompok || isEditMode} // Kunci jika admin kelompok atau mode edit
+            disabled={isAdminKelompok} // Kunci jika admin kelompok atau mode edit
             required
           />
           <SelectGroupV2
@@ -333,7 +333,7 @@ export function AttendanceRecapForm({
             value={formData.category_id}
             onChange={handleFormChange}
             options={categories.map((c) => ({ value: String(c.id), label: c.name }))}
-            disabled={isEditMode} // Kunci jika mode edit
+            // disabled={isEditMode} // Kunci jika mode edit
             required
           />
           <SelectGroupV2
@@ -342,7 +342,7 @@ export function AttendanceRecapForm({
             value={formData.period_month}
             onChange={handleFormChange}
             options={monthOptions}
-            disabled={isEditMode}
+            // disabled={isEditMode}
             required
           />
           <SelectGroupV2
@@ -351,7 +351,7 @@ export function AttendanceRecapForm({
             value={formData.period_year}
             onChange={handleFormChange}
             options={yearOptions}
-            disabled={isEditMode}
+            // disabled={isEditMode}
             required
           />
         </div>
