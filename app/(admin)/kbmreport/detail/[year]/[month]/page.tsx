@@ -124,6 +124,8 @@ export default async function GroupKbmDetailPage({ params, searchParams }: PageP
         context={context}
         monthName={monthName as string}
         year={year}
+        month={month}
+        groupId={targetGroupId}
       />
     </>
   );

@@ -2,25 +2,24 @@
 
 import { useRef } from "react";
 import { useReactToPrint } from "react-to-print";
-import { FaPrint, FaFilePdf } from "react-icons/fa";
 import { KbmDetailContext } from "@/lib/types/report.types";
 import { KbmCategorySection } from "@/app/(admin)/kbmreport/_components/kbm_category_section";
+import { FileText, Play } from "lucide-react";
+import Link from "next/link";
 
 interface KbmReportPrintViewProps {
   context: KbmDetailContext;
   monthName: string;
   year: number;
+  month: number;
+  groupId: number;
 }
 
-export function GroupKbmReportPrintView({ context, monthName, year }: KbmReportPrintViewProps) {
+export function GroupKbmReportPrintView({ context, monthName, year, month, groupId }: KbmReportPrintViewProps) {
   // 1. Buat referensi ke elemen yang ingin dicetak
   const contentRef = useRef<HTMLDivElement>(null);
 
   // 2. Hook untuk handle print
-  const handlePrint = useReactToPrint({
-    contentRef: contentRef, // Gunakan contentRef (versi terbaru react-to-print)
-  });
-
   const handlePrintWeb = useReactToPrint({
     contentRef: contentRef,
     documentTitle: `Laporan_KBM_${context.groupName.replace(/\s+/g, "_")}_${monthName}_${year}`,
@@ -58,13 +57,19 @@ export function GroupKbmReportPrintView({ context, monthName, year }: KbmReportP
   return (
     <>
       {/* --- Tombol Download PDF (Muncul di UI Web) --- */}
-      <div className="mb-6 flex justify-end">
+      <div className="mb-6 flex flex-wrap justify-end gap-3 print:hidden">
+        <Link
+          href={`/presentation/kbm/${year}/${month}/${groupId}`}
+          target="_blank" // Opsional: Buka di tab baru agar halaman admin tetap terbuka
+          className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2 text-white"
+        >
+          <Play size={18} /> Mode Presentasi
+        </Link>
         <button
           onClick={() => handlePrintAction()}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 shadow-md transition"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-5 py-2 text-center font-medium text-white hover:bg-red-700 shadow-md transition"
         >
-          <FaFilePdf />
-          Download PDF / Cetak
+          <FileText size={18} /> Download PDF / Cetak
         </button>
       </div>
 
