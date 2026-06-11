@@ -30,6 +30,7 @@ export const NAV_DATA = [
           { title: "Kehadiran KBM", url: "/kbmattendance" },
           { title: "Penilaian KBM", url: "/kbmevaluation" },
           { title: "Laporan KBM", url: "/kbmreport" },
+          { title: "Lembar Kontrol", url: "/kbmcontrol" },
         ], 
       },
       { 
