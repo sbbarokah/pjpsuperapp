@@ -31,6 +31,8 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
     success: true,
   });
 
+  const [isRingkasCR, setIsRingkasCR] = useState(false);
+
   // --- STATE KONTROL VISIBILITAS KELOMPOK (MENGGUNAKAN SET<NUMBER>) ---
   const [visibleGroupIds, setVisibleGroupIds] = useState<Set<number>>(() => {
     return new Set(context.groups.map(g => Number(g.id)));
@@ -196,22 +198,41 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
           {/* Kolom 1: Visibilitas Bab Laporan */}
-          <div className="space-y-3">
-            <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Kontrol Bab Laporan</span>
-            <div className="grid grid-cols-1 gap-2">
-              {sectionConfig.map((sec) => (
-                <div key={sec.key} className="flex items-center justify-between p-3 rounded-xl border border-stroke bg-gray-50 dark:bg-meta-4">
-                  <span className="text-xs font-bold">{sec.label}</span>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => toggleSection(sec.key as any)} className={cn("p-1.5 rounded-lg", visibleSections[sec.key as keyof typeof visibleSections] ? "bg-primary text-white" : "bg-gray-200")}>
-                      {visibleSections[sec.key as keyof typeof visibleSections] ? <Eye size={14} /> : <EyeOff size={14} />}
-                    </button>
-                    <button type="button" onClick={() => toggleEmptyMode(sec.key as any)} className={cn("p-1.5 rounded-lg", emptySections[sec.key as keyof typeof emptySections] ? "bg-amber-500 text-white" : "bg-gray-200")}>
-                      <MinusSquare size={14} />
-                    </button>
+          <div className="space-y-3 flex flex-col justify-between">
+            <div>
+              <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest block mb-2">Kontrol Bab Laporan</span>
+              <div className="grid grid-cols-1 gap-2">
+                {sectionConfig.map((sec) => (
+                  <div key={sec.key} className="flex items-center justify-between p-3 rounded-xl border border-stroke bg-gray-50 dark:bg-meta-4">
+                    <span className="text-xs font-bold">{sec.label}</span>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => toggleSection(sec.key as any)} className={cn("p-1.5 rounded-lg", visibleSections[sec.key as keyof typeof visibleSections] ? "bg-primary text-white" : "bg-gray-200 text-gray-500")}>
+                        {visibleSections[sec.key as keyof typeof visibleSections] ? <Eye size={14} /> : <EyeOff size={14} />}
+                      </button>
+                      <button type="button" onClick={() => toggleEmptyMode(sec.key as any)} className={cn("p-1.5 rounded-lg", emptySections[sec.key as keyof typeof emptySections] ? "bg-amber-500 text-white" : "bg-gray-200 text-gray-500")}>
+                        <MinusSquare size={14} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+
+            {/* TOGGLE BARU: RINGKAS CABE RAWIT */}
+            <div className="mt-4 pt-4 border-t border-stroke dark:border-strokedark">
+              <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest block mb-2 flex items-center gap-1.5">
+                  <Minimize2 size={12} /> Opsi Tabel Angka
+              </span>
+              <div className="flex items-center justify-between p-3 rounded-xl border border-stroke bg-blue-50 dark:bg-boxdark dark:border-slate-700">
+                <span className="text-xs font-bold text-blue-900 dark:text-blue-100">Ringkas Kelas Cabe Rawit (0-6)</span>
+                <button
+                  type="button"
+                  onClick={() => setIsRingkasCR(!isRingkasCR)}
+                  className={cn("px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all", isRingkasCR ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "bg-gray-200 text-gray-500 dark:bg-meta-4 dark:text-gray-400")}
+                >
+                  {isRingkasCR ? "Aktif" : "Nonaktif"}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -338,6 +359,7 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
                         context={context} 
                         visibleGroupIds={visibleGroupIds} 
                         visibleCategoryIds={visibleCategoryIds}
+                        isRingkasCR={isRingkasCR}
                         // Jika komponen deskriptif, tambahkan prop type
                         {...(section.type ? { type: section.type } : {})}
                      />
