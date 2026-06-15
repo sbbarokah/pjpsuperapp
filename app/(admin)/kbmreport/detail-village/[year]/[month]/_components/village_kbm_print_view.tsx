@@ -8,7 +8,7 @@ import { VillageCensusTable } from "./cencus_table";
 import { VillageAttendanceTable } from "./attendance_table";
 import { VillageDescriptiveSection } from "./descriptive_section";
 import { VillageDetailContext } from "@/lib/types/report.types";
-import { Calendar, Eye, EyeOff, Layers, MinusSquare, Printer, Sliders, Tag, Users } from "lucide-react";
+import { Calendar, Eye, EyeOff, Minimize2, MinusSquare, Printer, Sliders, Tag, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface VillagePrintViewProps {
