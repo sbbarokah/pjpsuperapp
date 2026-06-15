@@ -79,19 +79,27 @@ export function VillageAttendanceTable({
 
     categoryIds.forEach(catId => {
       const cell = matrix.get(catId)?.get(groupId);
-      // Kita hanya menghitung rata-rata jika kelas tersebut benar-benar memiliki data presensi
-      if (cell && cell.avg_present !== undefined && cell.avg_present !== null) {
-        sumH += cell.avg_present;
-        sumI += cell.avg_permission || 0;
-        sumA += cell.avg_absent || 0;
-        countValidCells++;
+      
+      if (cell) {
+        const h = cell.avg_present || 0;
+        const i = cell.avg_permission || 0;
+        const a = cell.avg_absent || 0;
+
+        // Validasi: Hanya hitung jika ada data persentase (H + I + A > 0)
+        // Normalnya total ini mendekati 100%. Jika 0, berarti kelas kosong/tidak ada rekap.
+        if ((h + i + a) > 0) {
+          sumH += h;
+          sumI += i;
+          sumA += a;
+          countValidCells++;
+        }
       }
     });
 
-    // Jika tidak ada data sama sekali di kelas/gabungan tersebut
+    // Jika tidak ada kelas yang valid sama sekali di kelompok tersebut
     if (countValidCells === 0) return { h: null, i: null, a: null };
 
-    // Hitung persentase rata-rata dari seluruh kelas yang digabung
+    // Hitung persentase rata-rata HANYA dari kelas yang memiliki data
     return {
       h: (sumH / countValidCells).toFixed(0),
       i: (sumI / countValidCells).toFixed(0),
