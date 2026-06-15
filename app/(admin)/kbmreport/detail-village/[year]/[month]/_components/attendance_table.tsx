@@ -134,9 +134,9 @@ export function VillageAttendanceTable({
     if (countValidCells === 0) return { h: null, i: null, a: null };
 
     return {
-      h: (sumH / countValidCells).toFixed(0),
-      i: (sumI / countValidCells).toFixed(0),
-      a: (sumA / countValidCells).toFixed(0),
+      h: (sumH / countValidCells).toFixed(1),
+      i: (sumI / countValidCells).toFixed(1),
+      a: (sumA / countValidCells).toFixed(1),
     };
   };
 
@@ -195,13 +195,13 @@ export function VillageAttendanceTable({
                   return (
                     <React.Fragment key={g.id}>
                       <td className="p-2 border border-stroke text-center font-semibold text-green-700">
-                        {h !== null ? `${h}%` : "-"}
+                        {h !== null ? `${h}` : "-"}
                       </td>
                       <td className="p-2 border border-stroke text-center font-semibold text-yellow-700">
-                        {i !== null ? `${i}%` : "-"}
+                        {i !== null ? `${i}` : "-"}
                       </td>
                       <td className="p-2 border border-stroke text-center font-semibold text-red-700">
-                        {a !== null ? `${a}%` : "-"}
+                        {a !== null ? `${a}` : "-"}
                       </td>
                     </React.Fragment>
                   )
