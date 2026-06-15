@@ -1,6 +1,7 @@
 "use client";
 
 import { VillageDetailContext } from "@/lib/types/report.types";
+import { cn } from "@/lib/utils";
 import React from "react";
 import { useMemo } from "react";
 
