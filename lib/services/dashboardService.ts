@@ -27,10 +27,7 @@ export async function getAdminUserStats() {
   // Mengelompokkan dan menghitung jumlah user berdasarkan role
   const { data, error } = await supabase
     .from('profile')
-    .select('role')
-    // Jangan lupa sesuaikan query ini jika Anda menggunakan table/view lain
-  console.log("isi admin stats", data);
-  console.log("isi admin err", error);
+    .select('role');
     
   if (error) throw error;
 

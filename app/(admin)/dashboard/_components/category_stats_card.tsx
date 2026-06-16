@@ -239,7 +239,6 @@ export async function CategoryStatsGroup({
     // tidak error jika fungsi getAdminUserStats belum dibuat di file dashboardService.
     try {
       adminStats = await getAdminUserStats();
-      console.log("== isi admin stats", adminStats);
     } catch (e) {
       // Data dummy (fallback) jika service getAdminUserStats belum diimplementasi
       adminStats = [
