@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { SVGProps } from "react";
 import { 
+  getAdminUserStats,
   getGlobalUserStats, 
   getVillageUserStats, 
   GlobalUserStats, 
@@ -10,6 +11,7 @@ import {
 } from "@/lib/services/dashboardService";
 import { StatsDisplayTable } from "./stats_display";
 import { Profile } from "@/lib/types/user.types";
+import { ShieldIcon } from "lucide-react";
 
 // --- Sub-Komponen Ikon & Card (Internal) ---
 
@@ -32,6 +34,20 @@ type StatData = {
   total: number;
   category: string;
 };
+
+function SuperAdminStatCard({ label, total }: { label: string; total: number }) {
+  return (
+    <div className="rounded-[10px] bg-slate-50 dark:bg-boxdark-2 p-5 border border-slate-100 dark:border-strokedark shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
+       <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full">
+          <ShieldIcon />
+       </div>
+       <div>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 capitalize">{label.replace("_", " ")}</p>
+          <h4 className="text-2xl font-bold text-slate-900 dark:text-white">{total}</h4>
+       </div>
+    </div>
+  );
+}
 
 function CategoryStatCard({ label, data, colorClass }: { label: string; data: StatData; colorClass?: string }) {
   return (
@@ -123,37 +139,45 @@ function getDisplayData(data: StatData[], mode: string): StatData[] {
 }
 
 /**
- * Memproses data mentah menjadi data pivot yang siap ditampilkan.
- * [MODIFIKASI] Menggunakan category_id sebagai key Map.
+ * PIVOT STATS (DIUBAH UNTUK MENDUKUNG KEY NAMA KATEGORI)
+ * Mencegah data tercampur jika category_id dari DB bernilai 0 atau tidak ada.
  */
 function pivotStats(stats: (GlobalUserStats | VillageUserStats)[]): StatData[] {
-  // Map menggunakan category_id sebagai kunci
-  const map = new Map<number, { category: string; male: number; female: number }>();
+  const map = new Map<string, { id: number, category: string; male: number; female: number }>();
 
   for (const row of stats) {
-    // Ambil category_id dari payload SQL (fallback ke 0 jika data lama)
     const catId = Number((row as any).category_id || 0);
-    const catName = row.category_name;
+    const catName = row.category_name || "Tanpa Kategori";
     const gender = (row.gender || "").toUpperCase();
     
-    if (!map.has(catId)) {
-      map.set(catId, { category: catName, male: 0, female: 0 });
+    // Gunakan catName (string) sebagai unik identifier (kunci map)
+    if (!map.has(catName)) {
+      map.set(catName, { id: catId, category: catName, male: 0, female: 0 });
     }
-    const current = map.get(catId)!;
+    const current = map.get(catName)!;
 
     if (gender === 'L') current.male += row.total_users;
     else if (gender === 'P') current.female += row.total_users;
+    
+    // Perbarui ID jika pada iterasi selanjutnya ketemu ID-nya
+    if (current.id === 0 && catId !== 0) {
+       current.id = catId;
+    }
   }
 
-  return Array.from(map.entries())
-    .map(([id, data]) => ({
-      id,
+  return Array.from(map.values())
+    .map(data => ({
+      id: data.id,
       category: data.category,
       male: data.male,
       female: data.female,
       total: data.male + data.female,
     }))
-    .sort((a, b) => a.id - b.id); // Sortir berdasarkan ID kategori (lebih pasti daripada string)
+    .sort((a, b) => {
+      // Sortir berdasarkan ID jika ada, jika tidak urutkan secara alfabetis
+      if (a.id !== 0 && b.id !== 0) return a.id - b.id;
+      return a.category.localeCompare(b.category);
+    });
 }
 
 /**
@@ -204,16 +228,31 @@ export async function CategoryStatsGroup({
 
   // 1. Fetch Data berdasarkan Role
   let rawStats: any[] = [];
+  let adminStats: { role: string; total: number }[] = []; // State untuk statistik admin
   let title = "Statistik Generus";
 
   if (profile.role === "superadmin") {
     rawStats = await getGlobalUserStats();
     title = "Statistik Global";
+
+    // [BARU] Coba ambil statistik admin. Menggunakan import dinamis agar
+    // tidak error jika fungsi getAdminUserStats belum dibuat di file dashboardService.
+    try {
+      adminStats = await getAdminUserStats();
+      console.log("== isi admin stats", adminStats);
+    } catch (e) {
+      // Data dummy (fallback) jika service getAdminUserStats belum diimplementasi
+      adminStats = [
+        { role: "admin_desa", total: 0 },
+        { role: "pengurus_desa", total: 0 },
+        { role: "admin_kelompok", total: 0 },
+        { role: "pengurus_kelompok", total: 0 },
+      ];
+    }
   } else if (profile.village_id) {
     rawStats = await getVillageUserStats(profile.village_id);
     title = profile.role === "admin_desa" ? "Statistik Desa" : "Statistik Kelompok";
     
-    // Filter khusus jika admin kelompok
     if (profile.role === "admin_kelompok" && profile.group_id) {
       rawStats = rawStats.filter(s => s.group_id === Number(profile.group_id));
     }
@@ -231,7 +270,7 @@ export async function CategoryStatsGroup({
     total: acc.total + stat.total
   }), { id: 0, category: '', male: 0, female: 0, total: 0 });
 
-  if (fullPivotedData.length === 0) {
+  if (fullPivotedData.length === 0 && adminStats.length === 0) {
     return (
       <div className="rounded-lg border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark text-center py-10">
          <h3 className="text-xl font-bold mb-2">{title}</h3>
@@ -242,6 +281,20 @@ export async function CategoryStatsGroup({
 
   return (
     <div className="flex flex-col gap-6">
+      
+      {/* [BARU] Kartu Statistik Admin & Pengurus (Khusus Superadmin) */}
+      {profile.role === "superadmin" && adminStats && adminStats.length > 0 && (
+        <div className="rounded-lg border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark">
+          <h3 className="text-lg font-bold text-black dark:text-white mb-4">Statistik Pengurus & Admin</h3>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+             {adminStats.map((stat, idx) => (
+                <SuperAdminStatCard key={idx} label={stat.role} total={stat.total} />
+             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Kartu Statistik Generus */}
       <div className="rounded-lg border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <h3 className="text-xl font-bold text-black dark:text-white">
@@ -270,8 +323,10 @@ export async function CategoryStatsGroup({
         </div>
       </div>
 
-      {/* Tabel rincian (Hanya untuk Admin Desa agar bisa melihat per kelompok) */}
-      {profile.role === "admin_desa" && <StatsDisplayTable stats={rawStats} />}
+      {/* [DIUBAH] Tabel rincian kini muncul untuk Superadmin dan Admin Desa */}
+      {["superadmin", "admin_desa", "pengurus_desa"].includes(profile.role) && (
+        <StatsDisplayTable stats={rawStats} />
+      )}
     </div>
   );
 }

@@ -4,7 +4,6 @@ import { Suspense } from "react";
 import {
   getRecentAttendanceReports,
   getRecentEvaluationReports,
-  getRecentKbmReports,
   getRecentMeetingReports,
 } from "@/lib/services/dashboardService";
 import { ActivityFeed } from "./dashboard/_components/activity_feed";

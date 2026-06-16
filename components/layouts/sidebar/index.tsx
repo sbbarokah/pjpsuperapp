@@ -4,44 +4,83 @@ import { Logo } from "@/components/ui/logo";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NAV_DATA } from "./data";
 import { ArrowLeftIcon, ChevronUp } from "./icons";
 import { MenuItem } from "./menu-item";
 import { useSidebarContext } from "./sidebar-context";
 import { LogoWTitle } from "@/components/ui/logo_title";
+import { Profile } from "@/lib/types/user.types";
+import { canViewMenuMasterDesa, canViewMenuMasterKelompok, canViewMenuUsers } from "@/lib/utils/rbac";
 
-export function Sidebar() {
+interface SidebarProps {
+  profile: Profile;
+}
+
+export function Sidebar({ profile }: SidebarProps) {
   const pathname = usePathname();
   const { setIsOpen, isOpen, isMobile, toggleSidebar } = useSidebarContext();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
+  const filteredNavData = useMemo(() => {
+    // Fungsi pembantu untuk mengecek apakah sebuah item/sub-item boleh dilihat
+    const isItemAllowed = (title: string, url?: string) => {
+      // Sesuaikan string "Data Desa", dll dengan label/title yang ada di file data.ts Anda
+      if (title === "Desa" || url?.includes("/villages")) {
+        return canViewMenuMasterDesa(profile.role);
+      }
+      if (title === "Kelompok" || url?.includes("/group")) {
+        return canViewMenuMasterKelompok(profile.role);
+      }
+      if (title === "User" || url?.includes("/users")) {
+        return canViewMenuUsers(profile.role);
+      }
+      // Jika tidak ada aturan khusus, berarti menu publik/umum (boleh dilihat semua)
+      return true;
+    };
+
+    // Proses penyaringan (Filtering)
+    return NAV_DATA.map((section) => {
+      // Filter item level 1 (Menu utama)
+      const allowedItems = section.items
+        .filter((item) => isItemAllowed(item.title, (item as any).url))
+        .map((item) => {
+          // Jika item memiliki sub-item (dropdown), filter juga sub-itemnya
+          if (item.items && item.items.length > 0) {
+            const allowedSubItems = item.items.filter((sub) => 
+              isItemAllowed(sub.title, sub.url)
+            );
+            return { ...item, items: allowedSubItems };
+          }
+          return item;
+        });
+
+      return { ...section, items: allowedItems };
+    })
+    // Sembunyikan section/kategori jika semua item di dalamnya sudah kosong karena di-filter
+    .filter((section) => section.items.length > 0);
+
+  }, [profile.role]);
+
   const toggleExpanded = (title: string) => {
     setExpandedItems((prev) => (prev.includes(title) ? [] : [title]));
-
-    // Uncomment the following line to enable multiple expanded items
-    // setExpandedItems((prev) =>
-    //   prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title],
-    // );
   };
 
   useEffect(() => {
-    // Keep collapsible open, when it's subpage is active
-    NAV_DATA.some((section) => {
+    // 4. Ubah NAV_DATA menjadi filteredNavData di dalam useEffect
+    filteredNavData.some((section) => {
       return section.items.some((item) => {
         return item.items.some((subItem) => {
           if (subItem.url === pathname) {
             if (!expandedItems.includes(item.title)) {
               toggleExpanded(item.title);
             }
-
-            // Break the loop
             return true;
           }
         });
       });
     });
-  }, [pathname]);
+  }, [pathname, filteredNavData]);
 
   return (
     <>
@@ -88,7 +127,7 @@ export function Sidebar() {
 
           {/* Navigation */}
           <div className="custom-scrollbar mt-6 flex-1 overflow-y-auto pr-3 min-[850px]:mt-10">
-            {NAV_DATA.map((section) => (
+            {filteredNavData.map((section) => (
               <div key={section.label} className="mb-6">
                 <h2 className="mb-5 text-sm font-medium text-dark-4 dark:text-dark-6">
                   {section.label}

@@ -1,13 +1,14 @@
-'use client';
-
 // app/(admin)/layout.tsx (server)
 import { Sidebar } from "@/components/layouts/sidebar";
 import { Header } from "@/components/layouts/header";
+import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const { profile } = await getAuthenticatedUserAndProfile();
+  
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
+      <Sidebar profile={profile} />
 
       <div className="w-full bg-gray-2 dark:bg-[#020d1a]">
         <Header />

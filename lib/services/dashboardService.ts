@@ -21,6 +21,31 @@ export type VillageUserStats = {
   total_users: number;
 };
 
+export async function getAdminUserStats() {
+  const supabase = createAdminClient();
+  
+  // Mengelompokkan dan menghitung jumlah user berdasarkan role
+  const { data, error } = await supabase
+    .from('profile')
+    .select('role')
+    // Jangan lupa sesuaikan query ini jika Anda menggunakan table/view lain
+  console.log("isi admin stats", data);
+  console.log("isi admin err", error);
+    
+  if (error) throw error;
+
+  // Menghitung jumlah per role di memory (atau bisa pakai rpc di Supabase)
+  const counts: Record<string, number> = {};
+  data?.forEach((row: any) => {
+    // Hanya hitung jika role mengandung kata 'admin' atau 'pengurus'
+    if (row.role && (row.role.includes('admin_') || row.role.includes('pengurus_'))) {
+       counts[row.role] = (counts[row.role] || 0) + 1;
+    }
+  });
+
+  return Object.entries(counts).map(([role, total]) => ({ role, total }));
+}
+
 /**
  * Mengambil statistik generus global (per kategori & gender)
  */
@@ -57,7 +82,7 @@ export async function getVillageUserStats(villageId: number | string): Promise<V
 /**
  * Mengambil 10 Laporan Muslimun terbaru
  */
-export async function getRecentMeetingReports(): Promise<MeetingReportWithRelations[]> {
+export async function getRecentMeetingReports():Promise<MeetingReportWithRelations[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("meeting_reports")
@@ -149,5 +174,7 @@ export async function getRecentKbmReports(): Promise<KbmReportWithRelations[]> {
     console.error("Error getRecentKbmReports:", error);
     return [];
   }
-  return data as any; 
+  return data as unknown as KbmReportWithRelations[];
+  // return data as any; 
+
 }

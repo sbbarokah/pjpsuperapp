@@ -12,6 +12,7 @@ import {
   UpdateUserFormPayload,
 } from "@/lib/types/user.types";
 import { getNameFallback } from "@/lib/utils";
+import { canMutateData, isManageableRole } from "@/lib/utils/rbac";
 import { revalidatePath } from "next/cache";
 
 // [CATATAN] Konsolidasi path. Gunakan ini di semua action.
@@ -26,7 +27,109 @@ type AdminProfile = {
 /**
  * Server Action untuk membuat pengguna (siswa/admin) baru.
  */
-export async function createUserAction(data: CreateUserFormPayload) {
+export async function createUserAction(data: any /* Ganti dengan CreateUserFormPayload Anda */) {
+  let adminProfile;
+  
+  try {
+    // 1. Dapatkan profil admin yang sedang login
+    const authData = await getAuthenticatedUserAndProfile();
+    adminProfile = authData.profile;
+  } catch (authError: any) {
+    return { success: false, error: "Otentikasi admin gagal: " + authError.message };
+  }
+
+  // 2. Proteksi Dasar: Apakah user ini boleh melakukan mutasi (Create)?
+  // Role pengurus_desa dan pengurus_kelompok akan diblokir di sini
+  if (!canMutateData(adminProfile.role)) {
+    return { success: false, error: "Akses ditolak. Anda tidak memiliki hak untuk menambah data." };
+  }
+
+  // Siapkan payload
+  const payload = { ...data };
+  
+  // Identifikasi jenis admin
+  const isSuperadmin = adminProfile.role === 'superadmin';
+  const isAdminDesa = adminProfile.role === 'admin_desa';
+  const isAdminKelompok = adminProfile.role === 'admin_kelompok';
+
+  // 3. Logika untuk SUPERADMIN
+  if (isSuperadmin) {
+    if (!payload.email) return { success: false, error: "Email wajib diisi." };
+    if (!payload.password) return { success: false, error: "Password wajib diisi." };
+    if (!payload.role) return { success: false, error: "Role wajib dipilih." };
+    
+    // Keamanan RBAC: Pastikan superadmin tidak mendaftarkan "superadmin" baru melalui form ini
+    if (!isManageableRole(payload.role)) {
+      return { success: false, error: "Role yang dipilih tidak valid untuk didaftarkan." };
+    }
+  } 
+  
+  // 4. Logika untuk ADMIN NON-SUPER (Desa / Kelompok)
+  else if (isAdminDesa || isAdminKelompok) {
+    const full_name = String(payload.full_name || "").trim();
+    if (!full_name) return { success: false, error: "Nama lengkap wajib diisi." };
+
+    // Hasilkan email otomatis jika tidak diisi
+    if (!payload.email) {
+      const emailName = full_name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      payload.email = `${emailName || "user"}${Date.now()}@pjp.com`;
+    }
+
+    // Hasilkan username otomatis jika tidak diisi
+    if (!payload.username) {
+      // payload.username = getNameFallback(full_name) || payload.email.split("@")[0];
+      payload.username = payload.email.split("@")[0]; // Sesuaikan dengan logika getNameFallback Anda
+    }
+    
+    // Keamanan RBAC: Admin biasa HANYA BOLEH membuat user biasa (generus)
+    // Cegah Admin Desa membuat Admin Desa lain melalui manipulasi payload
+    payload.role = "user"; 
+    
+    // Password default untuk generus
+    payload.password = payload.password || "123456"; 
+    
+    // Pemaksaan Scope/Ruang Lingkup RBAC
+    // Memastikan Admin tidak bisa mendaftarkan user ke desa/kelompok lain
+    payload.village_id = String(adminProfile.village_id);
+    
+    if (isAdminKelompok) {
+      // Jika Admin Kelompok, kunci ID Kelompoknya
+      payload.group_id = String(adminProfile.group_id);
+    } else if (isAdminDesa) {
+      // Jika Admin Desa, pastikan field group_id (jika dipilih) memang ada di payload
+      // Jika form membiarkan kosong, payload.group_id mungkin null/undefined
+      if (!payload.group_id) {
+         return { success: false, error: "Pilih kelompok tempat generus ini bernaung." };
+      }
+    }
+  }
+
+  // 5. Kirim ke service utama
+  try {
+    // Service 'createUser' akan menangani logika signup Supabase
+    const result = await createUser(payload as Required<CreateUserFormPayload>);
+
+    if (result.error) {
+      return { success: false, error: result.error };
+    }
+
+    revalidatePath(ADMIN_USER_PATH);
+
+    return {
+      success: true,
+      message: "Data berhasil ditambahkan.",
+      data: result.data,
+    };
+  } catch (error: any) {
+    console.error("createUserAction Error:", error.message);
+    return {
+      success: false,
+      error: error.message || "Gagal menambahkan data karena kesalahan sistem.",
+    };
+  }
+}
+
+export async function createUserAction2(data: CreateUserFormPayload) {
   let adminProfile;
   try {
     // 1. Dapatkan profil admin yang sedang login

@@ -21,6 +21,7 @@ export const NAV_DATA = [
     items: [
       { title: "Dasbor", url: "/", icon: LuLayoutDashboard, items: [] },
       { title: "Generus", url: "/generus", icon: LuUsers, items: [] },
+      { title: "Pengguna", url: "/users", icon: LuUsers, items: [] },
       { title: "Kurikulum", url: "/material", icon: LuBookOpen, items: [] },
       { title: "Muslimun", url: "/muslimun", icon: FaMosque, items: [] }, // Menggunakan Lucide sebagai pengganti FaMosque
       { 

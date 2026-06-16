@@ -1,11 +1,19 @@
-// Impor asumsi dari file master data Anda
+// lib/types/user.types.ts
 import { CategoryModel, GroupModel, VillageModel } from "./master.types";
+
+export type UserRole = 
+  | 'superadmin' 
+  | 'admin_desa' 
+  | 'pengurus_desa' 
+  | 'admin_kelompok' 
+  | 'pengurus_kelompok'
+  | 'user';
 
 export type Profile = {
   id: number; // atau number
   user_id: string; // Ini adalah UUID dari auth.users
   username: string;
-  role: string;
+  role: UserRole;
   full_name: string;
   gender?: 'L' | 'P';
   birth_place?: string | null;
