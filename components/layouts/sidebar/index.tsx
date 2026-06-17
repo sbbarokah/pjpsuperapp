@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { NAV_DATA } from "./data";
+// [PERUBAHAN]: Import kedua data navigasi
+import { ADMIN_NAV_DATA, SUPERADMIN_NAV_DATA } from "./data"; 
 import { ArrowLeftIcon, ChevronUp } from "./icons";
 import { MenuItem } from "./menu-item";
 import { useSidebarContext } from "./sidebar-context";
@@ -23,29 +24,38 @@ export function Sidebar({ profile }: SidebarProps) {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const filteredNavData = useMemo(() => {
-    // Fungsi pembantu untuk mengecek apakah sebuah item/sub-item boleh dilihat
+    
+    // 1. JIKA SUPERADMIN: Langsung gunakan data khusus Superadmin
+    // (Struktur menu sudah flat/datar dan bersih dari menu KBM/Operasional)
+    if (profile.role === 'superadmin') {
+      return SUPERADMIN_NAV_DATA;
+    }
+
+    // 2. JIKA BUKAN SUPERADMIN: Gunakan ADMIN_NAV_DATA dan filter sesuai RBAC
     const isItemAllowed = (title: string, url?: string) => {
-      // Sesuaikan string "Data Desa", dll dengan label/title yang ada di file data.ts Anda
+      // Keamanan ganda, pastikan pengguna/users hanya bisa diakses role yang diizinkan (Superadmin)
+      if (title === "Pengguna" || url?.includes("/users")) {
+        return canViewMenuUsers(profile.role);
+      }
+      
+      // Filter Master Data
       if (title === "Desa" || url?.includes("/villages")) {
         return canViewMenuMasterDesa(profile.role);
       }
+      
       if (title === "Kelompok" || url?.includes("/group")) {
         return canViewMenuMasterKelompok(profile.role);
       }
-      if (title === "User" || url?.includes("/users")) {
-        return canViewMenuUsers(profile.role);
-      }
-      // Jika tidak ada aturan khusus, berarti menu publik/umum (boleh dilihat semua)
+
+      // Secara default, biarkan role selain Superadmin melihat menu operasional lainnya (Laporan KBM, dll)
       return true;
     };
 
-    // Proses penyaringan (Filtering)
-    return NAV_DATA.map((section) => {
-      // Filter item level 1 (Menu utama)
+    // Proses Penyaringan (Filtering Data Navigasi)
+    return ADMIN_NAV_DATA.map((section) => {
       const allowedItems = section.items
         .filter((item) => isItemAllowed(item.title, (item as any).url))
         .map((item) => {
-          // Jika item memiliki sub-item (dropdown), filter juga sub-itemnya
           if (item.items && item.items.length > 0) {
             const allowedSubItems = item.items.filter((sub) => 
               isItemAllowed(sub.title, sub.url)
@@ -57,17 +67,18 @@ export function Sidebar({ profile }: SidebarProps) {
 
       return { ...section, items: allowedItems };
     })
-    // Sembunyikan section/kategori jika semua item di dalamnya sudah kosong karena di-filter
+    // Sembunyikan label kategori ("Master Data", "Main Menu") jika isinya sudah kosong
     .filter((section) => section.items.length > 0);
 
   }, [profile.role]);
+
 
   const toggleExpanded = (title: string) => {
     setExpandedItems((prev) => (prev.includes(title) ? [] : [title]));
   };
 
   useEffect(() => {
-    // 4. Ubah NAV_DATA menjadi filteredNavData di dalam useEffect
+    // Ubah NAV_DATA menjadi filteredNavData di dalam useEffect
     filteredNavData.some((section) => {
       return section.items.some((item) => {
         return item.items.some((subItem) => {
