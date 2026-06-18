@@ -9,9 +9,10 @@ import { deleteCategoryAction } from "../actions";
 
 interface ListProps {
   categories: MaterialCategoryModel[];
+  canMutate: boolean
 }
 
-export function MaterialCategoryListClient({ categories }: ListProps) {
+export function MaterialCategoryListClient({ categories, canMutate }: ListProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -67,23 +68,25 @@ export function MaterialCategoryListClient({ categories }: ListProps) {
               </div>
 
               {/* Footer Kartu (Aksi) */}
-              <div className="p-4 border-t dark:border-strokedark flex justify-end items-center gap-3">
-                <Link 
-                  href={`/mcategories/edit/${cat.id}`} 
-                  className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-sm"
-                  title="Edit"
-                >
-                  <FaEdit /> Edit
-                </Link>
-                <button
-                  onClick={() => handleDelete(cat.id, cat.name)}
-                  disabled={isPending}
-                  className="text-red-500 hover:text-red-700 disabled:opacity-50 flex items-center gap-1 text-sm"
-                  title="Hapus"
-                >
-                  <FaTrashAlt /> Hapus
-                </button>
-              </div>
+              {canMutate && (
+                <div className="p-4 border-t dark:border-strokedark flex justify-end items-center gap-3">
+                  <Link 
+                    href={`/mcategories/edit/${cat.id}`} 
+                    className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-sm"
+                    title="Edit"
+                  >
+                    <FaEdit /> Edit
+                  </Link>
+                  <button
+                    onClick={() => handleDelete(cat.id, cat.name)}
+                    disabled={isPending}
+                    className="text-red-500 hover:text-red-700 disabled:opacity-50 flex items-center gap-1 text-sm"
+                    title="Hapus"
+                  >
+                    <FaTrashAlt /> Hapus
+                  </button>
+                </div>
+              )}
 
             </div>
           ))}

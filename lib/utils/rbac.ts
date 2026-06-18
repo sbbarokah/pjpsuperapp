@@ -18,6 +18,11 @@ export const isGroupAdmin = (role: UserRole): boolean => {
   return ['admin_kelompok'].includes(role);
 };
 
+export const isSuperNDesaAdmin = (role: UserRole): boolean => {
+  return ['superadmin', 'admin_desa'].includes(role);
+};
+
+
 // 2. Cek Pengelompokan Level
 export const isAdminLevel = (role: UserRole): boolean => {
   return ['admin_desa', 'admin_kelompok'].includes(role);

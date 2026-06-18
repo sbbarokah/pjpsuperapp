@@ -26,40 +26,49 @@ export function Sidebar({ profile }: SidebarProps) {
   const filteredNavData = useMemo(() => {
     
     // 1. JIKA SUPERADMIN: Langsung gunakan data khusus Superadmin
-    // (Struktur menu sudah flat/datar dan bersih dari menu KBM/Operasional)
     if (profile.role === 'superadmin') {
       return SUPERADMIN_NAV_DATA;
     }
 
-    if (isPengurusLevel(profile.role)) {
-      return PENGURUS_NAV_DATA;
-    }
+    // 2. TENTUKAN SUMBER DATA NAVIGASI (Base Array)
+    // Jika role adalah pengurus, gunakan PENGURUS_NAV_DATA. Selain itu (Admin), gunakan ADMIN_NAV_DATA.
+    const baseNavData = isPengurusLevel(profile.role) ? PENGURUS_NAV_DATA : ADMIN_NAV_DATA;
 
-    // 2. JIKA BUKAN SUPERADMIN: Gunakan ADMIN_NAV_DATA dan filter sesuai RBAC
+    // 3. ATURAN FILTERING (Berlaku untuk Admin dan Pengurus)
     const isItemAllowed = (title: string, url?: string) => {
-      // Keamanan ganda, pastikan pengguna/users hanya bisa diakses role yang diizinkan (Superadmin)
+      // Filter Pengguna (Hanya Superadmin, tapi untuk jaga-jaga)
       if (title === "Pengguna" || url?.includes("/users")) {
         return canViewMenuUsers(profile.role);
       }
       
-      // Filter Master Data
+      // Filter Master Data: Desa
       if (title === "Desa" || url?.includes("/villages")) {
+        // Aturan ketat: Pengurus Desa & Kelompok tidak boleh akses
+        if (profile.role === "pengurus_desa" || profile.role === "pengurus_kelompok") {
+          return false; 
+        }
         return canViewMenuMasterDesa(profile.role);
       }
       
+      // Filter Master Data: Kelompok
       if (title === "Kelompok" || url?.includes("/group")) {
+        // Aturan ketat: Pengurus Kelompok tidak boleh akses
+        if (profile.role === "pengurus_kelompok") {
+          return false;
+        }
         return canViewMenuMasterKelompok(profile.role);
       }
 
-      // Secara default, biarkan role selain Superadmin melihat menu operasional lainnya (Laporan KBM, dll)
+      // Secara default, biarkan menu operasional lainnya lolos
       return true;
     };
 
-    // Proses Penyaringan (Filtering Data Navigasi)
-    return ADMIN_NAV_DATA.map((section) => {
+    // 4. PROSES PENYARINGAN (Mengeksekusi baseNavData)
+    return baseNavData.map((section) => {
       const allowedItems = section.items
         .filter((item) => isItemAllowed(item.title, (item as any).url))
         .map((item) => {
+          // Jika menu punya submenu (seperti Master Data)
           if (item.items && item.items.length > 0) {
             const allowedSubItems = item.items.filter((sub) => 
               isItemAllowed(sub.title, sub.url)
@@ -71,7 +80,7 @@ export function Sidebar({ profile }: SidebarProps) {
 
       return { ...section, items: allowedItems };
     })
-    // Sembunyikan label kategori ("Master Data", "Main Menu") jika isinya sudah kosong
+    // Sembunyikan label kategori (seperti "Master Data") jika semua isinya (submenu-nya) habis/terfilter
     .filter((section) => section.items.length > 0);
 
   }, [profile.role]);

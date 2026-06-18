@@ -4,6 +4,9 @@ import Link from "next/link";
 import Breadcrumb from "@/components/ui/breadcrumb";
 import { GroupCard } from "@/components/cards/cardgroup";
 import { DeleteGroupButton } from "./_components/delete_group_button";
+import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
+import { Plus } from "lucide-react";
+import { isSuperNDesaAdmin } from "@/lib/utils/rbac";
 
 export const metadata = {
   title: "Daftar Kelompok | Admin",
@@ -24,11 +27,11 @@ function CardGridSkeleton() {
 }
 
 // Komponen Server untuk mengambil dan menampilkan data
-async function GroupList() {
+async function GroupList({canMutate}: {canMutate: boolean}) {
   // Ambil data (ini terjadi di server)
   const groups = await getGroups(); // Asumsi service ini ada
 
-  if (groups.length === 0) {
+  if (canMutate && (groups.length === 0)) {
     return (
       <div className="text-center text-gray-600 dark:text-gray-300">
         Belum ada data Kelompok.
@@ -55,7 +58,9 @@ async function GroupList() {
           // Kita berikan komponen Client 'DeleteitemButton'
           // ke prop 'actions' dari Server Component 'itemCard'.
           actions={
-            <DeleteGroupButton id={String(item.id)} name={item.name} />
+            canMutate && (
+              <DeleteGroupButton id={String(item.id)} name={item.name} />
+            )
           }
         />
       ))}
@@ -64,40 +69,32 @@ async function GroupList() {
 }
 
 // Halaman utama
-export default function CategoryListPage() {
+export default async function CategoryListPage() {
+  const { profile } = await getAuthenticatedUserAndProfile();
+  
+  const canMutate = isSuperNDesaAdmin(profile.role);
+
   return (
     <>
       {/* PERUBAHAN 1: Flex Header dengan Tombol Tambah */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <Breadcrumb pageName="Kelompok" showNav={false} />
-        <Link
-          href="/group/new"
-          className="inline-flex items-center justify-center gap-2.5 rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90"
-        >
-          {/* Ikon Plus Sederhana */}
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
+        {canMutate && (
+          <Link
+            href="/group/new"
+            className="inline-flex items-center justify-center gap-2.5 rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-            ></path>
-          </svg>
-          Tambah Kelompok Baru
-        </Link>
+            <Plus size={18} />
+            Tambah Kelompok Baru
+          </Link>
+        )}
       </div>
       {/* --- AKHIR PERUBAHAN 1 --- */}
 
       {/* 'space-y-10' diganti 'mt-6' agar spasi lebih rapi */}
       <div className="mt-6">
         <Suspense fallback={<CardGridSkeleton />}>
-          <GroupList />
+          <GroupList canMutate={canMutate} />
         </Suspense>
       </div>
     </>

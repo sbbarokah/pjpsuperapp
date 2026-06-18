@@ -4,6 +4,7 @@ import { getMaterialCategories } from "@/lib/services/masterService";
 import { Suspense } from "react";
 import Link from "next/link";
 import { MaterialCategoryListClient } from "./_components/mcategory_list_client";
+import { isSuperNDesaAdmin } from "@/lib/utils/rbac";
 
 export const metadata = {
   title: "Master Kategori Materi | Admin",
@@ -16,9 +17,9 @@ const ListSkeleton = () => (
   </div>
 );
 
-async function MaterialCategoryList() {
+async function MaterialCategoryList({canMutate}: {canMutate: boolean}) {
   const categories = await getMaterialCategories();
-  return <MaterialCategoryListClient categories={categories} />;
+  return <MaterialCategoryListClient categories={categories} canMutate={canMutate} />;
 }
 
 export default async function MaterialCategoryPage() {
@@ -29,13 +30,13 @@ export default async function MaterialCategoryPage() {
     return <Breadcrumb pageName="Akses Ditolak" />;
   }
 
-  const canCreate = profile.role === 'superadmin' || profile.role === 'admin_desa';
+  const canMutate = isSuperNDesaAdmin(profile.role);
 
   return (
     <>
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <Breadcrumb pageName="Master Kategori Materi" />
-        {canCreate && (
+        {canMutate && (
           <Link
             href="/mcategories/new"
             className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"
@@ -46,7 +47,7 @@ export default async function MaterialCategoryPage() {
       </div>
 
       <Suspense fallback={<ListSkeleton />}>
-        <MaterialCategoryList />
+        <MaterialCategoryList canMutate={canMutate} />
       </Suspense>
     </>
   );

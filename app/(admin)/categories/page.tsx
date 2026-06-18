@@ -5,6 +5,9 @@ import { CategoryCard } from "@/components/cards/cardcategory";
 import Breadcrumb from "@/components/ui/breadcrumb";
 // PERUBAHAN 2: Impor tombol hapus
 import { DeleteCategoryButton } from "./_components/delete_category_button"; 
+import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
+import { isSuperNDesaAdmin } from "@/lib/utils/rbac";
+import { Plus } from "lucide-react";
 
 export const metadata = {
   title: "Daftar Kategori | Admin",
@@ -25,7 +28,7 @@ function CardGridSkeleton() {
 }
 
 // Komponen Server untuk mengambil dan menampilkan data
-async function CategoryList() {
+async function CategoryList({canMutate}: {canMutate: boolean}) {
   // Ambil data (ini terjadi di server)
   const categories = await getCategories(); // Asumsi service ini ada
 
@@ -33,13 +36,14 @@ async function CategoryList() {
     return (
       <div className="text-center text-gray-600 dark:text-gray-300">
         Belum ada data kategori.
-        {/* Tombol Buat Baru tetap ada di header, tapi ini juga boleh */}
-        <Link
-          href="/categories/new"
-          className="ml-2 text-primary hover:underline"
-        >
-          Buat Baru
-        </Link>
+        {canMutate && (
+          <Link
+            href="/categories/new"
+            className="ml-2 text-primary hover:underline"
+          >
+            Buat Baru
+          </Link>
+        )}
       </div>
     );
   }
@@ -56,7 +60,9 @@ async function CategoryList() {
           // Kita berikan komponen Client 'DeleteCategoryButton'
           // ke prop 'actions' dari Server Component 'CategoryCard'.
           actions={
-            <DeleteCategoryButton id={category.id} name={category.name} />
+            canMutate && (
+              <DeleteCategoryButton id={category.id} name={category.name} />
+            )
           }
         />
       ))}
@@ -65,40 +71,32 @@ async function CategoryList() {
 }
 
 // Halaman utama
-export default function CategoryListPage() {
+export default async function CategoryListPage() {
+  const { profile } = await getAuthenticatedUserAndProfile();
+    
+  const canMutate = isSuperNDesaAdmin(profile.role);
+
   return (
     <>
       {/* PERUBAHAN 1: Flex Header dengan Tombol Tambah */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <Breadcrumb pageName="Kategori" showNav={false} />
-        <Link
-          href="/categories/new"
-          className="inline-flex items-center justify-center gap-2.5 rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90"
-        >
-          {/* Ikon Plus Sederhana */}
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
+        {canMutate && (
+          <Link
+            href="/categories/new"
+            className="inline-flex items-center justify-center gap-2.5 rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-            ></path>
-          </svg>
-          Tambah Kategori Baru
-        </Link>
+            <Plus size={18} />
+            Tambah Kategori Baru
+          </Link>
+        )}
       </div>
       {/* --- AKHIR PERUBAHAN 1 --- */}
 
       {/* 'space-y-10' diganti 'mt-6' agar spasi lebih rapi */}
       <div className="mt-6">
         <Suspense fallback={<CardGridSkeleton />}>
-          <CategoryList />
+          <CategoryList canMutate={canMutate} />
         </Suspense>
       </div>
     </>
