@@ -13,6 +13,9 @@ import {
 } from "@/lib/services/masterService";
 import { FilteredUserListClient } from "./_components/filtered_user_list";
 import { ExportButton } from "./_components/export_button";
+import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
+import { canMutateData } from "@/lib/utils/rbac";
+import { Plus, Upload } from "lucide-react";
 
 export const metadata = {
   title: "Daftar Generus | Admin",
@@ -95,7 +98,7 @@ async function UserList({ resolvedParams }: { resolvedParams: Awaited<PageProps[
   const group = resolvedParams.group || "";
   const category = resolvedParams.category || "";
   const page = Number(resolvedParams.page) || 1;
-  const limit = Number(resolvedParams.limit) || 10;
+  const limit = Number(resolvedParams.limit) || 12;
   const sort = resolvedParams.sort === "desc" ? "desc" : "asc";
 
   const supabase = await createClient();
@@ -133,6 +136,7 @@ async function UserList({ resolvedParams }: { resolvedParams: Awaited<PageProps[
       totalItems={totalItems}
       currentPage={page}
       itemsPerPage={limit}
+      canMutate={canMutateData(adminProfile.role)}
     />
   );
 }
@@ -141,6 +145,10 @@ async function UserList({ resolvedParams }: { resolvedParams: Awaited<PageProps[
 export default async function GenerusListPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams;
 
+  const { profile } = await getAuthenticatedUserAndProfile();
+
+  const canMutate = canMutateData(profile.role);
+
   return (
     <>
       {/* Header: Breadcrumb dan Tombol Tambah Baru */}
@@ -148,54 +156,28 @@ export default async function GenerusListPage({ searchParams }: PageProps) {
         <Breadcrumb pageName="Generus" showNav={false} />
 
         {/* Grup Tombol Impor dan Tambah Baru */}
-        <div className="flex items-center gap-3">
-          <ExportButton />
-          {/* Tombol Impor Baru */}
-          <Link
-            href="/generus/import"
-            className="inline-flex items-center justify-center gap-2.5 rounded-lg border border-primary bg-white px-4 py-2 text-center font-medium text-primary hover:bg-primary/10 dark:border-primary dark:bg-boxdark dark:text-white dark:hover:bg-primary/10"
-          >
-            {/* Ikon Upload Sederhana */}
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
+        {canMutate && (
+          <div className="flex items-center gap-3">
+            <ExportButton />
+            {/* Tombol Impor Baru */}
+            <Link
+              href="/generus/import"
+              className="inline-flex items-center justify-center gap-2.5 rounded-lg border border-primary bg-white px-4 py-2 text-center font-medium text-primary hover:bg-primary/10 dark:border-primary dark:bg-boxdark dark:text-white dark:hover:bg-primary/10"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-              ></path>
-            </svg>
-            Impor Generus
-          </Link>
+              <Upload size={18} />
+              Impor Generus
+            </Link>
 
-          {/* Tombol Tambah Baru (Sudah Ada) */}
-          <Link
-            href="/generus/new"
-            className="inline-flex items-center justify-center gap-2.5 rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90"
-          >
-            {/* Ikon Tambah Sederhana */}
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
+            {/* Tombol Tambah Baru (Sudah Ada) */}
+            <Link
+              href="/generus/new"
+              className="inline-flex items-center justify-center gap-2.5 rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              ></path>
-            </svg>
-            Tambah Generus Baru
-          </Link>
-        </div>
+              <Plus size={18} />
+              Tambah Generus Baru
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Grid Data dengan Suspense */}

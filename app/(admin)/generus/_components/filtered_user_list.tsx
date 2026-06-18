@@ -21,6 +21,7 @@ type FilteredUserListProps = {
   totalItems: number;
   currentPage: number;
   itemsPerPage: number;
+  canMutate: boolean
 };
 
 export function FilteredUserListClient({ 
@@ -28,7 +29,8 @@ export function FilteredUserListClient({
   allClass, 
   totalItems, 
   currentPage, 
-  itemsPerPage 
+  itemsPerPage,
+  canMutate
 }: FilteredUserListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -243,21 +245,23 @@ export function FilteredUserListClient({
             <UserCard
               key={user.user_id}
               user={user}
-              href={`/generus/edit/${user.user_id}`}
+              href={canMutate ? `/generus/edit/${user.user_id}` : undefined}
               actions={
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      handleOpenCategoryModal(user);
-                    }}
-                    className="group flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-all dark:text-amber-400"
-                    title="Ubah Kategori Kelas"
-                  >
-                    <Layers size={14} />
-                  </button>
+                  {canMutate && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleOpenCategoryModal(user);
+                      }}
+                      className="group flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-all dark:text-amber-400"
+                      title="Ubah Kategori Kelas"
+                    >
+                      <Layers size={14} />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -270,7 +274,9 @@ export function FilteredUserListClient({
                   >
                     <Eye size={14} />
                   </button>
-                  <DeleteUserButton id={user.user_id} name={user.full_name || user.username} />
+                  {canMutate && (
+                    <DeleteUserButton id={user.user_id} name={user.full_name || user.username} />
+                  )}
                 </div>
               }
             />

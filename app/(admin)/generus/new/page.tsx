@@ -7,7 +7,8 @@ import {
 } from "@/lib/services/masterService";
 import { UserForm } from "../_components/user_form";
 import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { canMutateData } from "@/lib/utils/rbac";
 
 export const metadata: Metadata = {
   title: "Tambah Generus | Admin",
@@ -25,6 +26,12 @@ export default async function NewUserPage() {
   } catch (error) {
     notFound();
   }
+
+  // Tendang kembali ke halaman generus jika role tidak punya hak mutasi
+  if (!canMutateData(profile.role)) {
+    redirect("/generus");
+  }
+  
   // Ambil semua data relasi untuk dropdown di server
   const villages = await getVillages();
   const groups = await getGroups(); // <-- Anda perlu membuat fungsi ini

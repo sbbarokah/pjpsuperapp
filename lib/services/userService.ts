@@ -124,6 +124,7 @@ export async function getUsersForAdmin(
   return combinedUsers;
 }
 
+// admin desa or kelompok
 export async function getUsersForAdminServerSide({
   admin,
   search,
@@ -153,6 +154,8 @@ export async function getUsersForAdminServerSide({
       category${category ? "!inner" : ""} (name)
     `, { count: "exact" }); 
 
+  query = query.eq("role", "user");
+  
   // Filter Hak Akses Admin
   if (admin.role === "admin_desa") query = query.eq("village_id", admin.village_id);
   if (admin.role === "admin_kelompok") query = query.eq("group_id", admin.group_id);
