@@ -6,13 +6,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 // [PERUBAHAN]: Import kedua data navigasi
-import { ADMIN_NAV_DATA, SUPERADMIN_NAV_DATA } from "./data"; 
+import { ADMIN_NAV_DATA, PENGURUS_NAV_DATA, SUPERADMIN_NAV_DATA } from "./data"; 
 import { ArrowLeftIcon, ChevronUp } from "./icons";
 import { MenuItem } from "./menu-item";
 import { useSidebarContext } from "./sidebar-context";
 import { LogoWTitle } from "@/components/ui/logo_title";
 import { Profile } from "@/lib/types/user.types";
-import { canViewMenuMasterDesa, canViewMenuMasterKelompok, canViewMenuUsers } from "@/lib/utils/rbac";
+import { canViewMenuMasterDesa, canViewMenuMasterKelompok, canViewMenuUsers, isPengurusLevel } from "@/lib/utils/rbac";
 
 interface SidebarProps {
   profile: Profile;
@@ -29,6 +29,10 @@ export function Sidebar({ profile }: SidebarProps) {
     // (Struktur menu sudah flat/datar dan bersih dari menu KBM/Operasional)
     if (profile.role === 'superadmin') {
       return SUPERADMIN_NAV_DATA;
+    }
+
+    if (isPengurusLevel(profile.role)) {
+      return PENGURUS_NAV_DATA;
     }
 
     // 2. JIKA BUKAN SUPERADMIN: Gunakan ADMIN_NAV_DATA dan filter sesuai RBAC

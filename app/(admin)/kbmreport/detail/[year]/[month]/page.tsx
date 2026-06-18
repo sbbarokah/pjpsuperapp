@@ -11,6 +11,7 @@ import Link from "next/link";
 import { FaBuilding } from "react-icons/fa";
 import { GroupKbmReportPrintView } from "./_components/group_kbm_print_view";
 import { ReportFilterBar } from "./_components/report_filter_bar";
+import { isGroupLevel, isVillageLevel } from "@/lib/utils/rbac";
 
 export const metadata = {
   title: "Detail Laporan KBM | Admin",
@@ -47,15 +48,15 @@ export default async function GroupKbmDetailPage({ params, searchParams }: PageP
   const month = parseInt(monthStr);
   
   if (isNaN(year) || isNaN(month)) notFound();
-
-  const isAdminDesa = profile.role === 'admin_desa';
-  const isAdminKelompok = profile.role === 'admin_kelompok';
+  
+  const isLevelDesa = isVillageLevel(profile.role);
+  const isLevelKelompok = isGroupLevel(profile.role);
   
   let targetGroupId = 0;
   let availableGroups: GroupModel[] = [];
 
   // 2. Logika Penentuan Group ID
-  if (isAdminKelompok) {
+  if (isLevelKelompok) {
     // Admin Kelompok HANYA boleh melihat grupnya sendiri
     targetGroupId = Number(profile.group_id);
     
@@ -65,7 +66,7 @@ export default async function GroupKbmDetailPage({ params, searchParams }: PageP
         // redirect(`/admin/report/detail-group/${year}/${month}`);
     }
   } 
-  else if (isAdminDesa && profile.village_id) {
+  else if (isLevelDesa && profile.village_id) {
     // Admin Desa: Ambil semua grup
     availableGroups = await getGroupsByVillage(profile.village_id);
     
@@ -96,7 +97,7 @@ export default async function GroupKbmDetailPage({ params, searchParams }: PageP
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 print:hidden">
         <Breadcrumb pageName={`Laporan KBM: ${context.groupName}`} />
         
-        {isAdminDesa && (
+        {isLevelDesa && (
            <Link 
              href={`/kbmreport/detail-village/${year}/${month}`}
              className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 shadow-md"
@@ -109,7 +110,7 @@ export default async function GroupKbmDetailPage({ params, searchParams }: PageP
       
       {/* Dropdown Seleksi Grup (Hanya Admin Desa) - Sembunyikan saat Print */}
       <div className="print:hidden">
-        {isAdminDesa && availableGroups.length > 0 && (
+        {isLevelDesa && availableGroups.length > 0 && (
           <ReportFilterBar 
             groups={availableGroups} 
             selectedGroupId={targetGroupId} 

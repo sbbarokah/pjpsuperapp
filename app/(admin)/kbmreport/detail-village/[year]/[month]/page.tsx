@@ -3,6 +3,7 @@ import { getAuthenticatedUserAndProfile } from "@/lib/services/authService";
 import { monthOptions } from "@/lib/constants";
 import { getVillageDetailData } from "@/lib/services/reportService";
 import { VillageKBMPrintView } from "./_components/village_kbm_print_view";
+import { isVillageLevel } from "@/lib/utils/rbac";
 
 export const metadata = {
   title: "Laporan Desa Lengkap | Admin",
@@ -22,9 +23,16 @@ export default async function VillageKBMReportsPage({ params }: PageProps) {
   const { year, month } = await params;
   const yearInt = parseInt(year);
   const monthInt = parseInt(month);
+
+  const canAccess = isVillageLevel(profile.role);
   
-  if (profile.role !== 'admin_desa' || !profile.village_id) {
-    return <div className="p-6 text-red-500">Hanya Admin Desa yang dapat mengakses halaman ini.</div>;
+  if (!canAccess || !profile.village_id) {
+    return (
+      <>
+        <Breadcrumb pageName="Akses Ditolak" />
+        <p>Hanya Admin Desa atau Pengurus Desa yang dapat mengakses halaman ini.</p>
+       </>
+    );
   }
 
   const context = await getVillageDetailData(Number(profile.village_id), monthInt, yearInt);

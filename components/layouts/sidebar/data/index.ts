@@ -35,6 +35,41 @@ export const SUPERADMIN_NAV_DATA = [
   },
 ];
 
+export const PENGURUS_NAV_DATA = [
+  {
+    label: "MENU UTAMA",
+    items: [
+      { title: "Dasbor", url: "/", icon: LuLayoutDashboard, items: [] },
+      { title: "Generus", url: "/generus", icon: LuUsers, items: [] },
+      // { title: "Pengguna", url: "/users", icon: LuUsers, items: [] }, // Dihapus dari sini karena ini khusus superadmin
+      { title: "Kurikulum", url: "/material", icon: LuBookOpen, items: [] },
+      { title: "Muslimun", url: "/muslimun", icon: FaMosque, items: [] },
+      { title: "Laporan KBM", url: "/kbmreport", icon: LuSchool, items: [] },
+      { 
+        title: "E-Learning", 
+        icon: GraduationCap, 
+        items: [
+          { title: "Bank Soal", url: "/elearning/question-bank" },
+          { title: "Kuis", url: "/elearning/quizz" },
+        ], 
+      },
+      { title: "Proker", url: "/proker", icon: LuGitBranch, items: [] },
+      { title: "Berkas", url: "/documents", icon: LuFolderOpen, items: [] },
+      { title: "Log Aktivitas", url: "/activity-log", icon: LuHistory, items: [] },
+      { 
+        title: "Master Data", 
+        icon: LuDatabase, 
+        items: [
+          { title: "Desa", url: "/villages" },
+          { title: "Kelompok", url: "/group" },
+          { title: "Kelas", url: "/categories" },
+          { title: "Kategori Materi", url: "/mcategories" },
+        ], 
+      },
+    ],
+  },
+];
+
 // =====================================================================
 // 2. MENU UNTUK ADMIN DESA, KELOMPOK, & PENGURUS
 // (Akan difilter lebih lanjut di komponen Sidebar menggunakan RBAC)

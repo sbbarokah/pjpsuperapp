@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { getAvailableReportPeriods } from "@/lib/services/reportService";
 import { KbmPeriodCard } from "@/components/cards/kbmPeriodCard"; // Pastikan path ini benar
+import { isCanAccessFeature } from "@/lib/utils/rbac";
 
 export const metadata = {
   title: "Laporan KBM | Admin",
@@ -41,16 +42,6 @@ async function ReportPeriodList({ profile }: { profile: any }) {
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
           Belum ada aktivitas presensi atau penilaian yang tercatat.
         </p>
-        {/* <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Belum ada aktivitas presensi, penilaian, atau laporan manual yang tercatat.
-        </p> */}
-        {/* Tombol Call to Action */}
-        {/* <Link
-            href="/kbmreport/new" // Atau arahkan ke /admin/presensi/create jika ingin mendorong presensi dulu
-            className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90"
-          >
-            Mulai Buat Laporan
-        </Link> */}
       </div>
     );
   }
@@ -83,9 +74,14 @@ export default async function KbmReportsPage() {
     );
   }
   
-  const canAccess = profile.role === "admin_kelompok" || profile.role === "admin_desa";
-  if (!canAccess) {
-      return <p>Akses Ditolak</p>;
+  const canAccess = isCanAccessFeature(profile.role);
+  if (!canAccess && (!profile.village_id || !profile.group_id)) {
+     return (
+       <>
+        <Breadcrumb pageName="Akses Ditolak" />
+        <p>Hanya Admin Desa atau Admin Kelompok yang dapat mengakses halaman ini.</p>
+       </>
+     );
   }
 
   return (

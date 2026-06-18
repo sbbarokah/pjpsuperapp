@@ -23,6 +23,10 @@ export const isAdminLevel = (role: UserRole): boolean => {
   return ['admin_desa', 'admin_kelompok'].includes(role);
 };
 
+export const isPengurusLevel = (role: UserRole): boolean => {
+  return ['pengurus_desa', 'pengurus_kelompok'].includes(role);
+};
+
 export const isVillageLevel = (role: UserRole): boolean => {
   return ['admin_desa', 'pengurus_desa'].includes(role);
 };

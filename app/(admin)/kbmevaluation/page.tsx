@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Profile } from "@/lib/types/user.types";
 import { RecapListClient } from "./_components/recap_list_client";
 import { getCategories, getGroups } from "@/lib/services/masterService";
+import { isAdminLevel } from "@/lib/utils/rbac";
 
 export const metadata = {
   title: "Rekap Penilaian | Admin",
@@ -47,8 +48,8 @@ export default async function EvaluationRecapPage() {
     return <Breadcrumb pageName="Akses Ditolak" />;
   }
   
-  const canAccess = (profile.role === 'admin_desa' || profile.role === 'admin_kelompok');
-  if (!canAccess || !profile.village_id) {
+  const canAccess = isAdminLevel(profile.role);
+  if (!canAccess && (!profile.village_id || !profile.group_id)) {
      return (
        <>
         <Breadcrumb pageName="Akses Ditolak" />
