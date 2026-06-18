@@ -1,19 +1,28 @@
+import React from "react";
+import { cn } from "@/lib/utils"; // Pastikan Anda memiliki utility classnames ini
+
 export const SelectGroup = ({
   label,
   name,
+  value,
   defaultValue,
+  onChange,
   required,
   disabled,
   options,
+  className,
 }: {
   label: string;
   name: string;
-  defaultValue?: string;
+  value?: string | number;
+  defaultValue?: string | number;
+  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   required?: boolean;
-  disabled?: boolean; 
-  options: { value: string; label: string }[];
+  disabled?: boolean;
+  options: { value: string | number; label: string }[];
+  className?: string;
 }) => (
-  <div className="mb-4.5">
+  <div className={cn("mb-4.5", className)}>
     <label className="mb-2.5 block font-medium text-black dark:text-white">
       {label} {required && <span className="text-meta-1 text-red-500">*</span>}
     </label>
@@ -21,10 +30,16 @@ export const SelectGroup = ({
     <div className="relative z-20 bg-transparent dark:bg-form-input">
       <select
         name={name}
-        defaultValue={defaultValue || ""}
+        // Gunakan value jika komponen controlled, atau fallback ke defaultValue jika uncontrolled
+        value={value}
+        defaultValue={value === undefined ? (defaultValue || "") : undefined}
+        onChange={onChange}
         required={required}
         disabled={disabled}
-        className="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent px-5 py-3 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
+        className={cn(
+          "relative z-20 w-full appearance-none rounded border border-stroke bg-transparent px-5 py-3 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary",
+          disabled && "cursor-not-allowed opacity-60 bg-gray-100 dark:bg-black"
+        )}
       >
         <option value="" disabled className="text-body dark:text-bodydark">
           Pilih {label}
@@ -36,10 +51,10 @@ export const SelectGroup = ({
         ))}
       </select>
 
-      {/* Ikon Panah Dropdown */}
-      <span className="absolute right-4 top-1/2 z-30 -translate-y-1/2">
+      {/* Ikon Panah Dropdown - Tambahkan pointer-events-none agar klik tembus ke select */}
+      <span className="absolute right-4 top-1/2 z-30 -translate-y-1/2 pointer-events-none">
         <svg
-          className="fill-current"
+          className="fill-current text-gray-500"
           width="24"
           height="24"
           viewBox="0 0 24 24"
@@ -55,5 +70,3 @@ export const SelectGroup = ({
     </div>
   </div>
 );
-
-// export default SelectGroup;
