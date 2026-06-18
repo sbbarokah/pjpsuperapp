@@ -6,15 +6,23 @@ export const canMutateData = (role: UserRole): boolean => {
   return ['superadmin', 'admin_desa', 'admin_kelompok'].includes(role);
 };
 
-export const onlyVillageAdminCanMutateData = (role: UserRole): boolean => {
+export const isCanAccessFeature = (role: UserRole): boolean => {
+  return ['admin_desa', 'admin_kelompok', 'pengurus_desa', 'pengurus_kelompok'].includes(role);
+};
+
+export const isVillageAdmin = (role: UserRole): boolean => {
   return ['admin_desa'].includes(role);
 };
 
-export const onlyGroupAdminCanMutateData = (role: UserRole): boolean => {
+export const isGroupAdmin = (role: UserRole): boolean => {
   return ['admin_kelompok'].includes(role);
 };
 
 // 2. Cek Pengelompokan Level
+export const isAdminLevel = (role: UserRole): boolean => {
+  return ['admin_desa', 'admin_kelompok'].includes(role);
+};
+
 export const isVillageLevel = (role: UserRole): boolean => {
   return ['admin_desa', 'pengurus_desa'].includes(role);
 };

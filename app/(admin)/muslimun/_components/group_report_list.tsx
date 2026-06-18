@@ -4,11 +4,12 @@ import { MeetingReportWithRelations } from "@/lib/types/mreport.types";
 import { Profile } from "@/lib/types/user.types";
 import Link from "next/link";
 import { FaEdit, FaCalendarAlt, FaChevronRight } from "react-icons/fa";
+import { isGroupAdmin, isGroupLevel } from "@/lib/utils/rbac";
 
 // --- Komponen Card (Dimodifikasi) ---
-function MeetingReportCard({ report }: { report: MeetingReportWithRelations }) {
+function MeetingReportCard({ report, canMutate }: { report: MeetingReportWithRelations, canMutate: boolean }) {
   const detailHref = `/muslimun/detail/${report.period_year}/${report.period_month}`;
-  const editHref = `/muslimun/edit/${report.id}`;
+  const editHref = `/muslimun/edit/${report.id}`;  
   
   return (
     <div className="group relative flex flex-col justify-between rounded-lg border border-stroke bg-white p-5 shadow-default transition hover:border-primary dark:border-strokedark dark:bg-boxdark dark:hover:border-primary">
@@ -34,21 +35,23 @@ function MeetingReportCard({ report }: { report: MeetingReportWithRelations }) {
       </Link>
 
       {/* Footer Aksi: Edit & Detail */}
-      <div className="mt-4 flex items-center justify-between border-t border-stroke pt-4 dark:border-strokedark">
-        <Link 
-          href={detailHref}
-          className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-black dark:hover:text-white transition"
-        >
-          Detail <FaChevronRight className="text-xs" />
-        </Link>
-        
-        <Link 
-          href={editHref}
-          className="flex items-center gap-2 rounded-md bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary hover:text-white transition"
-        >
-          <FaEdit /> Edit
-        </Link>
-      </div>
+      {canMutate && (
+        <div className="mt-4 flex items-center justify-between border-t border-stroke pt-4 dark:border-strokedark">
+          <Link 
+            href={detailHref}
+            className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-black dark:hover:text-white transition"
+          >
+            Detail <FaChevronRight className="text-xs" />
+          </Link>
+          
+          <Link 
+            href={editHref}
+            className="flex items-center gap-2 rounded-md bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary hover:text-white transition"
+          >
+            <FaEdit /> Edit
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
@@ -60,6 +63,8 @@ export async function MuslimunGroupList({ profile }: { profile: Profile }) {
     villageId: Number(profile.village_id),
     groupId: Number(profile.group_id), 
   });
+
+  const canMutate = isGroupAdmin(profile.role);  
 
   if (reports.length === 0) {
     return (
@@ -83,7 +88,7 @@ export async function MuslimunGroupList({ profile }: { profile: Profile }) {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {reports.map((report) => (
-        <MeetingReportCard key={report.id} report={report} />
+        <MeetingReportCard key={report.id} report={report} canMutate={canMutate} />
       ))}
     </div>
   );

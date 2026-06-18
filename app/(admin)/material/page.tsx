@@ -5,7 +5,7 @@ import { getCategories, getMaterialCategories } from "@/lib/services/masterServi
 import { Suspense } from "react";
 import Link from "next/link";
 import { MaterialListClient } from "./_components/material_list_client";
-import { onlyVillageAdminCanMutateData } from "@/lib/utils/rbac";
+import { isVillageAdmin } from "@/lib/utils/rbac";
 
 export const metadata = {
   title: "Manajemen Materi | Admin",
@@ -52,7 +52,7 @@ export default async function MaterialPage(awaitedParams: Promise<MateriPageProp
     return <Breadcrumb pageName="Akses Ditolak" />;
   }
   
-  const canMutate = onlyVillageAdminCanMutateData(profile.role);
+  const canMutate = isVillageAdmin(profile.role);
   
   const { searchParams } = await awaitedParams;
   const params = await searchParams;

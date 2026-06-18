@@ -10,6 +10,7 @@ import { MeetingReportWithRelations } from "@/lib/types/mreport.types";
 import { getMeetingReportsList } from "@/lib/services/mReportService";
 import { MuslimunGroupList } from "./_components/group_report_list";
 import { MuslimunVillageList } from "./_components/village_report_list";
+import { isCanAccessFeature, canMutateData, isGroupLevel, isVillageLevel } from "@/lib/utils/rbac";
 
 export const metadata = {
   title: "Laporan Muslimun | Admin",
@@ -97,8 +98,8 @@ export default async function MeetingReportsPage() {
     );
   }
 
-  // Hanya admin desa & kelompok yg bisa lihat
-  const canAccess = profile.role === "admin_desa" || profile.role === "admin_kelompok";
+  // Hanya superadmin tidak bisa melihat
+  const canAccess = isCanAccessFeature(profile.role);
   if (!canAccess) {
     return (
       <>
@@ -110,22 +111,26 @@ export default async function MeetingReportsPage() {
 
   // Tentukan komponen yang akan ditampilkan
   let ReportViewComponent = null;
-  if (profile.role === "admin_kelompok") {
+  if (isGroupLevel(profile.role)) {
     ReportViewComponent = <MuslimunGroupList profile={profile} />;
-  } else if (profile.role === "admin_desa") {
+  } else if (isVillageLevel(profile.role)) {
     ReportViewComponent = <MuslimunVillageList profile={profile} />;
   }
+
+  const canMutate = canMutateData(profile.role);
 
   return (
     <>
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <Breadcrumb pageName="Laporan Musyawarah 5 Unsur" />
-        <Link
-          href="/muslimun/new"
-          className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"
-        >
-          Buat Laporan Baru
-        </Link>
+        {canMutate && (
+          <Link
+            href="/muslimun/new"
+            className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"
+          >
+            Buat Laporan Baru
+          </Link>
+        )}
       </div>
 
       <div className="space-y-10">
