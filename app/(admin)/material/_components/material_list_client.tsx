@@ -46,9 +46,14 @@ export function MaterialListClient({ materials, categories, allClass, profile }:
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      // Hanya proses jika string kosong atau >= 3 karakter
+      // Ambil nilai dari URL saat ini sebagai pembanding
+      const currentQueryInUrl = searchParams.get("q") || "";
+      
+      // Jika teks input sama dengan apa yang ada di URL, batalkan (cegah infinite loop)
+      if (searchQuery === currentQueryInUrl) return;
+
       if (searchQuery.length === 0 || searchQuery.length >= 3) {
-        const params = new URLSearchParams(searchParams);
+        const params = new URLSearchParams(searchParams.toString());
         
         if (searchQuery) {
           params.set("q", searchQuery);
@@ -56,16 +61,18 @@ export function MaterialListClient({ materials, categories, allClass, profile }:
           params.delete("q");
         }
         
-        // Mengganti replace agar tidak menambah history browser berlebihan saat mengetik
-        router.push(`/material?${params.toString()}`);
+        // Gunakan { scroll: false } agar halaman tidak loncat ke atas saat mengetik
+        router.push(`/material?${params.toString()}`, { scroll: false });
       }
-    }, 500); // Delay 500ms
+    }, 500);
 
     return () => clearTimeout(handler);
-  }, [searchQuery, searchParams, router]);
+  // HAPUS searchParams dan router dari dependency, KITA HANYA INGIN INI JALAN SAAT searchQuery BERUBAH
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
   
   const handleFilterChange = (value: string, type: 'category' | 'class') => {
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams(searchParams.toString());
     
     if (value) {
       params.set(type === 'category' ? 'category' : 'class', value);
