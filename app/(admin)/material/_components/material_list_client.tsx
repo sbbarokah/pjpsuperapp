@@ -11,6 +11,7 @@ import { MaterialWithRelations } from "@/lib/types/material.types";
 import { SelectGroupV2 } from "@/components/forms/select_group_v2";
 import { MaterialAssignmentModal } from "./material_assignment_modal";
 import { RotateCcw } from "lucide-react";
+import { onlyVillageAdminCanMutateData } from "@/lib/utils/rbac";
 
 interface ListProps {
   materials: MaterialWithRelations[];
@@ -27,7 +28,7 @@ export function MaterialListClient({ materials, categories, allClass, profile }:
   const [showModal, setShowModal] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
 
-  const canMutate = profile.role === 'superadmin' || profile.role === 'admin_desa';
+  const canMutate = onlyVillageAdminCanMutateData(profile.role);
 
   const handleDelete = (id: string, name: string) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus materi "${name}"?`)) {

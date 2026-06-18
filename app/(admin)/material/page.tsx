@@ -5,6 +5,7 @@ import { getCategories, getMaterialCategories } from "@/lib/services/masterServi
 import { Suspense } from "react";
 import Link from "next/link";
 import { MaterialListClient } from "./_components/material_list_client";
+import { onlyVillageAdminCanMutateData } from "@/lib/utils/rbac";
 
 export const metadata = {
   title: "Manajemen Materi | Admin",
@@ -51,7 +52,8 @@ export default async function MaterialPage(awaitedParams: Promise<MateriPageProp
     return <Breadcrumb pageName="Akses Ditolak" />;
   }
   
-  const canCreate = profile.role === 'superadmin' || profile.role === 'admin_desa';
+  const canMutate = onlyVillageAdminCanMutateData(profile.role);
+  
   const { searchParams } = await awaitedParams;
   const params = await searchParams;
 
@@ -63,7 +65,7 @@ export default async function MaterialPage(awaitedParams: Promise<MateriPageProp
     <>
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <Breadcrumb pageName="Materi Kurikulum" />
-        {canCreate && (
+        {canMutate && (
           <Link
             href="/material/new"
             className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-center font-medium text-white hover:bg-opacity-90 lg:px-6"
