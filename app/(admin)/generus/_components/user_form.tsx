@@ -42,7 +42,7 @@ export function UserForm({
 
   const isUpdateMode = user !== null;
 
-  const isSuperAdmin = admin.role === 'superadmin' || admin.role === 'super_admin';
+  const isSuperAdmin = admin.role === 'superadmin';
   const isGroupAdmin = admin.role === 'admin_kelompok';
   const isVillageAdmin = admin.role === 'admin_desa';
 

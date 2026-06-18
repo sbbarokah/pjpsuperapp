@@ -118,9 +118,9 @@ export async function validateAdminGroup() {
 /**
  * Memastikan pengguna adalah 'parent'.
  */
-export async function validateParent() {
-  return validateUserRole(["parent"]);
-}
+// export async function validateParent() {
+//   return validateUserRole(["parent"]);
+// }
 
 /**
  * Memastikan pengguna adalah 'user' (peran standar).
