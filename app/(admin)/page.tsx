@@ -8,6 +8,7 @@ import {
 } from "@/lib/services/dashboardService";
 import { ActivityFeed } from "./dashboard/_components/activity_feed";
 import { CategoryStatsGroup } from "./dashboard/_components/category_stats_card";
+import { canMutateData } from "@/lib/utils/rbac";
 
 export const metadata = {
   title: "Dashboard | Admin",
@@ -17,7 +18,10 @@ export const metadata = {
  * Komponen Server untuk mengambil Data Aktivitas
  */
 async function RecentActivity() {
-  // [PERUBAHAN] Ambil 3 data secara paralel
+  const { profile } = await getAuthenticatedUserAndProfile();
+  
+  const canMutate = canMutateData(profile.role);
+  
   const [attendance, evaluation, meeting] = await Promise.all([
     getRecentAttendanceReports(),
     getRecentEvaluationReports(),
@@ -28,7 +32,8 @@ async function RecentActivity() {
     <ActivityFeed 
       attendanceReports={attendance} 
       evaluationReports={evaluation} 
-      meetingReports={meeting} 
+      meetingReports={meeting}
+      canMutate={canMutate}
     />
   );
 }

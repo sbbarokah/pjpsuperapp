@@ -29,12 +29,14 @@ interface ActivityFeedProps {
   attendanceReports: AttendanceRecapWithRelations[];
   evaluationReports: EvaluationRecapWithRelations[];
   meetingReports: MeetingReportWithRelations[];
+  canMutate: boolean;
 }
 
 export function ActivityFeed({ 
   attendanceReports, 
   evaluationReports, 
-  meetingReports 
+  meetingReports,
+  canMutate
 }: ActivityFeedProps) {
   
   /**
@@ -67,26 +69,42 @@ export function ActivityFeed({
             actionText = "laporan Muslimun";
           }
 
+          const contentArea = (
+            <>
+              <div className="flex justify-between items-start mb-1">
+                <span 
+                  className={`font-bold text-black dark:text-white transition-colors truncate ${
+                    canMutate ? "group-hover:text-primary" : ""
+                  }`}
+                >
+                  {item.group?.name || "Kelompok"}
+                </span>
+                <span className="text-[10px] font-medium text-gray-400 whitespace-nowrap ml-2 uppercase">
+                  {item.category?.name}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500 dark:text-gray-400">
+                  {actionText} {item.period_month}/{item.period_year}
+                </span>
+                <span className="text-gray-400 italic">
+                  {timeAgo(item.created_at)}
+                </span>
+              </div>
+            </>
+          );
+
           return (
             <li key={item.id} className="group border-b border-stroke pb-3 last:border-0 dark:border-strokedark">
-              <Link href={href} className="block transition-all">
-                <div className="flex justify-between items-start mb-1">
-                  <span className="font-bold text-black dark:text-white group-hover:text-primary transition-colors truncate">
-                    {item.group?.name || "Kelompok"}
-                  </span>
-                  <span className="text-[10px] font-medium text-gray-400 whitespace-nowrap ml-2 uppercase">
-                    {item.category?.name}
-                  </span>
+              {canMutate ? (
+                <Link href={href} className="block transition-all cursor-pointer">
+                  {contentArea}
+                </Link>
+              ) : (
+                <div className="block cursor-default">
+                  {contentArea}
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                   <span className="text-gray-500 dark:text-gray-400">
-                     {actionText} {item.period_month}/{item.period_year}
-                   </span>
-                   <span className="text-gray-400 italic">
-                     {timeAgo(item.created_at)}
-                   </span>
-                </div>
-              </Link>
+              )}
             </li>
           );
         })}
