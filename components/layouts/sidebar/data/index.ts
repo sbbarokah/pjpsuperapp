@@ -12,7 +12,8 @@ import {
   Settings as LuSettings,
   Building2 as LuBuilding,
   GitBranch as LuGitBranch,
-  Layers as LuLayers
+  Layers as LuLayers,
+  Presentation
 } from "lucide-react";
 import { FaMosque } from "react-icons/fa";
 
@@ -45,6 +46,7 @@ export const PENGURUS_NAV_DATA = [
       { title: "Kurikulum", url: "/material", icon: LuBookOpen, items: [] },
       { title: "Muslimun", url: "/muslimun", icon: FaMosque, items: [] },
       { title: "Laporan KBM", url: "/kbmreport", icon: LuSchool, items: [] },
+      { title: "Laporan Presensi", url: "/kbmpresence", icon: Presentation, items: [] },
       { 
         title: "E-Learning", 
         icon: GraduationCap, 

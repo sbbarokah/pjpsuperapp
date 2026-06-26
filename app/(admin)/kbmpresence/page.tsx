@@ -24,6 +24,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import Breadcrumb from "@/components/ui/breadcrumb";
+import { isVillageLevel } from "@/lib/utils/rbac";
 
 // --- Tipe Data dari Supabase ---
 interface MeetingAttendanceRecord {
@@ -84,6 +85,9 @@ export default function MeetingAttendancePage() {
   const [monthFilter, setMonthFilter] = useState<string>(String(new Date().getMonth() + 1));
   const [yearFilter, setYearFilter] = useState<string>(String(currentYear));
 
+  const [groupFilter, setGroupFilter] = useState<string>("");
+  const [availableGroups, setAvailableGroups] = useState<{ id: number; name: string }[]>([]);
+
   // --- FETCH DATA DARI SUPABASE ---
   const loadData = async () => {
     setLoading(true);
@@ -102,6 +106,18 @@ export default function MeetingAttendancePage() {
 
       if (profileError || !userProfile) throw new Error("Profil pengguna gagal dimuat.");
       setProfile(userProfile);
+
+      if (userProfile.role === "admin_desa") {
+        const { data: groupsData, error: groupsError } = await supabase
+          .from("group")
+          .select("id, name")
+          .eq("village_id", userProfile.village_id)
+          .order("name");
+
+        if (!groupsError && groupsData) {
+          setAvailableGroups(groupsData);
+        }
+      }
 
       // 3. Ambil Master Data Kategori untuk pemetaan ID Array ke Nama di Client Memory
       const { data: masterCategories, error: catError } = await supabase
@@ -177,10 +193,11 @@ export default function MeetingAttendancePage() {
 
       const matchMonth = monthFilter ? rMonth === monthFilter : true;
       const matchYear = yearFilter ? rYear === yearFilter : true;
+      const matchGroup = groupFilter ? String(record.group_id) === groupFilter : true;
 
-      return matchMonth && matchYear;
+      return matchMonth && matchYear && matchGroup;
     });
-  }, [records, monthFilter, yearFilter]);
+  }, [records, monthFilter, yearFilter, groupFilter]);
 
   // --- KALKULASI STATISTIK DARI DATABASE ---
 
@@ -366,6 +383,21 @@ export default function MeetingAttendancePage() {
         </div>
 
         <div className="flex gap-3 w-full sm:w-auto">
+          {isVillageLevel(profile?.role) && (
+            <select
+              value={groupFilter}
+              onChange={(e) => setGroupFilter(e.target.value)}
+              className="flex-1 sm:flex-none p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none text-sm font-bold focus:border-blue-500 text-slate-700 dark:text-slate-300 cursor-pointer"
+            >
+              <option value="">Semua Kelompok</option>
+              {availableGroups.map((g) => (
+                <option key={g.id} value={String(g.id)}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+          )}
+
           <select 
             value={monthFilter}
             onChange={(e) => setMonthFilter(e.target.value)}
