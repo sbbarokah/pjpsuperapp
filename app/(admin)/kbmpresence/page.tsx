@@ -25,6 +25,7 @@ import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import Breadcrumb from "@/components/ui/breadcrumb";
 import { isVillageLevel } from "@/lib/utils/rbac";
+import Swal from "sweetalert2";
 
 // --- Tipe Data dari Supabase ---
 interface MeetingAttendanceRecord {
@@ -321,25 +322,37 @@ export default function MeetingAttendancePage() {
 
   // --- OPERASI SUPABASE: HAPUS REKORD ---
   const handleDelete = (id: string, activityName: string) => {
-    if (window.confirm(`Hapus data pertemuan "${activityName}"?\nData yang dihapus tidak bisa dikembalikan.`)) {
-      startTransition(async () => {
-        setErrorMsg(null);
-        try {
-          const { error: deleteError } = await supabase
-            .from("meeting_attendances")
-            .delete()
-            .eq("id", id);
+    Swal.fire({
+      title: 'Hapus data pertemuan?',
+      text: `Data yang dihapus tidak bisa dikembalikan.!`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33', // Warna merah untuk konfirmasi hapus
+      cancelButtonColor: '#3085d6', // Warna biru untuk batal
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Jalankan server action jika user menekan "Ya"
+        startTransition(async () => {
+          setErrorMsg(null);
+          try {
+            const { error: deleteError } = await supabase
+              .from("meeting_attendances")
+              .delete()
+              .eq("id", id);
 
-          if (deleteError) throw deleteError;
+            if (deleteError) throw deleteError;
 
-          // Perbarui State Lokal
-          setRecords(prev => prev.filter(r => r.id !== id));
-        } catch (err: any) {
-          console.error(err);
-          setErrorMsg(err.message || "Gagal menghapus data dari Supabase.");
-        }
-      });
-    }
+            // Perbarui State Lokal
+            setRecords(prev => prev.filter(r => r.id !== id));
+          } catch (err: any) {
+            console.error(err);
+            setErrorMsg(err.message || "Gagal menghapus data dari Supabase.");
+          }
+        });
+      }
+    });
   };
 
   if (loading) {
