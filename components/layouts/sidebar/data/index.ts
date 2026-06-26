@@ -87,6 +87,7 @@ export const ADMIN_NAV_DATA = [
         title: "KBM", 
         icon: LuSchool, 
         items: [
+          { title: "Input Presensi", url: "/kbmpresence" },
           { title: "Kehadiran KBM", url: "/kbmattendance" },
           { title: "Penilaian KBM", url: "/kbmevaluation" },
           { title: "Laporan KBM", url: "/kbmreport" },

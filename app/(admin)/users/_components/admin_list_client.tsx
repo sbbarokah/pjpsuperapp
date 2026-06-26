@@ -110,8 +110,6 @@ export function FilteredAdminListClient({ admins }: FilteredAdminListProps) {
     document.body.removeChild(textArea);
   };
 
-  console.log("isi paginated admin", paginatedAdmins);
-
   return (
     <div className="flex flex-col gap-6">
       <div className="rounded-lg border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">

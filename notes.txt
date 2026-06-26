@@ -1667,3 +1667,132 @@ ALTER TABLE public.control_user_recap ENABLE ROW LEVEL SECURITY;
 -- 4. Policy Dasar (Bisa disesuaikan dengan kebutuhan role Anda nanti)
 CREATE POLICY "Allow authenticated read for control_material" ON public.control_material FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Allow authenticated read for control_user_recap" ON public.control_user_recap FOR SELECT TO authenticated USING (true);
+
+
+// tabel presensi pengajian
+CREATE TABLE public.meeting_attendances (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  
+  village_id BIGINT NOT NULL REFERENCES public.village(id),
+  group_id BIGINT NOT NULL REFERENCES public.group(id),
+  
+  -- Menggunakan array karena bisa memilih lebih dari 1 kelas
+  category_ids BIGINT[] NOT NULL, 
+  
+  datetime TIMESTAMPTZ NOT NULL,
+  activity TEXT NOT NULL,
+  place TEXT,
+  
+  -- Array of objects: [{ title: "Tajwid", presenter: "Ust. A" }]
+  material JSONB NOT NULL DEFAULT '[]'::jsonb,
+  
+  -- Object kompleks berisi status H/I/A per siswa dan persentase
+  recapitulation JSONB NOT NULL DEFAULT '{}'::jsonb,
+  
+  notes TEXT
+);
+
+ALTER TABLE public.meeting_attendances ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow authenticated read access"
+ON public.meeting_attendances FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Allow admin CUD access"
+ON public.meeting_attendances FOR ALL TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM public.profile
+    WHERE profile.user_id = auth.uid()
+    AND profile.role IN ('superadmin', 'admin_desa', 'admin_kelompok')
+  )
+) WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.profile
+    WHERE profile.user_id = auth.uid()
+    AND profile.role IN ('superadmin', 'admin_desa', 'admin_kelompok')
+  )
+);
+
+// perbaikan tabel presensi
+-- ====================================================================
+-- SKRIP MIGRASI: PENYELARASAN HAK AKSES DAN KUNCI ASING (FOREIGN KEY)
+-- TABEL MEETING ATTENDANCES DENGAN KATEGORI ARRAY (MULTIPLE CHOICE)
+-- ====================================================================
+
+-- 1. Mengubah category_id tunggal menjadi array category_ids BIGINT[] secara aman
+DO $$
+BEGIN
+  -- Cek apakah kolom category_id yang lama masih ada di database
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+    AND table_name = 'meeting_attendances' 
+    AND column_name = 'category_id'
+  ) THEN
+    -- Hapus constraint asing lama terlebih dahulu jika ada
+    ALTER TABLE public.meeting_attendances DROP CONSTRAINT IF EXISTS fk_meeting_attendance_category;
+    
+    -- Tambahkan kolom baru category_ids bermodel array
+    ALTER TABLE public.meeting_attendances ADD COLUMN IF NOT EXISTS category_ids BIGINT[];
+    
+    -- Migrasikan data lama: ubah nilai integer tunggal menjadi array dengan 1 elemen
+    UPDATE public.meeting_attendances 
+    SET category_ids = ARRAY[category_id] 
+    WHERE category_id IS NOT NULL;
+    
+    -- Set default dan NOT NULL pada kolom baru
+    ALTER TABLE public.meeting_attendances ALTER COLUMN category_ids SET DEFAULT '{}'::BIGINT[];
+    UPDATE public.meeting_attendances SET category_ids = '{}'::BIGINT[] WHERE category_ids IS NULL;
+    ALTER TABLE public.meeting_attendances ALTER COLUMN category_ids SET NOT NULL;
+    
+    -- Hapus kolom category_id lama agar skema database bersih
+    ALTER TABLE public.meeting_attendances DROP COLUMN category_id;
+  ELSE
+    -- Jika category_id sudah tidak ada, pastikan category_ids bertipe array sudah siap digunakan
+    ALTER TABLE public.meeting_attendances ADD COLUMN IF NOT EXISTS category_ids BIGINT[] NOT NULL DEFAULT '{}'::BIGINT[];
+  END IF;
+END $$;
+
+-- 2. Memastikan tipe data kolom relasi wilayah lainnya selaras dengan tabel master
+ALTER TABLE public.meeting_attendances ALTER COLUMN group_id TYPE BIGINT;
+ALTER TABLE public.meeting_attendances ALTER COLUMN village_id TYPE BIGINT;
+
+-- 3. HAPUS SEMUA CONSTRAINT LAMA (Termasuk Auto-Generated Default & Custom)
+-- Langkah ini krusial untuk mencegah ambigitas PGRST201 (Lebih dari 1 relasi terdeteksi)
+ALTER TABLE public.meeting_attendances
+DROP CONSTRAINT IF EXISTS fk_meeting_attendance_group,
+DROP CONSTRAINT IF EXISTS fk_meeting_attendance_village,
+DROP CONSTRAINT IF EXISTS meeting_attendances_group_id_fkey,   -- Drop default constraint lama
+DROP CONSTRAINT IF EXISTS meeting_attendances_village_id_fkey; -- Drop default constraint lama
+
+-- 4. Membuat Kunci Asing (Foreign Key) Tunggal yang Bersih & Terdefinisi
+-- Kita gunakan penamaan yang eksplisit agar mudah dikelola kembali di masa depan
+ALTER TABLE public.meeting_attendances
+ADD CONSTRAINT fk_meeting_attendance_group
+FOREIGN KEY (group_id) 
+REFERENCES public.group(id) 
+ON DELETE CASCADE;
+
+ALTER TABLE public.meeting_attendances
+ADD CONSTRAINT fk_meeting_attendance_village
+FOREIGN KEY (village_id) 
+REFERENCES public.village(id) 
+ON DELETE CASCADE;
+
+-- 5. Memaksa Supabase memperbarui cache skema API (Schema Reload)
+NOTIFY pgrst, 'reload schema';
+
+// tambah activity_level dan activity_type
+CREATE TYPE activity_type_enum AS ENUM ('Sambung', 'Khusus', 'Organisasi');
+CREATE TYPE activity_level_enum AS ENUM ('Kelompok', 'Desa', 'Daerah');
+
+-- 2. Menambahkan kolom ke tabel public.meeting_attendances
+ALTER TABLE public.meeting_attendances 
+ADD COLUMN activity_type activity_type_enum,
+ADD COLUMN activity_level activity_level_enum;
+
+-- 3. (Opsional) Memberikan komentar pada kolom untuk dokumentasi
+COMMENT ON COLUMN public.meeting_attendances.activity_type IS 'Kategori kegiatan: Sambung, Khusus, atau Organisasi';
+COMMENT ON COLUMN public.meeting_attendances.activity_level IS 'Tingkatan kegiatan: Kelompok, Desa, atau Daerah';

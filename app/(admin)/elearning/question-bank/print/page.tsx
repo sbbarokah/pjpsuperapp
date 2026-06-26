@@ -136,10 +136,7 @@ export default function ExamPrintPage() {
         </div>
       </div>
     );
-  }
-
-  console.log("isi groupedSections", groupedSections);  
-  console.log("isi orderedQuestions", orderedQuestions);  
+  }  
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 md:p-8 font-sans print:p-0 print:bg-white">
