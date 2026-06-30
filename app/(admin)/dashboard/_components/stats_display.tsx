@@ -46,8 +46,13 @@ export function StatsDisplayTable({ stats }: StatsDisplayTableProps) {
       rowTotal: { L: 0, P: 0, T: 0 },
     };
 
+    let filteredStats = stats;
+    if (viewMode === "generus1") {
+      filteredStats = stats.filter((row) => ![11,12].includes(Number(row.category_id)));
+    }
+
     // 1. Iterasi dan Pengelompokan
-    for (const row of stats) {
+    for (const row of filteredStats) {
       // [PERBAIKAN] Fallback untuk Superadmin yang tidak punya group_name
       const group_name = row.group_name || "Data Global"; 
       const category_name = row.category_name || "Tanpa Kategori";

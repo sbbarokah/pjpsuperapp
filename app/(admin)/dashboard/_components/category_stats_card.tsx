@@ -12,6 +12,8 @@ import {
 import { StatsDisplayTable } from "./stats_display";
 import { Profile } from "@/lib/types/user.types";
 import { ShieldIcon } from "lucide-react";
+import { getCategories } from "@/lib/services/masterService";
+import { CategoryFilter } from "./category_filter";
 
 // --- Sub-Komponen Ikon & Card (Internal) ---
 
@@ -100,6 +102,11 @@ const colorClasses = [
  * Mengelompokkan kategori 1-7 dan 12 ke dalam satu kategori "Cabe Rawit"
  */
 function getDisplayData(data: StatData[], mode: string): StatData[] {
+  if (mode === "generus1") {
+    const filtered = data.filter(item => ![11,12].includes(item.id));
+    return getDisplayData(filtered, "ringkas");
+  }
+
   if (mode !== "ringkas") return data;
 
   // ID kategori yang masuk dalam kelompok Cabe Rawit
@@ -185,14 +192,12 @@ function pivotStats(stats: (GlobalUserStats | VillageUserStats)[]): StatData[] {
  * parameter pencarian tanpa memuat ulang rute dasar.
  */
 const ViewToggle = ({ current }: { current: string }) => (
-  <div className="flex items-center p-1 bg-gray-100 dark:bg-meta-4 rounded-lg w-fit">
+  <div className="flex items-center p-1 bg-gray-100 dark:bg-meta-4 rounded-lg w-fit flex-wrap gap-1">
     <Link
       href="?view=all"
       scroll={false}
       className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-        current !== "ringkas" 
-          ? "bg-white text-primary shadow-sm dark:bg-boxdark dark:text-white" 
-          : "text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white"
+        current === "all" || current === "generus1" ? "" : "..." // jangan overwrite
       }`}
     >
       Semua
@@ -201,12 +206,19 @@ const ViewToggle = ({ current }: { current: string }) => (
       href="?view=ringkas"
       scroll={false}
       className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-        current === "ringkas" 
-          ? "bg-white text-primary shadow-sm dark:bg-boxdark dark:text-white" 
-          : "text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white"
+        current === "ringkas" ? "bg-white text-primary shadow-sm dark:bg-boxdark dark:text-white" : "text-gray-500"
       }`}
     >
       Ringkas
+    </Link>
+    <Link
+      href="?view=generus1"
+      scroll={false}
+      className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+        current === "generus1" ? "bg-white text-primary shadow-sm dark:bg-boxdark dark:text-white" : "text-gray-500"
+      }`}
+    >
+      Generus
     </Link>
   </div>
 );
@@ -222,14 +234,17 @@ export async function CategoryStatsGroup({
   searchParams 
 }: { 
   profile: Profile,
-  searchParams?: { view?: string }
+  searchParams?: { view?: string; categories?: string };
 }) {
   const viewMode = searchParams?.view || "all";
+  const categoriesFilter = searchParams?.categories;
 
   // 1. Fetch Data berdasarkan Role
   let rawStats: any[] = [];
   let adminStats: { role: string; total: number }[] = []; // State untuk statistik admin
   let title = "Statistik Generus";
+
+  const allCategories = await getCategories();
 
   if (profile.role === "superadmin") {
     rawStats = await getGlobalUserStats();
@@ -257,6 +272,16 @@ export async function CategoryStatsGroup({
     }
   }
 
+  // 🔹 Filter rawStats berdasarkan categories dari query string
+  if (categoriesFilter !== "all" && categoriesFilter) {
+    const allowedIds = categoriesFilter.split(",").map(Number);
+    rawStats = rawStats.filter((s: any) => allowedIds.includes(Number(s.category_id)));
+  } else if (!categoriesFilter) {
+    // Default: tampilkan 1-10
+    const defaultIds = [1,2,3,4,5,6,7,8,9,10];
+    rawStats = rawStats.filter((s: any) => defaultIds.includes(Number(s.category_id)));
+  }
+
   // 2. Olah Data (Pivot & Grouping)
   const fullPivotedData = pivotStats(rawStats);
   const displayData = getDisplayData(fullPivotedData, viewMode);
@@ -280,6 +305,9 @@ export async function CategoryStatsGroup({
 
   return (
     <div className="flex flex-col gap-6">
+
+      {/* Filter Kategori */}
+      <CategoryFilter categories={allCategories} />
       
       {/* [BARU] Kartu Statistik Admin & Pengurus (Khusus Superadmin) */}
       {profile.role === "superadmin" && adminStats && adminStats.length > 0 && (
