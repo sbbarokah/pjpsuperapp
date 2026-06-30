@@ -120,3 +120,53 @@ export async function deleteMeetingAttendanceAction(id: string) {
     return { success: false, message: error.message || "Gagal menghapus data." };
   }
 }
+
+// Ambil satu record berdasarkan ID
+export async function getMeetingAttendanceByIdAction(id: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("meeting_attendances")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) return { success: false, error: error.message };
+  return { success: true, data };
+}
+
+// Update record
+export async function updateMeetingAttendanceAction(
+  id: string,
+  payload: CreateMeetingAttendanceDto
+) {
+  try {
+    const { profile } = await getAuthenticatedUserAndProfile();
+    const canMutate = ['superadmin', 'admin_desa', 'admin_kelompok'].includes(profile.role);
+    if (!canMutate) return { success: false, message: "Akses ditolak." };
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("meeting_attendances")
+      .update({
+        village_id: payload.village_id,
+        group_id: payload.group_id,
+        category_ids: payload.category_ids,
+        datetime: payload.datetime,
+        activity: payload.activity,
+        activity_type: payload.activity_type,
+        activity_level: payload.activity_level,
+        place: payload.place,
+        material: payload.material,
+        recapitulation: payload.recapitulation,
+        notes: payload.notes,
+      })
+      .eq("id", id);
+
+    if (error) throw error;
+
+    revalidatePath('/kbmpresence');
+    return { success: true, message: "Presensi pertemuan berhasil diperbarui." };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Gagal memperbarui data." };
+  }
+}

@@ -19,7 +19,8 @@ import {
   AlertCircle,
   User,
   CalendarDays,
-  ChevronRight
+  ChevronRight,
+  Pencil
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -547,16 +548,31 @@ export default function MeetingAttendancePage() {
                   <div key={record.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-all relative group">
                     
                     {/* Tombol Hapus (Hanya muncul jika berhak & saat hover) */}
-                    {canDelete && (
-                      <button 
-                        onClick={() => handleDelete(record.id, record.activity)}
-                        disabled={isPending}
-                        className="absolute top-4 right-4 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all md:opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                        title="Hapus Data"
-                      >
-                        {isPending ? <Loader2 size={18} className="animate-spin text-primary" /> : <Trash2 size={18} />}
-                      </button>
-                    )}
+                    <div className="absolute top-4 right-4 flex items-center gap-2 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                      {canDelete && (
+                        <>
+                          <Link
+                            href={`/kbmpresence/${record.id}/edit`}
+                            className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"
+                            title="Edit Data"
+                          >
+                            <Pencil size={18} />
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(record.id, record.activity)}
+                            disabled={isPending}
+                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all disabled:opacity-50"
+                            title="Hapus Data"
+                          >
+                            {isPending ? (
+                              <Loader2 size={18} className="animate-spin text-primary" />
+                            ) : (
+                              <Trash2 size={18} />
+                            )}
+                          </button>
+                        </>
+                      )}
+                    </div>
 
                     <div className="flex justify-between items-start mb-3 pr-10">
                       <div>
