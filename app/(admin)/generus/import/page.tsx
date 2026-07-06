@@ -107,7 +107,7 @@ export default function ImportGenerusPage() {
                 </a>
 
                 {/* Tombol Template Singkat */}
-                <a
+                {/* <a
                   href="//template_generus2.xlsx"
                   download="/template_generus2.xlsx"
                   className="inline-flex items-center gap-2 rounded-lg border border-primary bg-white px-4 py-2.5 text-sm font-medium text-primary hover:bg-primary/5 dark:bg-boxdark dark:text-white dark:hover:bg-primary/10 transition-all shadow-sm"
@@ -127,7 +127,7 @@ export default function ImportGenerusPage() {
                     ></path>
                   </svg>
                   Unduh Template Generus 2 (singkat)
-                </a>
+                </a> */}
               </div>
             </div>
             

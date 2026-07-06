@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
-import * as XLSX from "xlsx"; // Tetap diperlukan for Tab 1
+import * as XLSX from "xlsx";
 import { importGenerusAction } from "../actions";
 import { GroupModel } from "@/lib/types/master.types";
-import { cn } from "@/lib/utils"; // (Asumsi Anda punya utility cn/classnames)
+import { cn } from "@/lib/utils";
 
-// Tipe data untuk admin yang login
 type AdminProfile = {
   role: string;
   village_id: string | null;
@@ -36,8 +35,11 @@ export function ImportForm({ admin, groups }: ImportFormProps) {
   // State untuk Tab 2: Teks
   const [textInput, setTextInput] = useState("");
 
-  // State untuk Dropdown (dibutuhkan kedua mode)
+  // State untuk Dropdown
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
+
+  // State untuk accordion template
+  const [templateOpen, setTemplateOpen] = useState<boolean>(false);
 
   const resetMessages = () => {
     setError(null);
@@ -45,7 +47,7 @@ export function ImportForm({ admin, groups }: ImportFormProps) {
     setFailures([]);
   };
 
-  // --- Logika untuk Tab 1: Upload File ---
+  // --- Logika Tab 1: File ---
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setFile(e.target.files[0]);
@@ -91,7 +93,7 @@ export function ImportForm({ admin, groups }: ImportFormProps) {
               setFailures(result.failures);
             }
             setFile(null);
-            if(fileInputRef.current) fileInputRef.current.value = "";
+            if (fileInputRef.current) fileInputRef.current.value = "";
             setSelectedGroupId("");
           } else {
             setError(result.error || "Terjadi kesalahan tidak diketahui.");
@@ -104,7 +106,7 @@ export function ImportForm({ admin, groups }: ImportFormProps) {
     });
   };
 
-  // --- Logika untuk Tab 2: Input Teks ---
+  // --- Logika Tab 2: Teks (multi‑data) ---
   const handleTextSubmit = async () => {
     if (!textInput) {
       setError("Silakan masukkan teks data generus.");
@@ -116,40 +118,42 @@ export function ImportForm({ admin, groups }: ImportFormProps) {
     }
     resetMessages();
 
-    // 1. Parsing String menjadi Objek
-    const parsedData: any = {};
-    const lines = textInput.split("\n");
+    // Pisahkan berdasarkan baris kosong
+    const blocks = textInput.split(/\n\s*\n/).filter(block => block.trim() !== "");
+    const parsedArray: any[] = [];
 
-    for (const line of lines) {
-      const colonIndex = line.indexOf(":");
-      if (colonIndex > 0) {
-        // Ambil key (sebelum ':') dan value (setelah ':')
-        const key = line.substring(0, colonIndex).trim().toLowerCase();
-        const value = line.substring(colonIndex + 1).trim();
-        
-        // Hanya ambil key yang kita kenali (sesuai template)
-        const knownKeys = [
-          'email', 'username', 'full_name', 'gender', 'birth_place', 
-          'birth_date', 'category_id', 'school_level', 'school_name', 
-          'father_name', 'father_occupation', 'mother_name', 
-          'mother_occupation', 'parent_contact'
-        ];
-        
-        if (knownKeys.includes(key)) {
-          parsedData[key] = value;
+    for (const block of blocks) {
+      const parsedData: any = {};
+      const lines = block.split("\n");
+      for (const line of lines) {
+        const colonIndex = line.indexOf(":");
+        if (colonIndex > 0) {
+          const key = line.substring(0, colonIndex).trim().toLowerCase();
+          const value = line.substring(colonIndex + 1).trim();
+          const knownKeys = [
+            'email', 'username', 'full_name', 'gender', 'birth_place',
+            'birth_date', 'category_id', 'school_level', 'school_name',
+            'father_name', 'father_occupation', 'mother_name',
+            'mother_occupation', 'parent_contact'
+          ];
+          if (knownKeys.includes(key)) {
+            parsedData[key] = value;
+          }
         }
+      }
+      if (Object.keys(parsedData).length > 0) {
+        parsedArray.push(parsedData);
       }
     }
 
-    if (Object.keys(parsedData).length === 0) {
-      setError("Format teks tidak dikenali. Pastikan format 'key: value'.");
+    if (parsedArray.length === 0) {
+      setError("Tidak ada data yang valid. Pastikan format 'key: value' dan pisahkan setiap orang dengan baris kosong.");
       return;
     }
 
-    // 2. Kirim ke Server Action (sebagai array berisi satu item)
     startTransition(async () => {
       const result = await importGenerusAction(
-        [parsedData], // Kirim sebagai array
+        parsedArray,
         admin,
         selectedGroupId || null,
       );
@@ -159,7 +163,7 @@ export function ImportForm({ admin, groups }: ImportFormProps) {
         if (result.failures && result.failures.length > 0) {
           setFailures(result.failures);
         }
-        setTextInput(""); // Kosongkan textarea
+        setTextInput("");
         setSelectedGroupId("");
       } else {
         setError(result.error || "Terjadi kesalahan tidak diketahui.");
@@ -167,7 +171,6 @@ export function ImportForm({ admin, groups }: ImportFormProps) {
     });
   };
 
-  // --- Helper Styling ---
   const inputClass =
     "w-full rounded-lg border border-stroke bg-transparent py-3 px-5 text-black outline-none focus:border-primary focus-visible:shadow-none dark:border-dark-3 dark:bg-boxdark-2 dark:text-white dark:focus:border-primary";
 
@@ -197,8 +200,7 @@ export function ImportForm({ admin, groups }: ImportFormProps) {
         </button>
       </div>
 
-      {/* --- [KONDISIONAL] Pilihan Kelompok untuk Admin Desa --- */}
-      {/* Ini ditampilkan di luar tab, karena dibutuhkan oleh kedua mode */}
+      {/* --- Pilihan Kelompok (Admin Desa) --- */}
       {admin.role === "admin_desa" && (
         <div>
           <label
@@ -228,7 +230,7 @@ export function ImportForm({ admin, groups }: ImportFormProps) {
         </div>
       )}
 
-      {/* --- KONTEN TAB --- */}
+      {/* --- KONTEN TAB FILE --- */}
       {importMode === "file" && (
         <div className="flex flex-col gap-5">
           <div>
@@ -253,6 +255,7 @@ export function ImportForm({ admin, groups }: ImportFormProps) {
         </div>
       )}
 
+      {/* --- KONTEN TAB TEKS (dengan ACCORDION TEMPLATE) --- */}
       {importMode === "text" && (
         <div className="flex flex-col gap-5">
           <div>
@@ -268,11 +271,91 @@ full_name: Budi Santoso
 email: budi@email.com
 username: budi
 birth_date: 2005-10-20
-..."
+...
+(untuk banyak data, pisahkan dengan baris kosong)"
               className={inputClass}
               disabled={isPending}
             />
           </div>
+
+          {/* Tombol toggle accordion */}
+          <button
+            type="button"
+            onClick={() => setTemplateOpen(!templateOpen)}
+            className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={cn("transition-transform", templateOpen ? "rotate-180" : "")}
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+            {templateOpen ? "Sembunyikan Template" : "Lihat Template Format"}
+          </button>
+
+          {/* Accordion content */}
+          {templateOpen && (
+            <div className="rounded-lg border border-stroke bg-gray-50 p-4 dark:border-dark-3 dark:bg-boxdark-2">
+              <h4 className="mb-2 font-semibold text-black dark:text-white">
+                Template Format Teks
+              </h4>
+              <p className="mb-3 text-sm text-gray-600 dark:text-gray-300">
+                Tulis setiap baris dengan format <code>key: value</code>. Gunakan key yang valid berikut. Untuk mengimpor banyak data, pisahkan setiap orang dengan <strong>baris kosong</strong>.
+              </p>
+              <ul className="mb-3 list-inside list-disc space-y-1 text-sm">
+                <li><code>email</code> – Alamat email</li>
+                <li><code>username</code> – Username</li>
+                <li><code>full_name</code> – Nama lengkap</li>
+                <li><code>gender</code> – Jenis kelamin (L/P)</li>
+                <li><code>birth_place</code> – Tempat lahir</li>
+                <li><code>birth_date</code> – Tanggal lahir (YYYY-MM-DD)</li>
+                <li><code>category_id</code> – ID Kategori (opsional)</li>
+                <li><code>school_level</code> – Tingkat sekolah</li>
+                <li><code>school_name</code> – Nama sekolah</li>
+                <li><code>father_name</code> – Nama ayah</li>
+                <li><code>father_occupation</code> – Pekerjaan ayah</li>
+                <li><code>mother_name</code> – Nama ibu</li>
+                <li><code>mother_occupation</code> – Pekerjaan ibu</li>
+                <li><code>parent_contact</code> – Kontak orang tua</li>
+              </ul>
+              <div className="rounded-lg bg-white p-3 text-sm dark:bg-boxdark">
+                <p className="font-medium text-black dark:text-white">Contoh (satu orang):</p>
+                <pre className="mt-1 whitespace-pre-wrap text-black dark:text-white">
+{`full_name: Budi Santoso
+email: budi@email.com
+username: budi
+birth_date: 2005-10-20
+gender: L
+birth_place: Jakarta
+school_level: SMA
+school_name: SMA Negeri 1`}
+                </pre>
+                <p className="mt-3 font-medium text-black dark:text-white">Contoh (banyak orang, pisahkan dengan baris kosong):</p>
+                <pre className="mt-1 whitespace-pre-wrap text-black dark:text-white">
+{`full_name: Budi Santoso
+email: budi@email.com
+username: budi
+birth_date: 2005-10-20
+gender: L
+
+full_name: Siti Rahayu
+email: siti@email.com
+username: siti
+birth_date: 2006-05-15
+gender: P`}
+                </pre>
+              </div>
+            </div>
+          )}
+
           <button
             onClick={handleTextSubmit}
             disabled={isPending || !textInput}
@@ -283,12 +366,10 @@ birth_date: 2005-10-20
         </div>
       )}
 
-      {/* --- Notifikasi Hasil (Berlaku untuk kedua mode) --- */}
+      {/* --- Notifikasi Hasil --- */}
       {error && (
         <div className="rounded border border-red-500 bg-red-100 p-3 text-sm text-red-700">
-          <p>
-            <strong>Error:</strong> {error}
-          </p>
+          <p><strong>Error:</strong> {error}</p>
         </div>
       )}
       {success && (
@@ -303,9 +384,7 @@ birth_date: 2005-10-20
           </p>
           <ul className="list-inside list-disc">
             {failures.map((fail, index) => (
-              <li key={index}>
-                {fail.email}: {fail.error}
-              </li>
+              <li key={index}>{fail.email}: {fail.error}</li>
             ))}
           </ul>
         </div>

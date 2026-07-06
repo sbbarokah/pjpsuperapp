@@ -91,3 +91,20 @@ export const getNameFallback = (fullName: any) => {
   // "Agus Budi Susanto" -> "agussusanto"
   return words[0] + words[words.length - 1]; 
 };
+
+export function calculateAge(birthDateString?: string | null): number | null {
+  if (!birthDateString) return null;
+  try {
+    const birthDate = new Date(birthDateString);
+    if (isNaN(birthDate.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  } catch {
+    return null;
+  }
+}
