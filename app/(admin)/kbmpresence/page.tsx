@@ -40,7 +40,7 @@ interface MeetingAttendanceRecord {
   category_ids: number[]; // Diperbarui menjadi Array BIGINT[]
   material: any[]; // JSONB
   recapitulation: {
-    summary: { h: number; i: number; a: number; pct_h: number };
+    summary: { h_sdc: number; h: number; i: number; s: number; a: number; pct_hsdc: number; pct_h: number; pct_htot: number; };
     gender_summary?: {
       male: { h: number; i: number; a: number; pct_h: number };
       female: { h: number; i: number; a: number; pct_h: number };
@@ -48,7 +48,7 @@ interface MeetingAttendanceRecord {
     students?: {
       name: string;
       gender: "L" | "P";
-      status: "H" | "I" | "A";
+      status: "H" | "HSDC" | "I" | "S" | "A";
       category?: number; // tambahan opsional
     }[];
     by_category?: Record<
@@ -213,10 +213,10 @@ export default function MeetingAttendancePage() {
       students.forEach(s => {
         if (s.gender === "L") {
           maleTotal++;
-          if (s.status === "H") maleH++;
+          if (s.status === "H" || s.status === "HSDC") maleH++;
         } else if (s.gender === "P") {
           femaleTotal++;
-          if (s.status === "H") femaleH++;
+          if (s.status === "H" || s.status === "HSDC") femaleH++;
         }
       });
     });
@@ -229,12 +229,13 @@ export default function MeetingAttendancePage() {
 
   // 2. Total Persentase Hadir, Izin, Alfa (seluruh siswa)
   const overallStats = useMemo(() => {
-    let total = 0, hadir = 0, izin = 0, alfa = 0;
+    let total = 0, hadir = 0, hadirsdc = 0, izin = 0, alfa = 0;
     filteredRecords.forEach(r => {
       const students = r.recapitulation?.students || [];
       students.forEach(s => {
         total++;
         if (s.status === "H") hadir++;
+        else if (s.status === "HSDC") hadirsdc++;
         else if (s.status === "I") izin++;
         else if (s.status === "A") alfa++;
       });
@@ -242,6 +243,7 @@ export default function MeetingAttendancePage() {
     return {
       total,
       hadirPercent: total > 0 ? (hadir / total) * 100 : 0,
+      hadirsdcPercent: total > 0 ? (hadirsdc / total) * 100 : 0,
       izinPercent: total > 0 ? (izin / total) * 100 : 0,
       alfaPercent: total > 0 ? (alfa / total) * 100 : 0,
     };
@@ -271,7 +273,7 @@ export default function MeetingAttendancePage() {
     }));
   }, [filteredRecords]);
 
-  // 3. Papan Informasi: 5 Generus dengan Kehadiran Terendah
+  // 3. Papan Informasi: 10 Generus dengan Kehadiran Terendah
   const lowAttendanceStudents = useMemo(() => {
     const studentStats = new Map<string, { h: number; t: number }>();
     
@@ -281,7 +283,7 @@ export default function MeetingAttendancePage() {
       studentsList.forEach((s) => {
         const current = studentStats.get(s.name) || { h: 0, t: 0 };
         studentStats.set(s.name, {
-          h: current.h + (s.status === "H" ? 1 : 0),
+          h: current.h + ((s.status === "H" || s.status === "HSDC") ? 1 : 0),
           t: current.t + 1
         });
       });
@@ -295,7 +297,7 @@ export default function MeetingAttendancePage() {
         present: val.h
       }))
       .sort((a, b) => a.percentage - b.percentage)
-      .slice(0, 5);
+      .slice(0, 10);
   }, [filteredRecords]);
 
   // 4. Papan Informasi: 3 Materi Pengajian Terakhir
@@ -361,7 +363,7 @@ export default function MeetingAttendancePage() {
       <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-900">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
-          <p className="text-slate-500 font-bold uppercase tracking-wider text-xs">Menyelaraskan dengan Supabase...</p>
+          <p className="text-slate-500 font-bold uppercase tracking-wider text-xs">Menyelaraskan data kehadiran...</p>
         </div>
       </div>
     );
@@ -374,7 +376,7 @@ export default function MeetingAttendancePage() {
         <div>
           <Breadcrumb pageName="Presensi Pertemuan" showNav={false} />
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Pantau tingkat kehadiran generus serta rekapitulasi materi pengajian rutin dari Supabase.
+            Pantau tingkat kehadiran Jamaah serta rekapitulasi materi pengajian rutin dari Supabase.
           </p>
         </div>
         
@@ -479,6 +481,10 @@ export default function MeetingAttendancePage() {
               <span className="font-bold">{overallStats.hadirPercent.toFixed(0)}%</span>
             </div>
             <div className="flex justify-between text-xs">
+              <span className="text-green-600 font-bold">Hadir via SDC</span>
+              <span className="font-bold">{overallStats.hadirsdcPercent.toFixed(0)}%</span>
+            </div>
+            <div className="flex justify-between text-xs">
               <span className="text-yellow-600 font-bold">Izin</span>
               <span className="font-bold">{overallStats.izinPercent.toFixed(0)}%</span>
             </div>
@@ -546,8 +552,8 @@ export default function MeetingAttendancePage() {
                 
                 return (
                   <div key={record.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-all relative group">
-                    
-                    {/* Tombol Hapus (Hanya muncul jika berhak & saat hover) */}
+  
+                    {/* Tombol aksi (hapus/edit) - tetap sama */}
                     <div className="absolute top-4 right-4 flex items-center gap-2 md:opacity-0 group-hover:opacity-100 transition-opacity">
                       {canDelete && (
                         <>
@@ -574,9 +580,9 @@ export default function MeetingAttendancePage() {
                       )}
                     </div>
 
+                    {/* Header: kelas badge + judul */}
                     <div className="flex justify-between items-start mb-3 pr-10">
                       <div>
-                        {/* Dukungan Rendering Banyak Lencana Kelas Sekaligus */}
                         <div className="flex flex-wrap gap-1.5">
                           {record.categories && record.categories.length > 0 ? (
                             record.categories.map((cat: any) => (
@@ -595,47 +601,70 @@ export default function MeetingAttendancePage() {
                         </h3>
                       </div>
                     </div>
-                    
+
+                    {/* Waktu */}
                     <div className="mb-3 inline-flex">
                       <span className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap">
                         {format(new Date(record.datetime), "dd MMM yyyy, HH:mm", { locale: localeId })} WIB
                       </span>
                     </div>
 
-                    <div className="space-y-1.5 mb-5 text-xs">
+                    {/* Lokasi & Kelompok */}
+                    <div className="space-y-1.5 mb-3 text-xs">
                       <p className="font-medium text-slate-500 flex items-center gap-2">
                         <MapPin size={13} className="text-slate-400" /> {record.place || "Tidak ada lokasi"}
                       </p>
                       <p className="font-medium text-slate-500 flex items-center gap-2">
                         <Users size={13} className="text-slate-400" /> {record.group?.name || "Kelompok"}
                       </p>
-                      {/* {record.material && record.material.length > 0 && (
-                        <div className="mt-1 pt-1.5 border-t border-dashed border-slate-100 dark:border-slate-700/50">
-                           <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wide">Materi:</p>
-                           <ul className="list-disc list-inside text-[11px] text-slate-500 space-y-0.5 mt-0.5">
-                              {record.material.map((m, idx) => (
-                                <li key={idx} className="truncate">{m.title || m}</li>
-                              ))}
-                           </ul>
-                        </div>
-                      )} */}
                     </div>
 
+                    {/* --- BARU: Ringkasan Kehadiran Total --- */}
+                    {summary && (() => {
+                      const totalSiswa = Number(summary.h || 0) + Number(summary.h_sdc || 0) + Number(summary.i || 0) + Number(summary.s || 0) + Number(summary.a || 0);
+                      const totalHadir = Number(summary.h || 0) + Number(summary.h_sdc || 0);
+                      const pctHadir = totalSiswa > 0 ? (totalHadir / totalSiswa) * 100 : 0;
+
+                      return (
+                        <div className="flex items-center justify-between bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl px-4 py-2.5 mb-4 border border-blue-100/50 dark:border-blue-800/30">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                              Kehadiran Total
+                            </span>
+                            <div className="h-2 w-24 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-300"
+                                style={{ width: `${Math.min(pctHadir, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                          <span className="text-sm font-bold text-primary dark:text-blue-400 whitespace-nowrap">
+                            {totalHadir} / {totalSiswa} ({Math.round(pctHadir)}%)
+                          </span>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Grid status (Total, Hadir, SDC, Izin+Sakit, Alfa) */}
                     {summary && (
-                      <div className="grid grid-cols-4 gap-1.5 pt-3 border-t border-slate-100 dark:border-slate-700 text-center">
+                      <div className="grid grid-cols-5 gap-1.5 pt-3 border-t border-slate-100 dark:border-slate-700 text-center">
                         <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-1.5">
                           <p className="text-[8px] font-black uppercase text-slate-400 mb-0.5">Total</p>
                           <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                            {Number(summary.h || 0) + Number(summary.i || 0) + Number(summary.a || 0)}
+                            {Number(summary.h || 0) + Number(summary.h_sdc || 0) + Number(summary.i || 0) + Number(summary.s || 0) + Number(summary.a || 0)}
                           </p>
                         </div>
                         <div className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 rounded-lg p-1.5">
                           <p className="text-[8px] font-black uppercase text-green-600 mb-0.5">Hadir</p>
-                          <p className="text-xs font-bold text-green-700 dark:text-green-500">{(summary.pct_h || 0).toFixed(0)}%</p>
+                          <p className="text-xs font-bold text-green-900 dark:text-green-700">{summary.h || 0}</p>
+                        </div>
+                        <div className="bg-orange-50 dark:bg-orange-500/20 border border-green-100 dark:border-green-900/30 rounded-lg p-1.5">
+                          <p className="text-[8px] font-black uppercase text-orange-600 mb-0.5">SDC</p>
+                          <p className="text-xs font-bold text-orange-700 dark:text-orange-500">{summary.h_sdc || 0}</p>
                         </div>
                         <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-1.5">
                           <p className="text-[8px] font-black uppercase text-yellow-600 mb-0.5">Izin</p>
-                          <p className="text-xs font-bold text-yellow-700 dark:text-yellow-500">{summary.i || 0}</p>
+                          <p className="text-xs font-bold text-yellow-700 dark:text-yellow-500">{Number(summary.i || 0) + Number(summary.s || 0)}</p>
                         </div>
                         <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-1.5">
                           <p className="text-[8px] font-black uppercase text-red-600 mb-0.5">Alfa</p>
@@ -652,15 +681,17 @@ export default function MeetingAttendancePage() {
 
         {/* KOLOM KANAN: SIDEBAR BOARDS PANEL (Col Span 1) */}
         <div className="space-y-6">
-          
-          {/* BOARD 1: 5 GENERUS DENGAN KEHADIRAN TERENDAH */}
+          {/* BOARD 1: 3 MATERI TERAKHIR PENGAJIAN */}
+          <MateriCard recentMaterials={recentMaterials} />
+
+          {/* BOARD 2: 5 GENERUS DENGAN KEHADIRAN TERENDAH */}
           <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
             <h3 className="font-black text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-2 text-sm">
               <TrendingDown className="text-red-500" size={18} />
-              5 Kehadiran Terendah
+              10 Kehadiran Terendah
             </h3>
             <p className="text-xs text-slate-400 font-medium leading-relaxed">
-              Daftar generus yang paling memerlukan pembinaan khusus akibat tingkat kehadiran minim dari draf kueri Supabase.
+              Daftar Jamaah yang paling memerlukan pembinaan khusus akibat tingkat kehadiran minim dari draf kueri Supabase.
             </p>
 
             <div className="space-y-3 pt-2">
@@ -685,9 +716,6 @@ export default function MeetingAttendancePage() {
               )}
             </div>
           </div>
-
-          {/* BOARD 2: 3 MATERI TERAKHIR PENGAJIAN */}
-          <MateriCard recentMaterials={recentMaterials} />
         </div>
 
       </div>

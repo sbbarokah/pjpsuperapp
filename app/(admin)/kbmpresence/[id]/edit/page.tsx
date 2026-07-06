@@ -9,12 +9,13 @@ export const metadata = {
   title: "Edit Kehadiran Per KBM | Admin",
 };
 
-export default async function EditMeetingAttendancePage({
-  params,
-}: {
-  params: { id: string };
-}) {
+interface EditPageProps { params: { id: string } }
+
+export default async function EditMeetingAttendancePage(propsPromise: Promise<EditPageProps>) {
+  const { params } = await propsPromise;
+  const { id } = await params;
   let profile;
+
   try {
     const authData = await getAuthenticatedUserAndProfile();
     profile = authData.profile;
@@ -28,10 +29,11 @@ export default async function EditMeetingAttendancePage({
     return <Breadcrumb pageName="Akses Ditolak" />;
   }
 
+  console.log("isi params", params)
+
   // Ambil data record
-  const { success, data: record } = await getMeetingAttendanceByIdAction(
-    params.id
-  );
+  const { success, data: record } = await getMeetingAttendanceByIdAction(id);
+  
   if (!success || !record) {
     return <Breadcrumb pageName="Data tidak ditemukan" />;
   }

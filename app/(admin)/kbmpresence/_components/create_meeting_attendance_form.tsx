@@ -9,6 +9,8 @@ import { InputGroupV2 } from "@/components/forms/input_group_v2";
 import { CreateMeetingAttendanceDto, MeetingMaterial, MeetingRecapitulation } from "@/lib/types/presence.types";
 import { createMeetingAttendanceAction, getStudentsByCategoriesAction } from "../actions";
 
+type AttendanceStatus = "HSDC" | "H" | "I" | "S" | "A";
+
 interface StudentData {
   user_id: string;
   full_name: string;
@@ -54,7 +56,7 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
   ]);
 
   const [students, setStudents] = useState<StudentData[]>([]);
-  const [studentStatus, setStudentStatus] = useState<Record<string, "H" | "I" | "A">>({});
+  const [studentStatus, setStudentStatus] = useState<Record<string, AttendanceStatus>>({});
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
 
   const handleFormChange = (
@@ -123,55 +125,87 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
   };
 
   // Ubah status per siswa
-  const handleStatusChange = (userId: string, status: "H" | "I" | "A") => {
+  const handleStatusChange = (userId: string, status: AttendanceStatus) => {
     setStudentStatus((prev) => ({ ...prev, [userId]: status }));
   };
 
   // Hitung recapitulation sebelum submit
   const buildRecapitulation = (): MeetingRecapitulation => {
     const total = students.length;
-    let h = 0,
+    let h_sdc = 0,
+      h = 0,
       i = 0,
+      s = 0,
       a = 0;
-    const by_category: Record<string, { h: number; i: number; a: number; total: number }> = {};
+    const by_category: Record<
+      string,
+      { h_sdc: number; h: number; i: number; s: number; a: number; total: number }
+    > = {};
 
     students.forEach((student) => {
       const status = studentStatus[student.user_id] || "H";
-      if (status === "H") h++;
+      if (status === "HSDC") h_sdc++;
+      else if (status === "H") h++;
       else if (status === "I") i++;
+      else if (status === "S") s++;
       else if (status === "A") a++;
 
       const catId = String(student.category_id);
       if (!by_category[catId]) {
-        by_category[catId] = { h: 0, i: 0, a: 0, total: 0 };
+        by_category[catId] = { h_sdc: 0, h: 0, i: 0, s: 0, a: 0, total: 0 };
       }
       by_category[catId].total++;
-      by_category[catId][status === "H" ? "h" : status === "I" ? "i" : "a"]++;
+      if (status === "HSDC") by_category[catId].h_sdc++;
+      else if (status === "H") by_category[catId].h++;
+      else if (status === "I") by_category[catId].i++;
+      else if (status === "S") by_category[catId].s++;
+      else if (status === "A") by_category[catId].a++;
     });
 
+    const pct_hsdc = total ? Math.round((h_sdc / total) * 100) : 0;
     const pct_h = total ? Math.round((h / total) * 100) : 0;
+    const pct_htot = total ? Math.round(((h_sdc + h + i + s) / total) * 100) : 0;
 
-    const byCategoryFinal: Record<string, { h: number; i: number; a: number; pct_h: number }> = {};
+    const byCategoryFinal: Record<
+      string,
+      { h_sdc: number; h: number; i: number; s: number; a: number; pct_hsdc: number; pct_h: number; pct_htot: number }
+    > = {};
     Object.entries(by_category).forEach(([catId, counts]) => {
+      const catTotal = counts.total;
       byCategoryFinal[catId] = {
+        h_sdc: counts.h_sdc,
         h: counts.h,
         i: counts.i,
+        s: counts.s,
         a: counts.a,
-        pct_h: counts.total ? Math.round((counts.h / counts.total) * 100) : 0,
+        pct_hsdc: catTotal ? Math.round((counts.h_sdc / catTotal) * 100) : 0,
+        pct_h: catTotal ? Math.round((counts.h / catTotal) * 100) : 0,
+        pct_htot: catTotal
+          ? Math.round(((counts.h_sdc + counts.h + counts.i + counts.s) / catTotal) * 100)
+          : 0,
       };
     });
 
     const studentsArray = students.map((student) => ({
       name: student.full_name,
-      gender: student.gender, // pastikan data gender tersedia dari getStudentsByCategoriesAction
-      status: (studentStatus[student.user_id] || "H") as "H" | "I" | "A",
-      category: student.category_id
+      gender: student.gender,
+      status: (studentStatus[student.user_id] || "H") as AttendanceStatus,
+      category: student.category_id,
     }));
 
     return {
-      summary: { h, i, a, pct_h },
+      summary: {
+        h_sdc,
+        h,
+        i,
+        s,
+        a,
+        pct_hsdc,
+        pct_h,
+        pct_htot,
+      },
       by_category: byCategoryFinal,
-      students: studentsArray, // <-- sekarang array
+      students: studentsArray,
     };
   };
 
@@ -180,7 +214,6 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
     setError(null);
     setSuccess(null);
 
-    // Validasi
     if (!formData.datetime || !formData.activity.trim() || !formData.place.trim()) {
       setError("Lengkapi tanggal & waktu, kegiatan, dan tempat.");
       return;
@@ -190,9 +223,7 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
       return;
     }
 
-    // Filter material yang tidak kosong
     const cleanMaterials = materials.filter((m) => m.topic.trim() !== "");
-
     const recapitulation = buildRecapitulation();
 
     const payload: CreateMeetingAttendanceDto = {
@@ -385,7 +416,7 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
 
       <hr className="my-2" />
 
-      {/* 7. Daftar Siswa & Status */}
+       {/* 7. Daftar Siswa & Status */}
       {isLoadingStudents ? (
         <div className="text-center p-4">Memuat data siswa...</div>
       ) : students.length > 0 ? (
@@ -399,20 +430,19 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
                 <tr className="bg-gray-2 dark:bg-meta-4">
                   <th className="p-3 text-left text-sm font-medium uppercase">No</th>
                   <th className="p-3 text-left text-sm font-medium uppercase">Nama</th>
+                  <th className="p-3 text-center text-sm font-medium uppercase">Hadir SDC</th>
                   <th className="p-3 text-center text-sm font-medium uppercase">Hadir</th>
                   <th className="p-3 text-center text-sm font-medium uppercase">Izin</th>
+                  <th className="p-3 text-center text-sm font-medium uppercase">Sakit</th>
                   <th className="p-3 text-center text-sm font-medium uppercase">Alfa</th>
                 </tr>
               </thead>
               <tbody>
                 {students.map((student, idx) => (
-                  <tr
-                    key={student.user_id}
-                    className="border-b border-stroke dark:border-strokedark"
-                  >
+                  <tr key={student.user_id} className="border-b border-stroke dark:border-strokedark">
                     <td className="p-3 text-sm">{idx + 1}</td>
                     <td className="p-3 text-sm font-medium">{student.full_name}</td>
-                    {(["H", "I", "A"] as const).map((status) => (
+                    {(["HSDC", "H", "I", "S", "A"] as const).map((status) => (
                       <td key={status} className="p-3 text-center">
                         <input
                           type="radio"
@@ -432,7 +462,7 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
         </div>
       ) : (
         <p className="text-center text-gray-600 dark:text-gray-400">
-          Pilih kelompok dan kategori, lalu klik &quot;Tampilkan Generus&quot;.
+          Pilih kelompok dan kategori, lalu klik "Tampilkan Generus".
         </p>
       )}
 
