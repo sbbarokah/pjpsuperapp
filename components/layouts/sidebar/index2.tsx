@@ -1,9 +1,11 @@
 "use client";
 
+import { Logo } from "@/components/ui/logo";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+// [PERUBAHAN]: Import kedua data navigasi
 import { ADMIN_NAV_DATA, PENGURUS_NAV_DATA, SUPERADMIN_NAV_DATA } from "./data"; 
 import { ArrowLeftIcon, ChevronUp } from "./icons";
 import { MenuItem } from "./menu-item";
@@ -11,12 +13,6 @@ import { useSidebarContext } from "./sidebar-context";
 import { LogoWTitle } from "@/components/ui/logo_title";
 import { Profile } from "@/lib/types/user.types";
 import { canViewMenuMasterDesa, canViewMenuMasterKelompok, canViewMenuUsers, isPengurusLevel } from "@/lib/utils/rbac";
-
-import { UserInfo } from "../header/user-info";
-import { Notification } from "../header/notification";
-import { ThemeToggleSwitch } from "../header/theme-toggle";
-import { LogoutButton } from "@/components/buttons/logout-button";
-import { UserInfoLabel } from "../header/user-info-label";
 
 interface SidebarProps {
   profile: Profile;
@@ -28,38 +24,51 @@ export function Sidebar({ profile }: SidebarProps) {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const filteredNavData = useMemo(() => {
+    
+    // 1. JIKA SUPERADMIN: Langsung gunakan data khusus Superadmin
     if (profile.role === 'superadmin') {
       return SUPERADMIN_NAV_DATA;
     }
 
+    // 2. TENTUKAN SUMBER DATA NAVIGASI (Base Array)
+    // Jika role adalah pengurus, gunakan PENGURUS_NAV_DATA. Selain itu (Admin), gunakan ADMIN_NAV_DATA.
     const baseNavData = isPengurusLevel(profile.role) ? PENGURUS_NAV_DATA : ADMIN_NAV_DATA;
 
+    // 3. ATURAN FILTERING (Berlaku untuk Admin dan Pengurus)
     const isItemAllowed = (title: string, url?: string) => {
+      // Filter Pengguna (Hanya Superadmin, tapi untuk jaga-jaga)
       if (title === "Pengguna" || url?.includes("/users")) {
         return canViewMenuUsers(profile.role);
       }
       
+      // Filter Master Data: Desa
       if (title === "Desa" || url?.includes("/villages")) {
+        // Aturan ketat: Pengurus Desa & Kelompok tidak boleh akses
         if (profile.role === "pengurus_desa" || profile.role === "pengurus_kelompok") {
           return false; 
         }
         return canViewMenuMasterDesa(profile.role);
       }
       
+      // Filter Master Data: Kelompok
       if (title === "Kelompok" || url?.includes("/group")) {
+        // Aturan ketat: Pengurus Kelompok tidak boleh akses
         if (profile.role === "pengurus_kelompok") {
           return false;
         }
         return canViewMenuMasterKelompok(profile.role);
       }
 
+      // Secara default, biarkan menu operasional lainnya lolos
       return true;
     };
 
+    // 4. PROSES PENYARINGAN (Mengeksekusi baseNavData)
     return baseNavData.map((section) => {
       const allowedItems = section.items
         .filter((item) => isItemAllowed(item.title, (item as any).url))
         .map((item) => {
+          // Jika menu punya submenu (seperti Master Data)
           if (item.items && item.items.length > 0) {
             const allowedSubItems = item.items.filter((sub) => 
               isItemAllowed(sub.title, sub.url)
@@ -71,15 +80,18 @@ export function Sidebar({ profile }: SidebarProps) {
 
       return { ...section, items: allowedItems };
     })
+    // Sembunyikan label kategori (seperti "Master Data") jika semua isinya (submenu-nya) habis/terfilter
     .filter((section) => section.items.length > 0);
 
   }, [profile.role]);
+
 
   const toggleExpanded = (title: string) => {
     setExpandedItems((prev) => (prev.includes(title) ? [] : [title]));
   };
 
   useEffect(() => {
+    // Ubah NAV_DATA menjadi filteredNavData di dalam useEffect
     filteredNavData.some((section) => {
       return section.items.some((item) => {
         return item.items.some((subItem) => {
@@ -107,22 +119,20 @@ export function Sidebar({ profile }: SidebarProps) {
 
       <aside
         className={cn(
-          "max-w-[290px] shrink-0 overflow-hidden border-r border-gray-200 bg-white transition-[width] duration-200 ease-linear dark:border-gray-800 dark:bg-gray-dark",
+          "max-w-[290px] overflow-hidden border-r border-gray-200 bg-white transition-[width] duration-200 ease-linear dark:border-gray-800 dark:bg-gray-dark",
           isMobile ? "fixed bottom-0 top-0 z-50" : "sticky top-0 h-screen",
-          isOpen ? "w-full" : "w-0 border-r-0",
+          isOpen ? "w-full" : "w-0",
         )}
         aria-label="Main navigation"
         aria-hidden={!isOpen}
         inert={!isOpen}
       >
-        <div className="flex h-full flex-col py-8 pl-[20px] pr-[10px]">
-          
-          {/* Header Sidebar: Logo & Tombol Tutup Mobile */}
-          <div className="relative pr-2">
+        <div className="flex h-full flex-col py-10 pl-[25px] pr-[7px]">
+          <div className="relative pr-4.5">
             <Link
               href={"/"}
               onClick={() => isMobile && toggleSidebar()}
-              className="px-0 py-2"
+              className="px-0 py-2.5 min-[850px]:py-0"
             >
               <LogoWTitle />
             </Link>
@@ -130,39 +140,25 @@ export function Sidebar({ profile }: SidebarProps) {
             {isMobile && (
               <button
                 onClick={toggleSidebar}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white"
+                className="absolute left-3/4 right-4.5 top-1/2 -translate-y-1/2 text-right"
               >
                 <span className="sr-only">Close Menu</span>
-                <ArrowLeftIcon className="size-6" />
+
+                <ArrowLeftIcon className="ml-auto size-7" />
               </button>
             )}
           </div>
 
-          {/* User Info & Quick Action Utility Bar */}
-          <div className="mt-6 space-y-3 rounded-2xl border border-gray-150 bg-gray-50/50 p-3.5 dark:border-gray-800 dark:bg-dark-2/60">
-            <UserInfoLabel />
-
-            <div className="border-t border-gray-200/80 pt-3 dark:border-gray-700/80">
-              <div className="flex w-full items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ThemeToggleSwitch />
-                  <Notification />
-                </div>
-                <LogoutButton />
-              </div>
-            </div>
-          </div>
-
-          {/* Navigation Items */}
-          <div className="custom-scrollbar mt-6 flex-1 overflow-y-auto pr-2">
+          {/* Navigation */}
+          <div className="custom-scrollbar mt-6 flex-1 overflow-y-auto pr-3 min-[850px]:mt-10">
             {filteredNavData.map((section) => (
               <div key={section.label} className="mb-6">
-                <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-dark-4 dark:text-dark-6">
+                <h2 className="mb-5 text-sm font-medium text-dark-4 dark:text-dark-6">
                   {section.label}
                 </h2>
 
                 <nav role="navigation" aria-label={section.label}>
-                  <ul className="space-y-1.5">
+                  <ul className="space-y-2">
                     {section.items.map((item) => (
                       <li key={item.title}>
                         {item.items.length ? (
@@ -174,7 +170,7 @@ export function Sidebar({ profile }: SidebarProps) {
                               onClick={() => toggleExpanded(item.title)}
                             >
                               <item.icon
-                                className="size-5 shrink-0"
+                                className="size-6 shrink-0"
                                 aria-hidden="true"
                               />
 
@@ -192,7 +188,7 @@ export function Sidebar({ profile }: SidebarProps) {
 
                             {expandedItems.includes(item.title) && (
                               <ul
-                                className="ml-8 mr-0 space-y-1 pb-2 pr-0 pt-2"
+                                className="ml-9 mr-0 space-y-1.5 pb-[15px] pr-0 pt-2"
                                 role="menu"
                               >
                                 {item.items.map((subItem) => (
@@ -219,13 +215,13 @@ export function Sidebar({ profile }: SidebarProps) {
 
                             return (
                               <MenuItem
-                                className="flex items-center gap-3 py-2.5"
+                                className="flex items-center gap-3 py-3"
                                 as="link"
                                 href={href}
                                 isActive={pathname === href}
                               >
                                 <item.icon
-                                  className="size-5 shrink-0"
+                                  className="size-6 shrink-0"
                                   aria-hidden="true"
                                 />
 
@@ -241,7 +237,6 @@ export function Sidebar({ profile }: SidebarProps) {
               </div>
             ))}
           </div>
-
         </div>
       </aside>
     </>
