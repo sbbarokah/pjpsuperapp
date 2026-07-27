@@ -33,6 +33,9 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
 
   const [isRingkasCR, setIsRingkasCR] = useState(false);
 
+  // --- STATE CATATAN PJP DESA ---
+  const [catatanPJP, setCatatanPJP] = useState("");
+
   // --- STATE KONTROL VISIBILITAS KELOMPOK (MENGGUNAKAN SET<NUMBER>) ---
   const [visibleGroupIds, setVisibleGroupIds] = useState<Set<number>>(() => {
     return new Set(context.groups.map(g => Number(g.id)));
@@ -313,8 +316,22 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
               })}
             </div>
           </div>
-
         </div>
+
+        {/* FIELD CATATAN PJP DESA (Baru) */}
+        <div className="border-t border-stroke dark:border-strokedark pt-6 mt-2">
+          <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest block mb-3">
+            Catatan PJP Desa
+          </span>
+          <textarea
+            value={catatanPJP}
+            onChange={(e) => setCatatanPJP(e.target.value)}
+            placeholder="Tulis catatan atau pesan tambahan untuk dicantumkan dalam laporan cetak..."
+            className="w-full rounded-xl border border-stroke bg-gray-50 p-4 text-sm font-medium text-black dark:bg-meta-4 dark:text-white dark:border-slate-700 placeholder:text-gray-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition resize-none"
+            rows={4}
+          />
+        </div>
+
       </div>
 
       {/* ====================================================================
@@ -342,6 +359,7 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
              </div>
           </div>
           
+          {/* Section Laporan */}
           <div className="flex flex-col gap-12">
             {sectionConfig.map((section: any) => {
                if (!visibleSections[section.key as keyof typeof visibleSections]) return null;
@@ -368,6 +386,18 @@ export function VillageKBMPrintView({ context, monthName, year }: VillagePrintVi
                );
             })}
           </div>
+
+          {/* CATATAN PJP DESA (Muncul di cetak) */}
+          {catatanPJP.trim() && (
+            <div className="mt-12 break-inside-avoid">
+              <h3 className="text-lg font-black uppercase border-l-4 border-black pl-3 mb-3">
+                Catatan PJP Desa
+              </h3>
+              <div className="border border-stroke rounded-xl p-5 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                {catatanPJP}
+              </div>
+            </div>
+          )}
 
           {/* Footer Dokumen Cetak */}
           <div className="hidden print:flex justify-between items-end mt-16 pt-6 border-t border-black text-xs font-bold">
