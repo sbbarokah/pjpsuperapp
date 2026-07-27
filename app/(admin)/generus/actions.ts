@@ -399,11 +399,88 @@ export async function importGenerusAction(
   };
 }
 
+export type ExportFilterOptions = {
+  groupId?: string;
+  categoryId?: string;
+};
+
+/**
+ * Action untuk mengambil data sensus lengkap dengan filter opsional
+ * Diurutkan berdasarkan: Kelompok > Kategori (Kelas) > Nama
+ */
+export async function getExportDataAction(options?: ExportFilterOptions) {
+  try {
+    // 1. Validasi Admin
+    const { profile } = await getAuthenticatedUserAndProfile();
+    if (!profile) throw new Error("Profil tidak ditemukan");
+
+    // 2. Ambil data menggunakan service userService
+    const users = await getUsersForAdmin(profile);
+
+    // 3. Filter berdasarkan Kelompok dan Kategori (jika dipilih)
+    const filteredUsers = users.filter((user) => {
+      if (options?.groupId && String(user.group_id) !== String(options.groupId)) {
+        return false;
+      }
+      if (options?.categoryId && String(user.category_id) !== String(options.categoryId)) {
+        return false;
+      }
+      return true;
+    });
+
+    // 4. Sorting Data (Kelompok ASC -> Kategori ASC -> Nama ASC)
+    const sortedUsers = filteredUsers.sort((a, b) => {
+      const groupA = a.group?.name?.toLowerCase() || "zzz";
+      const groupB = b.group?.name?.toLowerCase() || "zzz";
+      if (groupA < groupB) return -1;
+      if (groupA > groupB) return 1;
+
+      const catA = a.category?.name?.toLowerCase() || "zzz";
+      const catB = b.category?.name?.toLowerCase() || "zzz";
+      if (catA < catB) return -1;
+      if (catA > catB) return 1;
+
+      const nameA = a.full_name?.toLowerCase() || "";
+      const nameB = b.full_name?.toLowerCase() || "";
+      if (nameA < nameB) return -1;
+      if (nameA > nameB) return 1;
+
+      return 0;
+    });
+
+    // 5. Kembalikan data mentah terstruktur agar Client dapat memilih kolom (field) secara bebas
+    const rawData = sortedUsers.map((user) => ({
+      full_name: user.full_name || "-",
+      username: user.username || "-",
+      email: user.email || "-",
+      gender: user.gender === "L" ? "Laki-laki" : user.gender === "P" ? "Perempuan" : "-",
+      village_name: user.village?.name || "-",
+      group_name: user.group?.name || "-",
+      category_name: user.category?.name || "-",
+      birth_place: user.birth_place || "-",
+      birth_date: user.birth_date ? user.birth_date.split("T")[0] : "-",
+      school_level: user.school_level || "-",
+      school_name: user.school_name || "-",
+      father_name: user.father_name || "-",
+      father_occupation: user.father_occupation || "-",
+      mother_name: user.mother_name || "-",
+      mother_occupation: user.mother_occupation || "-",
+      parent_contact: user.parent_contact ? `'${user.parent_contact}` : "-", // Tanda kutip tunggal agar Excel membaca sebagai teks
+      status: user.is_active !== false ? "Aktif" : "Nonaktif",
+    }));
+
+    return { success: true, data: rawData };
+  } catch (error: any) {
+    console.error("Export Error:", error.message);
+    return { success: false, message: error.message };
+  }
+}
+
 /**
  * Action untuk mengambil data sensus lengkap
  * Diurutkan berdasarkan: Kelompok > Kategori (Kelas) > Nama
  */
-export async function getExportDataAction() {
+export async function getExportDataAction2() {
   try {
     // 1. Validasi Admin
     const { profile: adminProfile } = await getAuthenticatedUserAndProfile();

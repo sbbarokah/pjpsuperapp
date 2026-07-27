@@ -149,6 +149,11 @@ export default async function GenerusListPage({ searchParams }: PageProps) {
 
   const canMutate = canMutateData(profile.role);
 
+  const [groups, categories] = await Promise.all([
+    getGroups(),
+    getCategories(),
+  ]);
+
   return (
     <>
       {/* Header: Breadcrumb dan Tombol Tambah Baru */}
@@ -158,7 +163,7 @@ export default async function GenerusListPage({ searchParams }: PageProps) {
         {/* Grup Tombol Impor dan Tambah Baru */}
         {canMutate && (
           <div className="flex items-center gap-3">
-            <ExportButton />
+            <ExportButton groups={groups} categories={categories} />
             {/* Tombol Impor Baru */}
             <Link
               href="/generus/import"
