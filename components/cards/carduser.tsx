@@ -112,6 +112,14 @@ export function UserCard({ user, actions, href }: UserCardProps) {
               </span>
             </p>
           )}
+          {user.school_name !== null && (
+            <p>
+              Sekolah:{" "}
+              <span className="font-medium text-black dark:text-white">
+                {user.school_name}
+              </span>
+            </p>
+          )}
         </div>
 
         {/* Detail Kelompok (kategori sudah di badge) */}
