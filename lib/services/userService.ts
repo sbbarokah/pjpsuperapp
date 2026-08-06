@@ -211,6 +211,101 @@ export async function getUsersForAdminServerSide({
   };
 }
 
+export async function getUsersWithFiltersForAdminServerSide({
+  admin,
+  search,
+  groups,       // 👈 berubah dari 'group: string' menjadi 'groups?: string[]'
+  categories,   // 👈 berubah dari 'category: string' menjadi 'categories?: string[]'
+  page,
+  limit,
+  sortBy = "asc",
+}: {
+  admin: CurrentAdminUser;
+  search: string;
+  groups?: string[];      // array opsional
+  categories?: string[];  // array opsional
+  page: number;
+  limit: number;
+  sortBy?: "asc" | "desc";
+}) {
+  const supabase = createAdminClient();
+  
+  // 1. Bangun query dengan join dinamis
+  // Jika groups/categories tidak kosong, gunakan !inner agar hanya profile yang memenuhi yang diambil
+  const hasGroups = groups && groups.length > 0;
+  const hasCategories = categories && categories.length > 0;
+
+  let query = supabase
+    .from("profile")
+    .select(`
+      *,
+      village (name),
+      group${hasGroups ? "!inner" : ""} (name),
+      category${hasCategories ? "!inner" : ""} (name)
+    `, { count: "exact" });
+
+  query = query.eq("role", "user");
+
+  // Filter Hak Akses Admin
+  if (admin.role === "admin_desa") query = query.eq("village_id", admin.village_id);
+  if (admin.role === "admin_kelompok") query = query.eq("group_id", admin.group_id);
+
+  // --- [PERBAIKAN] Filter Multiple Groups & Categories ---
+  if (hasGroups) {
+    // Gunakan .in() untuk mencocokkan beberapa nama kelompok
+    query = query.in("group.name", groups!);
+  }
+
+  if (hasCategories) {
+    query = query.in("category.name", categories!);
+  }
+
+  if (search) {
+    query = query.or(`full_name.ilike.%${search}%,username.ilike.%${search}%`);
+  }
+
+  // Sorting berdasarkan nama
+  query = query.order("full_name", { ascending: sortBy === "asc" });
+
+  // Pagination
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+  query = query.range(from, to);
+
+  const { data: profiles, error, count } = await query;
+  
+  if (error) {
+    console.error("Error fetching filtered profiles:", error.message);
+    throw new Error(error.message);
+  }
+  
+  if (!profiles || profiles.length === 0) {
+    return { users: [], totalItems: 0 };
+  }
+
+  // Ambil email dari auth.users
+  const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
+  if (authError) throw new Error(authError.message);
+
+  const authUserMap = new Map(authUsers.map((user) => [user.id, user]));
+
+  const combinedUsers: UserAdminView[] = profiles.map((profile) => {
+    const authUser = authUserMap.get(profile.user_id);
+    return {
+      ...profile,
+      email: authUser?.email || "N/A",
+      village: profile.village ? { name: profile.village.name } : null,
+      group: profile.group ? { name: profile.group.name } : null,
+      category: profile.category ? { name: profile.category.name } : null,
+    };
+  });
+
+  return {
+    users: combinedUsers,
+    totalItems: count || 0
+  };
+}
+
 /**
  * Mendapatkan detail satu pengguna berdasarkan user_id (Auth ID)
  * @param userId - ID dari auth.users

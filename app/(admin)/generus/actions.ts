@@ -399,32 +399,40 @@ export async function importGenerusAction(
   };
 }
 
-export type ExportFilterOptions = {
-  groupId?: string;
-  categoryId?: string;
-};
+interface ExportFilterOptions {
+  groupIds?: string[];    // array ID kelompok (string)
+  categoryIds?: string[]; // array ID kategori (string)
+}
 
-/**
- * Action untuk mengambil data sensus lengkap dengan filter opsional
- * Diurutkan berdasarkan: Kelompok > Kategori (Kelas) > Nama
- */
 export async function getExportDataAction(options?: ExportFilterOptions) {
   try {
     // 1. Validasi Admin
     const { profile } = await getAuthenticatedUserAndProfile();
     if (!profile) throw new Error("Profil tidak ditemukan");
 
-    // 2. Ambil data menggunakan service userService
+    // 2. Ambil semua data pengguna sesuai hak akses admin
     const users = await getUsersForAdmin(profile);
 
-    // 3. Filter berdasarkan Kelompok dan Kategori (jika dipilih)
+    // 3. Filter berdasarkan Kelompok dan Kategori jika dipilih (multiple)
     const filteredUsers = users.filter((user) => {
-      if (options?.groupId && String(user.group_id) !== String(options.groupId)) {
+      // Filter kelompok: jika array disediakan dan tidak kosong, user harus ada di dalamnya
+      if (
+        options?.groupIds &&
+        options.groupIds.length > 0 &&
+        !options.groupIds.map(String).includes(String(user.group_id ?? ""))
+      ) {
         return false;
       }
-      if (options?.categoryId && String(user.category_id) !== String(options.categoryId)) {
+
+      // Filter kategori: jika array disediakan dan tidak kosong, user harus ada di dalamnya
+      if (
+        options?.categoryIds &&
+        options.categoryIds.length > 0 &&
+        !options.categoryIds.map(String).includes(String(user.category_id ?? ""))
+      ) {
         return false;
       }
+
       return true;
     });
 
@@ -465,7 +473,7 @@ export async function getExportDataAction(options?: ExportFilterOptions) {
       father_occupation: user.father_occupation || "-",
       mother_name: user.mother_name || "-",
       mother_occupation: user.mother_occupation || "-",
-      parent_contact: user.parent_contact ? `'${user.parent_contact}` : "-", // Tanda kutip tunggal agar Excel membaca sebagai teks
+      parent_contact: user.parent_contact ? `'${user.parent_contact}` : "-",
       status: user.is_active !== false ? "Aktif" : "Nonaktif",
     }));
 

@@ -4,16 +4,16 @@ import { useState, useMemo, useEffect } from "react";
 import { UserAdminView } from "@/lib/types/user.types"; // Perlu tipe UserAdminView
 import { UserCard } from "@/components/cards/carduser"; // Impor UserCard Anda
 import { DeleteUserButton } from "./delete_user_button"; // Asumsi path ini benar
-import Link from "next/link";
-import { FaEye, FaFilter } from "react-icons/fa";
 import { UserDetailModal } from "./user_detail_modal";
 import { UpdateCategoryModal } from "./update_category_modal";
-import { ArrowDownZA, ArrowUpAZ, ChevronLeft, ChevronRight, Eye, Filter, Layers, Search } from "lucide-react";
+import { ArrowDownZA, ArrowUpAZ, ChevronLeft, ChevronRight, Eye, Filter, Grid3X3, Layers, Search, Settings2, Table } from "lucide-react";
 import { updateUserAction } from "../actions";
 import { CategoryModel } from "@/lib/types/master.types";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { FilterSelect } from "@/components/lists/filter_select";
+import { UserTable } from "./user_table";
+import { MultiSelectFilter } from "@/components/lists/filter_multi_select";
 
 type FilteredUserListProps = {
   users: UserAdminView[];
@@ -34,6 +34,21 @@ export function FilteredUserListClient({
 }: FilteredUserListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
+
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+    new Set(["group", "category", "full_name", "gender", "age", "actions"])
+  );
+
+  const toggleColumn = (colKey: string) => {
+    setVisibleColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(colKey)) next.delete(colKey);
+      else next.add(colKey);
+      return next;
+    });
+  };
   
   // State lokal khusus penampung ketikan teks input (untuk Debounce)
   const [searchInput, setSearchInput] = useState(searchParams.get("search") || "");
@@ -46,22 +61,27 @@ export function FilteredUserListClient({
   const [userForCategory, setUserForCategory] = useState<UserAdminView | null>(null);
 
   // Ambil nilai filter aktif saat ini dari URL params
-  const currentGroup = searchParams.get("group") || "";
-  const currentCategory = searchParams.get("category") || "";
+  const currentGroupParam = searchParams.get("group") || "";
+  const currentCategoryParam = searchParams.get("category") || "";
+
+  const currentGroups = currentGroupParam ? currentGroupParam.split(",").filter(Boolean) : [];
+  const currentCategories = currentCategoryParam ? currentCategoryParam.split(",").filter(Boolean) : [];
 
   // Logika Pusat Perubahan Filter & Pagination via URL Params
-  const updateUrlParams = (newParams: Record<string, string | number | null>) => {
+  const updateUrlParams = (newParams: Record<string, string | number | null | string[]>) => {
     const params = new URLSearchParams(searchParams.toString());
-    
+
     Object.entries(newParams).forEach(([key, value]) => {
-      if (value === null || value === "") {
+      if (value === null || value === "" || (Array.isArray(value) && value.length === 0)) {
         params.delete(key);
+      } else if (Array.isArray(value)) {
+        params.set(key, value.join(","));
       } else {
         params.set(key, String(value));
       }
     });
 
-    // Otomatis reset ke page 1 jika filter utama berubah (bukan trigger ganti page)
+    // Reset ke halaman 1 jika bukan perubahan halaman
     if (!newParams.page) {
       params.set("page", "1");
     }
@@ -160,86 +180,127 @@ export function FilteredUserListClient({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* --- [BARU] Komponen Search Bar --- */}
+      {/* Search Bar & Filters */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-  
-        {/* AREA SEARCH: Diperluas menjadi col-span-4 */}
-        <div className="w-full md:col-span-5">
-          <label htmlFor="search" className="mb-2.5 block font-medium text-black dark:text-white">
-            Cari Nama (min. 3 karakter)
-          </label>
+        {/* Search */}
+        <div className="md:col-span-4">
+          <label className="mb-2.5 block font-medium text-black dark:text-white">Cari Nama (min. 3 karakter)</label>
           <div className="relative">
             <input
-              id="search"
               type="search"
               placeholder="Cari..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="flex w-full items-center gap-3.5 rounded-full border bg-white py-3 pl-[53px] pr-5 outline-none transition-colors focus-visible:border-primary dark:border-dark-3 dark:bg-dark-2 dark:hover:border-dark-4 dark:hover:bg-dark-3 dark:focus-visible:border-primary text-black dark:text-white"
+              className="w-full rounded-full border border-stroke bg-white py-3 pl-[53px] pr-5 outline-none dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             />
-            <Search size={18} className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-gray-500" />
+            <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500" />
           </div>
         </div>
 
-        {/* FILTER KELOMPOK: Mengambil col-span-3 */}
-        <div className="w-full md:col-span-3">
-          <FilterSelect
+        {/* Filter Kelompok (Multi-Select) */}
+        <div className="md:col-span-3">
+          <MultiSelectFilter
             label="Filter Kelompok"
             name="group_filter"
-            value={currentGroup}
-            onChange={(e) => updateUrlParams({ group: e.target.value })}
+            selectedValues={currentGroups}
+            onChange={(values) => updateUrlParams({ group: values })}
             options={uniqueGroups}
             placeholder="Semua Kelompok"
           />
         </div>
 
-        {/* FILTER KELAS: Mengambil col-span-4 */}
-        <div className="w-full md:col-span-3">
-          <FilterSelect
+        {/* Filter Kelas (Multi-Select) */}
+        <div className="md:col-span-3">
+          <MultiSelectFilter
             label="Filter Kelas"
             name="category_filter"
-            value={currentCategory}
-            onChange={(e) => updateUrlParams({ category: e.target.value })}
+            selectedValues={currentCategories}
+            onChange={(values) => updateUrlParams({ category: values })}
             options={uniqueCategories}
             placeholder="Semua Kelas"
           />
         </div>
-        
-        {/* TOMBOL URUTAN: Dipersempit menjadi col-span-1 saja */}
-        <div className="w-full md:col-span-1 flex flex-col items-center md:items-start">
-          {/* Label pembantu, tetap rapi di desktop */}
-          <label className="mb-2.5 block font-medium text-black dark:text-white invisible md:visible">
-            Urutan
-          </label>
-          
+
+        {/* Sort & View Toggle */}
+        <div className="md:col-span-2 flex items-end gap-2">
           <button
-            type="button"
-            title={currentSort === "asc" ? "Urutan: A - Z (Klik untuk Z - A)" : "Urutan: Z - A (Klik untuk A - Z)"}
             onClick={() => updateUrlParams({ sort: currentSort === "asc" ? "desc" : "asc" })}
             className={cn(
-              "flex h-[50px] w-[50px] items-center justify-center rounded-full border border-stroke bg-white outline-none transition-all",
-              "hover:border-primary hover:bg-gray-50 active:scale-95",
-              "dark:border-dark-3 dark:bg-dark-2 dark:hover:border-dark-4 dark:hover:bg-dark-3",
-              currentSort === "desc" 
-                ? "text-primary border-primary dark:text-primary dark:border-primary" 
-                : "text-gray-500 dark:text-gray-400"
+              "flex h-[50px] w-[50px] items-center justify-center rounded-full border bg-white dark:bg-dark-2",
+              currentSort === "desc" ? "text-primary border-primary" : "text-gray-500"
             )}
           >
-            {currentSort === "asc" ? (
-              <ArrowUpAZ size={20} />
-            ) : (
-              <ArrowDownZA size={20} />
-            )}
+            {currentSort === "asc" ? <ArrowUpAZ size={20} /> : <ArrowDownZA size={20} />}
           </button>
+
+          {/* Tombol Switch View Card/Table */}
+          <div className="flex rounded-full border border-stroke bg-gray-50 dark:bg-dark-2 p-1">
+            <button
+              onClick={() => setViewMode("card")}
+              className={cn(
+                "rounded-full px-3 py-2",
+                viewMode === "card" ? "bg-white shadow dark:bg-dark-3 text-primary" : "text-gray-500"
+              )}
+            >
+              <Grid3X3 size={18} />
+            </button>
+            <button
+              onClick={() => setViewMode("table")}
+              className={cn(
+                "rounded-full px-3 py-2",
+                viewMode === "table" ? "bg-white shadow dark:bg-dark-3 text-primary" : "text-gray-500"
+              )}
+            >
+              <Table size={18} />
+            </button>
+          </div>
+
+          {/* Dropdown Pengaturan Kolom (hanya di mode tabel) */}
+          {viewMode === "table" && (
+            <div className="relative group">
+              <button className="flex h-[50px] w-[50px] items-center justify-center rounded-full border bg-white dark:bg-dark-2 text-gray-500 hover:border-primary">
+                <Settings2 size={20} />
+              </button>
+              <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-stroke bg-white p-4 shadow-lg hidden group-hover:block dark:bg-gray-dark z-30">
+                <span className="text-xs font-black uppercase text-gray-400 mb-3 block">Tampilkan Kolom</span>
+                <div className="space-y-1">
+                  {[
+                    { key: "full_name", label: "Nama Lengkap" },
+                    { key: "group", label: "Kelompok" },
+                    { key: "category", label: "Kelas" },
+                    { key: "age", label: "Umur" },
+                    { key: "role", label: "Role" },
+                    { key: "gender", label: "Gender" },
+                    { key: "village", label: "Desa" },
+                    { key: "email", label: "Email" },
+                    { key: "school_name", label: "Nama Sekolah" },
+                    { key: "school_level", label: "Tingkat Sekolah" },
+                    { key: "actions", label: "Aksi" },
+                  ].map((col) => (
+                    <label
+                      key={col.key}
+                      className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-3 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={visibleColumns.has(col.key)}
+                        onChange={() => toggleColumn(col.key)}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary dark:border-dark-4"
+                      />
+                      <span className="text-sm font-medium text-black dark:text-white">{col.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* --- GRID USER CARD --- */}
+      {/* Konten Utama */}
       {totalItems === 0 ? (
-        <div className="text-center text-gray-600 dark:text-gray-300 py-10">
-          Tidak ada data Generus yang cocok dengan kriteria pencarian.
-        </div>
-      ) : (
+        <div className="py-10 text-center text-gray-500">Tidak ada data generus yang cocok.</div>
+      ) : viewMode === "card" ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {users.map((user) => (
             <UserCard
@@ -248,40 +309,31 @@ export function FilteredUserListClient({
               href={canMutate ? `/generus/edit/${user.user_id}` : undefined}
               actions={
                 <div className="flex items-center gap-2">
+                  {/* ... sama seperti sebelumnya ... */}
                   {canMutate && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        handleOpenCategoryModal(user);
-                      }}
-                      className="group flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-all dark:text-amber-400"
-                      title="Ubah Kategori Kelas"
-                    >
+                    <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleOpenCategoryModal(user); }}
+                      className="rounded-full bg-amber-500/10 p-1.5 text-amber-600 hover:bg-amber-500/20">
                       <Layers size={14} />
                     </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      handleViewDetails(user);
-                    }}
-                    className="group flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all"
-                    title="Lihat Detail"
-                  >
+                  <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleViewDetails(user); }}
+                    className="rounded-full bg-primary/10 p-1.5 text-primary hover:bg-primary/20">
                     <Eye size={14} />
                   </button>
-                  {canMutate && (
-                    <DeleteUserButton id={user.user_id} name={user.full_name || user.username} />
-                  )}
+                  {canMutate && <DeleteUserButton id={user.user_id} name={user.full_name || user.username} />}
                 </div>
               }
             />
           ))}
         </div>
+      ) : (
+        <UserTable
+          users={users}
+          visibleColumns={visibleColumns}
+          canMutate={canMutate}
+          onViewDetails={handleViewDetails}
+          onCategoryModal={handleOpenCategoryModal}
+        />
       )}
 
       {/* --- PANEL PAGINATION CONTROL --- */}

@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import Breadcrumb from "@/components/ui/breadcrumb";
 import { createClient } from "@/lib/supabase/server_user";
-import { getUsersForAdmin, getUsersForAdminServerSide } from "@/lib/services/userService";
+import { getUsersForAdmin, getUsersForAdminServerSide, getUsersWithFiltersForAdminServerSide } from "@/lib/services/userService";
 import {
   getGroups,
   getVillages,
@@ -118,11 +118,25 @@ async function UserList({ resolvedParams }: { resolvedParams: Awaited<PageProps[
   }
 
   // 2. Ambil data terfilter & ter-paginate langsung dari DB
-  const { users, totalItems } = await getUsersForAdminServerSide({
+  // old
+  // const { users, totalItems } = await getUsersForAdminServerSide({
+  //   admin: adminProfile,
+  //   search,
+  //   group,
+  //   category,
+  //   page,
+  //   limit,
+  // });
+  const groupParam = resolvedParams.group || "";
+  const categoryParam = resolvedParams.category || "";
+  const groupsArray = groupParam ? groupParam.split(",") : [];
+  const categoriesArray = categoryParam ? categoryParam.split(",") : [];
+
+  const { users, totalItems } = await getUsersWithFiltersForAdminServerSide({
     admin: adminProfile,
     search,
-    group,
-    category,
+    groups: groupsArray.length > 0 ? groupsArray : undefined,
+    categories: categoriesArray.length > 0 ? categoriesArray : undefined,
     page,
     limit,
   });
