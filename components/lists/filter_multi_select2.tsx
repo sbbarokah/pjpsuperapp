@@ -1,8 +1,7 @@
-// components/lists/multi_select_filter.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { ChevronDown, X } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Check, ChevronDown, X } from "lucide-react";
 
 interface MultiSelectFilterProps {
   label: string;
@@ -22,45 +21,33 @@ export function MultiSelectFilter({
   placeholder,
 }: MultiSelectFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
-  // State sementara saat dropdown terbuka, diinisialisasi dari selectedValues
-  const [tempSelected, setTempSelected] = useState<string[]>(selectedValues);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Sinkronkan tempSelected jika selectedValues berubah dari luar (misal reset filter dari parent)
-  useEffect(() => {
-    setTempSelected(selectedValues);
-  }, [selectedValues]);
-
-  // Tutup dropdown saat klik di luar, reset tempSelected ke nilai yang sudah diterapkan
+  // Tutup dropdown saat klik di luar
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
-        setTempSelected(selectedValues);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [selectedValues]);
+  }, []);
 
   const toggleOption = (value: string) => {
-    setTempSelected((prev) =>
-      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
-    );
+    if (selectedValues.includes(value)) {
+      onChange(selectedValues.filter((v) => v !== value));
+    } else {
+      onChange([...selectedValues, value]);
+    }
   };
 
-  const applyChanges = () => {
-    onChange(tempSelected);
-    setIsOpen(false);
-  };
-
-  const handleCancel = () => {
-    setIsOpen(false);
-    setTempSelected(selectedValues); // reset ke nilai yang sudah diterapkan
+  const removeValue = (value: string) => {
+    onChange(selectedValues.filter((v) => v !== value));
   };
 
   const clearAll = () => {
-    setTempSelected([]);
+    onChange([]);
   };
 
   return (
@@ -89,7 +76,8 @@ export function MultiSelectFilter({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-30 mt-2 w-full rounded-2xl border border-stroke bg-white shadow-lg dark:border-dark-3 dark:bg-gray-dark p-3">
+        <div className="absolute z-30 mt-2 w-full rounded-2xl border border-stroke bg-white shadow-lg dark:border-dark-3 dark:bg-gray-dark p-2">
+          {/* Pencarian cepat? Tidak perlu untuk sekarang */}
           <div className="max-h-48 overflow-y-auto space-y-1">
             {options.map((option) => (
               <label
@@ -98,7 +86,7 @@ export function MultiSelectFilter({
               >
                 <input
                   type="checkbox"
-                  checked={tempSelected.includes(option)}
+                  checked={selectedValues.includes(option)}
                   onChange={() => toggleOption(option)}
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary dark:border-dark-4"
                 />
@@ -108,29 +96,22 @@ export function MultiSelectFilter({
               </label>
             ))}
           </div>
-
-          {/* Footer: Hapus Semua + Tombol Terapkan */}
-          <div className="flex items-center justify-between mt-3 pt-2 border-t border-stroke dark:border-dark-4">
-            <button
-              type="button"
-              onClick={clearAll}
-              className="text-xs font-medium text-red-500 hover:underline"
-            >
-              Hapus semua
-            </button>
-            <button
-              type="button"
-              onClick={applyChanges}
-              className="px-4 py-1.5 rounded-lg bg-primary text-xs font-bold text-white hover:bg-primary/90 transition"
-            >
-              Terapkan
-            </button>
-          </div>
+          {selectedValues.length > 0 && (
+            <div className="border-t border-stroke pt-2 mt-2 px-2">
+              <button
+                type="button"
+                onClick={clearAll}
+                className="text-xs font-bold text-red-500 hover:underline"
+              >
+                Hapus semua
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Tag chip hanya muncul saat dropdown tertutup */}
-      {selectedValues.length > 0 && !isOpen && (
+      {/* Tag/chip jika ada yang dipilih (opsional) */}
+      {selectedValues.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {selectedValues.slice(0, 3).map((val) => (
             <span
@@ -138,6 +119,13 @@ export function MultiSelectFilter({
               className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary dark:bg-primary/20"
             >
               {val}
+              <button
+                type="button"
+                onClick={() => removeValue(val)}
+                className="ml-0.5 rounded-full hover:text-red-600"
+              >
+                <X size={12} />
+              </button>
             </span>
           ))}
           {selectedValues.length > 3 && (
