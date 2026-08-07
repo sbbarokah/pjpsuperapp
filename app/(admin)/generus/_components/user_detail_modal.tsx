@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
+import { ExternalLink } from "lucide-react";
 
 /**
  * Modal untuk menampilkan detail lengkap data Generus
@@ -10,7 +12,6 @@ export function UserDetailModal({ isOpen, onClose, user }: { isOpen: boolean; on
   useEffect(() => {
     setMounted(true);
     if (isOpen) {
-      // Mencegah scroll pada body saat modal terbuka
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -31,19 +32,29 @@ export function UserDetailModal({ isOpen, onClose, user }: { isOpen: boolean; on
 
   const modalContent = (
     <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md transition-all">
-      {/* Overlay untuk menutup saat klik di luar area putih */}
       <div className="absolute inset-0" onClick={onClose}></div>
       
       <div className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-boxdark z-10">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-strokedark">
           <h3 className="text-xl font-bold text-black dark:text-white">Detail Generus</h3>
-          <button 
-            onClick={onClose}
-            className="rounded-full p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-meta-4"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Tombol menuju halaman detail lengkap */}
+            <Link
+              href={`/generus/detail/${user.user_id}`}
+              onClick={onClose}
+              className="rounded-full p-2 text-gray-400 hover:bg-primary/10 hover:text-primary transition-colors"
+              title="Lihat Detail Lengkap & Cetak Kartu"
+            >
+              <ExternalLink size={20} />
+            </Link>
+            <button 
+              onClick={onClose}
+              className="rounded-full p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-meta-4"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -72,7 +83,8 @@ export function UserDetailModal({ isOpen, onClose, user }: { isOpen: boolean; on
         </div>
 
         {/* Footer */}
-        <div className="border-t border-stroke px-6 py-4 text-right dark:border-strokedark bg-gray-50 dark:bg-meta-4">
+        <div className="border-t border-stroke px-6 py-4 text-right dark:border-strokedark bg-gray-50 dark:bg-meta-4 flex items-center justify-between">
+          <span className="text-xs text-gray-500">Klik ikon <ExternalLink size={14} className="inline" /> untuk detail lengkap</span>
           <button
             onClick={onClose}
             className="rounded-lg bg-primary px-6 py-2 font-medium text-white hover:bg-opacity-90"
