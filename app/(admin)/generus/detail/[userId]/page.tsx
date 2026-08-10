@@ -36,8 +36,13 @@ async function getUserDetail(userId: string) {
   };
 }
 
-export default async function DetailGenerusPage({ params }: DetailPageProps) {
+export default async function DetailGenerusPage({
+  params,
+}: {
+  params: { userId: string };
+}) {
   const { userId } = await params;
+
   const { profile: adminProfile } = await getAuthenticatedUserAndProfile();
   const user = await getUserDetail(userId);
 
