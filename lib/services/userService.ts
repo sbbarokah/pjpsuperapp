@@ -359,8 +359,8 @@ export async function getUserDetailForDetailPage(userId: string) {
     .eq("user_id", userId)
     .single();
 
-  console.log("=== isi profile ===", profile);
-  console.log("=== isi error ===", error);
+  // console.log("=== isi profile ===", profile);
+  // console.log("=== isi error ===", error);
 
   if (error || !profile) return null;
 

@@ -21,7 +21,7 @@ export default async function DetailGenerusPage({
   const { profile: adminProfile } = await getAuthenticatedUserAndProfile();
   const user = await getUserDetailForDetailPage(userId);
 
-  console.log("=== isi user ===", user);
+  // console.log("=== isi user ===", user);
 
   if (!user) notFound();
 

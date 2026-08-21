@@ -29,8 +29,6 @@ export default async function EditMeetingAttendancePage(propsPromise: Promise<Ed
     return <Breadcrumb pageName="Akses Ditolak" />;
   }
 
-  console.log("isi params", params)
-
   // Ambil data record
   const { success, data: record } = await getMeetingAttendanceByIdAction(id);
   
