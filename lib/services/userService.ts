@@ -350,6 +350,32 @@ export async function getUserDetails(userId: string) {
   };
 }
 
+export async function getUserDetailForDetailPage(userId: string) {
+  const supabase = await createAdminClient();
+
+  const { data: profile, error } = await supabase
+    .from("profile")
+    .select(`*, village(name), group(name), category(name)`)
+    .eq("user_id", userId)
+    .single();
+
+  console.log("=== isi profile ===", profile);
+  console.log("=== isi error ===", error);
+
+  if (error || !profile) return null;
+
+  const { data: authData } = await supabase.auth.admin.getUserById(userId);
+  const email = authData?.user?.email || "N/A";
+
+  return {
+    ...profile,
+    email,
+    village: profile.village ? { name: profile.village.name } : null,
+    group: profile.group ? { name: profile.group.name } : null,
+    category: profile.category ? { name: profile.category.name } : null,
+  };
+}
+
 /**
  * Membuat pengguna baru (Auth + Profile)
  */
