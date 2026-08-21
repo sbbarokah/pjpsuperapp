@@ -52,7 +52,7 @@ export function EditMeetingAttendanceForm({
     category_ids: initialData.category_ids?.map(String) || [],
     datetime: formatDateTime(initialData.datetime),
     activity: initialData.activity,
-    activity_type: (initialData.activity_type as "Sambung" | "Khusus") || "Sambung",
+    activity_type: (initialData.activity_type as "ngaji_cr" | "ngaji_prj" | "ngaji_remaja" | "ngaji_prn" | "ngaji_mm" | "Sambung" | "Khusus") || "Sambung",
     activity_level: (initialData.activity_level as "Kelompok" | "Desa" | "Daerah") || "Desa",
     place: initialData.place || "",
   });
@@ -346,8 +346,13 @@ export function EditMeetingAttendanceForm({
           value={formData.activity_type}
           onChange={handleFormChange}
           options={[
-            { value: "Sambung", label: "Sambung" },
-            { value: "Khusus", label: "Khusus" },
+            { value: "ngaji_cr", label: "Pengajian Cabe Rawit" },
+            { value: "ngaji_prj", label: "Pengajian Pra Remaja" },
+            { value: "ngaji_remaja", label: "Pengajian Remaja" },
+            { value: "ngaji_prn", label: "Pengajian Pra Nikah" },
+            { value: "ngaji_mm", label: "Pengajian Muda-Mudi" },
+            { value: "Sambung", label: "Sambung Kelompok" },
+            { value: "Khusus", label: "Acara Spesial (misal: Keakraban, Seminar, Healing, dsb)" },
           ]}
           required
         />

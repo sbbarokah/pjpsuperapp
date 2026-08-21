@@ -1,13 +1,22 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Profile } from "@/lib/types/user.types";
 import { GroupModel, CategoryModel } from "@/lib/types/master.types";
 import { SelectGroupV2 } from "@/components/forms/select_group_v2";
 import { InputGroupV2 } from "@/components/forms/input_group_v2";
-import { CreateMeetingAttendanceDto, MeetingMaterial, MeetingRecapitulation } from "@/lib/types/presence.types";
-import { createMeetingAttendanceAction, getStudentsByCategoriesAction } from "../actions";
+import {
+  CreateMeetingAttendanceDto,
+  MeetingMaterial,
+  MeetingRecapitulation,
+} from "@/lib/types/presence.types";
+import {
+  createMeetingAttendanceAction,
+  getStudentsByCategoriesAction,
+} from "../actions";
+import { QrCode, X, Check } from "lucide-react";
+import { QrScannerModal } from "./qr-scanner-modal";
 
 type AttendanceStatus = "HSDC" | "H" | "I" | "S" | "A";
 
@@ -16,7 +25,7 @@ interface StudentData {
   full_name: string;
   gender: "L" | "P";
   category_id: number;
-  category?: { name: string } | null; // opsional jika dari join
+  category?: { name: string } | null;
 }
 
 interface FormProps {
@@ -42,7 +51,7 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
     category_ids: [] as string[],
     datetime: currentDateTime,
     activity: "Pengajian Kelompok",
-    activity_type: "Sambung" as "Sambung" | "Khusus",
+    activity_type: "Sambung" as "ngaji_cr" | "ngaji_prj" | "ngaji_remaja" | "ngaji_prn" | "ngaji_mm" | "Sambung" | "Khusus",
     activity_level: (isAdminKelompok ? "Kelompok" : "Desa") as
       | "Kelompok"
       | "Desa"
@@ -59,6 +68,28 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
   const [studentStatus, setStudentStatus] = useState<Record<string, AttendanceStatus>>({});
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
 
+  // 🆕 State filter & pencarian
+  const [genderFilter, setGenderFilter] = useState<"ALL" | "L" | "P">("ALL");
+  const [searchName, setSearchName] = useState("");
+
+  // 🆕 State untuk scan QR
+  const [qrInput, setQrInput] = useState("");
+  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
+
+  // 🆕 Filtered students
+  const filteredStudents = useMemo(() => {
+    return students.filter((student) => {
+      const matchGender =
+        genderFilter === "ALL" ||
+        (genderFilter === "L" && student.gender === "L") ||
+        (genderFilter === "P" && student.gender === "P");
+      const matchName =
+        searchName.trim() === "" ||
+        student.full_name.toLowerCase().includes(searchName.toLowerCase());
+      return matchGender && matchName;
+    });
+  }, [students, genderFilter, searchName]);
+
   const handleFormChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -66,13 +97,11 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Multi‑select categories
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
     setFormData((prev) => ({ ...prev, category_ids: selected }));
   };
 
-  // Material handlers
   const addMaterial = () => {
     setMaterials((prev) => [
       ...prev,
@@ -94,7 +123,6 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
     );
   };
 
-  // Ambil siswa berdasarkan group & categories
   const handleFetchStudents = async () => {
     if (!formData.group_id || formData.category_ids.length === 0) {
       setError("Pilih kelompok dan minimal satu kategori.");
@@ -114,22 +142,41 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
     } else {
       const fetched = res.data as unknown as StudentData[];
       setStudents(fetched);
-      // Inisialisasi semua Hadir
-      const initial: Record<string, "H" | "I" | "A"> = {};
+      // 🆕 Default status = Alfa (A)
+      const initial: Record<string, AttendanceStatus> = {};
       fetched.forEach((s) => {
-        initial[s.user_id] = "H";
+        initial[s.user_id] = "A";
       });
       setStudentStatus(initial);
     }
     setIsLoadingStudents(false);
   };
 
-  // Ubah status per siswa
   const handleStatusChange = (userId: string, status: AttendanceStatus) => {
     setStudentStatus((prev) => ({ ...prev, [userId]: status }));
   };
 
-  // Hitung recapitulation sebelum submit
+  // 🆕 Proses hasil scan QR (string JSON)
+  const handleQrScanSuccess = (decodedText: string) => {
+    try {
+      const parsed = JSON.parse(decodedText);
+      if (parsed.id) {
+        const matched = students.find((s) => s.user_id === parsed.id);
+        if (matched) {
+          // Tandai sebagai Hadir
+          handleStatusChange(matched.user_id, "H");
+          setError(null);
+        } else {
+          setError("QR code tidak cocok dengan siswa di daftar.");
+        }
+      } else {
+        setError("QR code tidak memiliki ID yang valid.");
+      }
+    } catch {
+      setError("Format QR tidak valid. Pastikan hasil scan berbentuk JSON.");
+    }
+  };
+
   const buildRecapitulation = (): MeetingRecapitulation => {
     const total = students.length;
     let h_sdc = 0,
@@ -143,7 +190,7 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
     > = {};
 
     students.forEach((student) => {
-      const status = studentStatus[student.user_id] || "H";
+      const status = studentStatus[student.user_id] || "A";
       if (status === "HSDC") h_sdc++;
       else if (status === "H") h++;
       else if (status === "I") i++;
@@ -189,7 +236,7 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
     const studentsArray = students.map((student) => ({
       name: student.full_name,
       gender: student.gender,
-      status: (studentStatus[student.user_id] || "H") as AttendanceStatus,
+      status: (studentStatus[student.user_id] || "A") as AttendanceStatus,
       category: student.category_id,
     }));
 
@@ -317,8 +364,13 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
           value={formData.activity_type}
           onChange={handleFormChange}
           options={[
-            { value: "Sambung", label: "Sambung" },
-            { value: "Khusus", label: "Khusus" },
+            { value: "ngaji_cr", label: "Pengajian Cabe Rawit" },
+            { value: "ngaji_prj", label: "Pengajian Pra Remaja" },
+            { value: "ngaji_remaja", label: "Pengajian Remaja" },
+            { value: "ngaji_prn", label: "Pengajian Pra Nikah" },
+            { value: "ngaji_mm", label: "Pengajian Muda-Mudi" },
+            { value: "Sambung", label: "Sambung Kelompok" },
+            { value: "Khusus", label: "Acara Spesial (misal: Keakraban, Seminar, Healing, dsb)" },
           ]}
           required
         />
@@ -416,14 +468,49 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
 
       <hr className="my-2" />
 
-       {/* 7. Daftar Siswa & Status */}
-      {isLoadingStudents ? (
-        <div className="text-center p-4">Memuat data siswa...</div>
-      ) : students.length > 0 ? (
+      {/* 7. Daftar Siswa, Filter, Pencarian, Tombol Scan */}
+      {students.length > 0 && (
         <div className="flex flex-col gap-4">
           <h4 className="text-lg font-semibold text-black dark:text-white">
             Daftar Kehadiran ({students.length} Siswa)
           </h4>
+
+          {/* Filter & Pencarian */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <select
+              value={genderFilter}
+              onChange={(e) => setGenderFilter(e.target.value as "ALL" | "L" | "P")}
+              className="rounded-lg border border-stroke bg-white px-3 py-2 text-sm text-black dark:bg-dark-2 dark:text-white"
+            >
+              <option value="ALL">Semua Gender</option>
+              <option value="L">Laki-laki</option>
+              <option value="P">Perempuan</option>
+            </select>
+            <input
+              type="search"
+              placeholder="Cari nama..."
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              className="w-full sm:max-w-xs rounded-lg border border-stroke bg-white px-3 py-2 text-sm text-black dark:bg-dark-2 dark:text-white"
+            />
+            {/* Tombol Scan QR */}
+            <button
+              type="button"
+              onClick={() => setIsQrScannerOpen(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+            >
+              <QrCode size={18} /> Scan QR
+            </button>
+          </div>
+
+          {/* Panel input QR (muncul saat tombol Scan diklik) */}
+          <QrScannerModal
+            isOpen={isQrScannerOpen}
+            onClose={() => setIsQrScannerOpen(false)}
+            onScanSuccess={handleQrScanSuccess}
+          />
+
+          {/* Tabel Siswa (terfilter) */}
           <div className="overflow-x-auto">
             <table className="w-full table-auto">
               <thead>
@@ -438,7 +525,7 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
                 </tr>
               </thead>
               <tbody>
-                {students.map((student, idx) => (
+                {filteredStudents.map((student, idx) => (
                   <tr key={student.user_id} className="border-b border-stroke dark:border-strokedark">
                     <td className="p-3 text-sm">{idx + 1}</td>
                     <td className="p-3 text-sm font-medium">{student.full_name}</td>
@@ -456,14 +543,17 @@ export function CreateMeetingAttendanceForm({ admin, groups, categories }: FormP
                     ))}
                   </tr>
                 ))}
+                {filteredStudents.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="p-4 text-center text-sm text-gray-500">
+                      Tidak ada siswa yang cocok dengan filter.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
-      ) : (
-        <p className="text-center text-gray-600 dark:text-gray-400">
-          Pilih kelompok dan kategori, lalu klik "Tampilkan Generus".
-        </p>
       )}
 
       {/* Error / Success */}
