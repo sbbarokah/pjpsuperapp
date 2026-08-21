@@ -178,6 +178,63 @@ export function EvaluationRecapForm({
       setError("Harap pilih Kelompok dan Kategori terlebih dahulu.");
       return;
     }
+
+    setIsLoading(true);
+    setError(null);
+
+    const [studentResponse, materialResponse, matCatResponse] = await Promise.all([
+      getGenerusForFormAction(Number(formData.group_id), Number(formData.category_id)),
+      getAllMaterialsForFormAction(Number(formData.category_id), includeAllMaterials),
+      getMaterialCategoriesForFormAction(),
+    ]);
+
+    // 1. Proses data siswa
+    if (!studentResponse.success || !studentResponse.data) {
+      setError(studentResponse.error || "Gagal mengambil data generus.");
+      setStudents([]);
+    } else {
+      setStudents(studentResponse.data);
+    }
+
+    // 2. Proses data materi
+    if (!materialResponse.success || !materialResponse.data) {
+      setError(materialResponse.error || "Gagal mengambil data materi.");
+      setAllAvailableMaterials([]);
+    } else {
+      setAllAvailableMaterials(materialResponse.data);
+    }
+
+    // 3. Proses kategori materi + auto-generate baris
+    if (!matCatResponse.success || !matCatResponse.data) {
+      setError(matCatResponse.error || "Gagal mengambil kategori materi.");
+      setMaterialCategories([]);
+      setEvaluationRows([]); // Jika gagal, tidak ada baris
+    } else {
+      setMaterialCategories(matCatResponse.data);
+      
+      // 🆕 Otomatis buat satu baris untuk setiap kategori materi
+      const autoRows: EvaluationRowState[] = matCatResponse.data.map((cat) => ({
+        temp_id: crypto.randomUUID(),
+        material_category_id: String(cat.id),
+        material_category_name: cat.name,
+        material_id: "",
+        material_name: "",
+        scores: {},
+        evaluation_note: "",
+        show_details: true,
+      }));
+      
+      setEvaluationRows(autoRows);
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleFetchData2 = async () => {
+    if (!formData.group_id || !formData.category_id) {
+      setError("Harap pilih Kelompok dan Kategori terlebih dahulu.");
+      return;
+    }
     
     setIsLoading(true);
     setError(null);
