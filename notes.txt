@@ -1796,3 +1796,13 @@ ADD COLUMN activity_level activity_level_enum;
 -- 3. (Opsional) Memberikan komentar pada kolom untuk dokumentasi
 COMMENT ON COLUMN public.meeting_attendances.activity_type IS 'Kategori kegiatan: Sambung, Khusus, atau Organisasi';
 COMMENT ON COLUMN public.meeting_attendances.activity_level IS 'Tingkatan kegiatan: Kelompok, Desa, atau Daerah';
+
+
+
+
+// pixabay music: 
+Music by <a href="https://pixabay.com/users/caldena-57526850/?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=617557">Pablo Romero</a> from <a href="https://pixabay.com/music//?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=617557">Pixabay</a>
+Sound Effect by <a href="https://pixabay.com/users/dragon-studio-38165424/?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=472358">DRAGON-STUDIO</a> from <a href="https://pixabay.com//?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=472358">Pixabay</a>
+Sound Effect by <a href="https://pixabay.com/users/universfield-28281460/?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=126515">Official Profile</a> from <a href="https://pixabay.com//?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=126515">Pixabay</a>
+Sound Effect by <a href="https://pixabay.com/users/freesound_community-46691455/?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=43236">freesound_community</a> from <a href="https://pixabay.com//?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=43236">Pixabay</a>
+

@@ -19,6 +19,43 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
   const [isCorrect, setIsCorrect] = useState(false);
   const [participants, setParticipants] = useState<any[]>([]);
 
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
+  const tickRef = useRef<HTMLAudioElement | null>(null);
+  const correctRef = useRef<HTMLAudioElement | null>(null);
+  const wrongRef = useRef<HTMLAudioElement | null>(null);
+
+  // 2. INISIALISASI AUDIO (Hanya jalan di Client-Side)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      bgmRef.current = new Audio('/sounds/bgm.mp3');
+      bgmRef.current.loop = true;
+      bgmRef.current.volume = 0.4; // Volume BGM lebih kecil agar tidak mengganggu
+
+      tickRef.current = new Audio('/sounds/tick.mp3');
+      tickRef.current.loop = true;
+      tickRef.current.volume = 0.8;
+
+      correctRef.current = new Audio('/sounds/correct.mp3');
+      wrongRef.current = new Audio('/sounds/wrong.mp3');
+    }
+
+    // Cleanup audio jika peserta keluar halaman
+    return () => {
+      bgmRef.current?.pause();
+      tickRef.current?.pause();
+    };
+  }, []);
+
+  // 3. EFEK SUARA TEGANG (5 DETIK TERAKHIR)
+  useEffect(() => {
+    if (step === 'play' && timeLeft <= 5 && timeLeft > 0 && !hasAnsweredRef.current) {
+      tickRef.current?.play().catch(e => console.log("Audio play blocked", e));
+    } else {
+      // Hentikan suara detak jam jika waktu habis atau peserta sudah menjawab
+      tickRef.current?.pause();
+    }
+  }, [timeLeft, step]);
+
   const timerRef = useRef<any>(null);
 
   // Fungsi untuk sinkronisasi state dari DB
@@ -95,18 +132,24 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
     if (timerRef.current) clearInterval(timerRef.current);
     setTimeLeft(seconds);
     
+    // Putar BGM saat soal dimulai
+    bgmRef.current?.play().catch(e => console.log("BGM blocked by browser", e));
+
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timerRef.current);
-          
-          // PAKSA PESERTA KE HALAMAN RESULT JIKA BELUM MENJAWAB
           if (!hasAnsweredRef.current) {
-            setHasAnswered(true);
-            hasAnsweredRef.current = true;
-            setIsCorrect(false);
-            setIsTimeOut(true); // Tandai bahwa ini karena kehabisan waktu
-            setStep('result');
+             setHasAnswered(true);
+             hasAnsweredRef.current = true;
+             setIsCorrect(false);
+             setIsTimeOut(true); 
+             
+             // Matikan BGM & Putar SFX Salah/Waktu Habis
+             bgmRef.current?.pause();
+             wrongRef.current?.play().catch(e => console.log(e));
+             
+             setStep('result');
           }
           return 0;
         }
@@ -140,7 +183,20 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
     
     setHasAnswered(true);
     hasAnsweredRef.current = true;
-    setIsCorrect(points > 0);
+    
+    const isAnsCorrect = points > 0;
+    setIsCorrect(isAnsCorrect);
+    
+    // Hentikan BGM & Ticking
+    bgmRef.current?.pause();
+    tickRef.current?.pause();
+
+    // Putar SFX Sesuai Jawaban
+    if (isAnsCorrect) {
+       correctRef.current?.play().catch(e => console.log(e));
+    } else {
+       wrongRef.current?.play().catch(e => console.log(e));
+    }
     
     if (points > 0) {
       // 1. Ambil total durasi soal saat ini
