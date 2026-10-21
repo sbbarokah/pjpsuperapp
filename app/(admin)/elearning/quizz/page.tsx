@@ -16,6 +16,7 @@ import {
   Trash2
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import Swal from "sweetalert2";
 
 // --- Tipe Data ---
 interface QuizSession {
@@ -93,12 +94,55 @@ export default function QuizHistoryPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Hapus sesi kuis ini beserta semua data peserta?")) {
-      const { error } = await supabase.from("quiz_sessions").delete().eq("id", id);
-      if (!error) {
-        setQuizzes(prev => prev.filter(q => q.id !== id));
+  const handleDelete = (id: string, title: string) => {
+    Swal.fire({
+      title: "Anda yakin?",
+      text: `Anda akan menghapus sesi kuis "${title}" beserta seluruh data pesertanya. Aksi ini tidak dapat dibatalkan.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3b82f6", // Warna blue-500
+      cancelButtonColor: "#ef4444", // Warna red-500
+      confirmButtonText: "Ya, hapus!",
+      cancelButtonText: "Batal",
+      customClass: {
+        popup: 'dark:bg-slate-800 dark:text-white',
+        confirmButton: 'bg-blue-600',
       }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        confirmDelete(id);
+      }
+    });
+  };
+
+  const confirmDelete = async (id: string) => {
+    try {
+      const { error } = await supabase.from("quiz_sessions").delete().eq("id", id);
+
+      if (!error) {
+        Swal.fire({
+          title: "Terhapus!",
+          text: "Sesi kuis berhasil dihapus.",
+          icon: "success",
+          customClass: {
+            popup: 'dark:bg-slate-800 dark:text-white',
+          }
+        });
+        
+        // Memperbarui state lokal agar UI langsung merespon tanpa perlu reload halaman
+        setQuizzes(prev => prev.filter(q => q.id !== id));
+      } else {
+        throw new Error(error.message);
+      }
+    } catch (error: any) {
+      Swal.fire({
+        title: "Gagal!",
+        text: error.message || "Terjadi kesalahan saat menghapus data.",
+        icon: "error",
+        customClass: {
+          popup: 'dark:bg-slate-800 dark:text-white',
+        }
+      });
     }
   };
 
@@ -187,7 +231,7 @@ export default function QuizHistoryPage() {
                   {/* Actions */}
                   <div className="flex items-center gap-3 pt-4 md:pt-0 border-t md:border-t-0 border-slate-100">
                     <button 
-                      onClick={() => handleDelete(quiz.id)}
+                      onClick={() => handleDelete(quiz.id, quiz.title)}
                       className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
                       title="Hapus Sesi"
                     >

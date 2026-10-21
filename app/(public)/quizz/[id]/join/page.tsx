@@ -5,6 +5,7 @@ import React, { useState, useEffect, use, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Rocket, Loader2, Timer, CheckCircle, XCircle, Trophy, Users } from "lucide-react";
 import Confetti from "react-confetti";
+import Swal from "sweetalert2";
 
 export default function ParticipantQuizPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -90,7 +91,36 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
 
   // 2. Modifikasi channel listener di dalam useEffect
   useEffect(() => {
+    // FUNGSI BARU: Cek LocalStorage untuk memulihkan sesi
+    const recoverSession = async () => {
+      const savedSession = localStorage.getItem(`quiz_session_${id}`);
+      
+      if (savedSession) {
+        const { savedId, savedName } = JSON.parse(savedSession);
+        
+        // Verifikasi apakah ID tersebut masih valid di Database
+        const { data: checkData } = await supabase
+          .from("quiz_participants")
+          .select("id, name")
+          .eq("id", savedId)
+          .single();
+
+        if (checkData) {
+          setParticipantId(savedId);
+          setName(savedName);
+          // Sementara arahkan ke waiting, nanti akan di-override otomatis 
+          // oleh channel real-time jika kuis ternyata sedang 'play'
+          setStep('waiting'); 
+        } else {
+          // Jika tidak ada di DB (misal kuis sudah di-reset admin), hapus memori
+          localStorage.removeItem(`quiz_session_${id}`);
+        }
+      }
+    };
+
+    recoverSession(); // Jalankan pemulihan
     fetchSessionAndParticipants();
+
     const sessChannel = supabase
       .channel(`quiz_sync_${id}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'quiz_sessions', filter: `id=eq.${id}` }, (payload) => {
@@ -161,19 +191,29 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
   const handleJoin = async () => {
     if (!name) return;
     try {
-      const { data } = await supabase.from("quiz_participants").insert({ session_id: id, name: name }).select().single();
+      const { data } = await supabase
+        .from("quiz_participants")
+        .insert({ session_id: id, name: name })
+        .select()
+        .single();
+        
       setParticipantId(data.id);
       
-      // PERBAIKAN: Jika telat gabung dan kuis sudah mulai
+      // PERBAIKAN: Simpan ID dan Nama ke LocalStorage (Spesifik untuk ID kuis ini)
+      localStorage.setItem(`quiz_session_${id}`, JSON.stringify({ 
+        savedId: data.id, 
+        savedName: name 
+      }));
+      
       if (session?.status === 'started') {
         setStep('play');
-        setHasAnswered(true); // Langsung dianggap sudah jawab (karena telat masuk soal ini)
-        setStep('result'); // Tembak ke result agar menunggu soal berikutnya
+        setHasAnswered(true); 
+        setStep('result'); 
       } else {
         setStep('waiting');
       }
-    } catch (e) {
-      alert("Gagal bergabung");
+    } catch (error: any) {
+      Swal.fire("Gagal bergabung!", error.message, "error");
     }
   };
 
@@ -183,6 +223,9 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
     
     setHasAnswered(true);
     hasAnsweredRef.current = true;
+    
+    // PERBAIKAN: Ingat bahwa soal index ini sudah dijawab
+    localStorage.setItem(`quiz_${id}_answered_index`, String(session?.current_question_index));
     
     const isAnsCorrect = points > 0;
     setIsCorrect(isAnsCorrect);

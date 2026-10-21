@@ -7,6 +7,7 @@ import { IRootState } from "@/store/store";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { Play, Timer, ListOrdered, Share2, AlertCircle, Loader2, BookOpen, PlusCircle, ArrowLeft } from "lucide-react";
+import Swal from "sweetalert2";
 
 export default function CreateQuizPage() {
   const cart = useSelector((state: IRootState) => state.qPackage.cart);
@@ -38,7 +39,7 @@ export default function CreateQuizPage() {
     if (!error) {
       router.push(`/elearning/quizz/${data.id}/control`);
     } else {
-      alert("Gagal membuat kuis");
+      Swal.fire("Gagal membuat kuis!", error.message, "error");
     }
     setLoading(false);
   };
