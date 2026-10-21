@@ -188,7 +188,20 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
     }, 1000);
   };
 
-  const handleJoin = async () => {
+  const handleJoin = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!e.isTrusted) {
+      return Swal.fire({
+        title: "Akses Ditolak!",
+        text: "Sistem mendeteksi klik otomatis atau penggunaan script bot.",
+        icon: "error",
+        confirmButtonColor: '#ef4444'
+      });
+    }
+
+    if (!name.trim()) {
+      return Swal.fire("Mohon Maaf!", "Tolong tuliskan nama Anda.", "success");
+    }
+
     if (!name) return;
     try {
       const { data } = await supabase
@@ -217,7 +230,14 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
     }
   };
 
-  const submitAnswer = async (points: number) => {
+  const submitAnswer = async (points: number, e: React.MouseEvent<HTMLButtonElement>) => {
+    
+    // 1. BLOKIR SCRIPT BOT (ANTI-SPAM)
+    if (!e.isTrusted) {
+      console.warn("Sistem mendeteksi klik bot/script otomatis!");
+      return; // Hentikan eksekusi diam-diam (silent reject)
+    }
+
     // Cegah double submit atau submit setelah waktu habis
     if (hasAnsweredRef.current || timeLeft === 0) return; 
     
@@ -281,7 +301,7 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
           <h1 className="text-2xl font-black mb-2">Siap untuk Kuis?</h1>
           <p className="text-slate-500 mb-8 font-medium">Masukkan nama Anda untuk bergabung</p>
           <input type="text" placeholder="Nama Panggilan" value={name} onChange={(e) => setName(e.target.value)} className="w-full p-5 rounded-2xl bg-slate-100 border-none outline-none font-bold text-center text-xl mb-6 focus:ring-4 ring-blue-200 transition-all"/>
-          <button onClick={handleJoin} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-all">GABUNG SEKARANG</button>
+          <button onClick={(e) => handleJoin(e)} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-all">GABUNG SEKARANG</button>
         </div>
       </div>
     );
@@ -362,7 +382,8 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
                 {currentQ?.options?.map((opt: any, idx: number) => (
                     <button 
                         key={idx}
-                        onClick={() => submitAnswer(opt.points || 0)}
+                        onClick={(e) => submitAnswer(opt.points || 0, e)}
+                        disabled={hasAnswered}
                         className={`p-6 rounded-3xl text-left border-b-4 transition-all active:translate-y-1 flex items-center gap-4 group
                             ${idx === 0 ? 'bg-red-500 border-red-700 text-white hover:bg-red-600' : 
                               idx === 1 ? 'bg-blue-500 border-blue-700 text-white hover:bg-blue-600' : 

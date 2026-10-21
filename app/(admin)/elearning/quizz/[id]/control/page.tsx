@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState, useRef, use } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Share2, Play, Users, Trophy, Check, Award, Loader2, Timer, Maximize, Minimize } from "lucide-react";
+import { Share2, Play, Users, Trophy, Check, Award, Loader2, Timer, Maximize, Minimize, UserX } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Swal from "sweetalert2";
 
 export default function QuizControlPage({ params }: { params: Promise<{ id: string }> }) {
   const supabase = createClient();
@@ -100,6 +101,63 @@ export default function QuizControlPage({ params }: { params: Promise<{ id: stri
       });
     } else {
       document.exitFullscreen();
+    }
+  };
+
+  const handleKick = (participantId: string, participantName: string) => {
+    Swal.fire({
+      title: "Keluarkan Peserta?",
+      text: `Anda akan menghapus "${participantName}" dari papan skor. Aksi ini tidak dapat dibatalkan.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444", // Merah untuk aksi destruktif
+      cancelButtonColor: "#64748b",  // Abu-abu untuk batal
+      confirmButtonText: "Ya, keluarkan!",
+      cancelButtonText: "Batal",
+      customClass: {
+        popup: 'dark:bg-slate-800 dark:text-white',
+        confirmButton: 'bg-red-600 hover:bg-red-700',
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        confirmKick(participantId);
+      }
+    });
+  };
+
+  const confirmKick = async (participantId: string) => {
+    try {
+      const { error } = await supabase
+        .from("quiz_participants")
+        .delete()
+        .eq("id", participantId);
+
+      if (!error) {
+        Swal.fire({
+          title: "Dikeluarkan!",
+          text: "Peserta berhasil dihapus dari permainan.",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+          customClass: {
+            popup: 'dark:bg-slate-800 dark:text-white',
+          }
+        });
+        
+        // Hapus dari UI langsung agar responsif
+        setParticipants(prev => prev.filter(p => p.id !== participantId));
+      } else {
+        throw new Error(error.message);
+      }
+    } catch (error: any) {
+      Swal.fire({
+        title: "Gagal!",
+        text: error.message || "Terjadi kesalahan saat menghapus peserta.",
+        icon: "error",
+        customClass: {
+          popup: 'dark:bg-slate-800 dark:text-white',
+        }
+      });
     }
   };
 
@@ -237,13 +295,26 @@ export default function QuizControlPage({ params }: { params: Promise<{ id: stri
                       {p.name}
                     </span>
                   </div>
-                  <div className="text-right">
-                    <span className={`font-black block leading-none ${isFullscreen ? 'text-5xl' : 'text-2xl'} ${idx === 0 ? 'text-yellow-600' : 'text-blue-600'}`}>
-                      {p.score}
-                    </span>
-                    <span className={`font-black uppercase tracking-widest ${isFullscreen ? 'text-sm mt-2 text-slate-500' : 'text-[10px] text-slate-400'}`}>
-                      Points
-                    </span>
+                  <div className="flex items-center gap-4 text-right">
+                    <div>
+                      <span className={`font-black block leading-none ${isFullscreen ? 'text-5xl' : 'text-2xl'} ${idx === 0 ? 'text-yellow-600' : 'text-blue-600'}`}>
+                        {p.score}
+                      </span>
+                      <span className={`font-black uppercase tracking-widest ${isFullscreen ? 'text-sm mt-2 text-slate-500' : 'text-[10px] text-slate-400'}`}>
+                        Points
+                      </span>
+                    </div>
+                    
+                    {/* TOMBOL KICK HANYA TAMPIL JIKA BUKAN MODE PROYEKTOR */}
+                    {!isFullscreen && (
+                      <button 
+                        onClick={() => handleKick(p.id, p.name)}
+                        className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100 group"
+                        title="Keluarkan Peserta"
+                      >
+                        <UserX size={20} className="group-hover:scale-110 transition-transform" />
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               ))}
