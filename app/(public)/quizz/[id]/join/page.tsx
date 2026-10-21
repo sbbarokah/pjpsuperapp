@@ -4,6 +4,7 @@
 import React, { useState, useEffect, use, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Rocket, Loader2, Timer, CheckCircle, XCircle, Trophy, Users } from "lucide-react";
+import Confetti from "react-confetti";
 
 export default function ParticipantQuizPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -20,24 +21,58 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
 
   const timerRef = useRef<any>(null);
 
+  // Fungsi untuk sinkronisasi state dari DB
+  const syncGameState = (sessionData: any) => {
+    setSession(sessionData);
+    
+    // Jika peserta sudah terdaftar dan kuis sudah dimulai
+    if (participantId && sessionData.status === 'started') {
+       // Kita cek apakah ini soal baru dengan mengecek status yang ada
+       setStep('play');
+    } else if (sessionData.status === 'finished') {
+       setStep('finished');
+       fetchSessionAndParticipants();
+    }
+  };
+
+  const [windowDim, setWindowDim] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    // Set ukuran layar saat komponen dimuat (client-side)
+    setWindowDim({ width: window.innerWidth, height: window.innerHeight });
+    
+    // Opsional: Update ukuran jika layar di-resize
+    const handleResize = () => setWindowDim({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // 1. Tambahkan useRef dan state timeout di awal komponen ParticipantQuizPage
+  const hasAnsweredRef = useRef(false);
+  const [isTimeOut, setIsTimeOut] = useState(false);
+
+  // 2. Modifikasi channel listener di dalam useEffect
   useEffect(() => {
     fetchSessionAndParticipants();
-
     const sessChannel = supabase
-      .channel('quiz_sync')
+      .channel(`quiz_sync_${id}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'quiz_sessions', filter: `id=eq.${id}` }, (payload) => {
         const newData = payload.new;
-        setSession(newData);
+        const oldData = payload.old;
         
-        if (newData.status === 'started') {
+        syncGameState(newData);
+        
+        // JIKA BERGANTI SOAL BARU
+        if (newData.status === 'started' && 
+          (oldData.status !== 'started' || oldData.current_question_index !== newData.current_question_index)) {
+          
           setStep('play');
-          setHasAnswered(false);
+          setHasAnswered(false); 
+          setIsTimeOut(false); // Reset status timeout
+          hasAnsweredRef.current = false; // Sinkronisasi state mutable
+          
           setTimeLeft(newData.duration_per_question);
           startLocalTimer(newData.duration_per_question);
-        }
-        if (newData.status === 'finished') {
-            setStep('finished');
-            fetchSessionAndParticipants(); 
         }
       })
       .subscribe();
@@ -46,22 +81,33 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
         supabase.removeChannel(sessChannel); 
         if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [id]);
+  }, [id, participantId]);
 
   const fetchSessionAndParticipants = async () => {
     const { data: sess } = await supabase.from("quiz_sessions").select("*").eq("id", id).single();
     const { data: parts } = await supabase.from("quiz_participants").select("*").eq("session_id", id).order('score', { ascending: false });
-    setSession(sess);
+    if (sess) syncGameState(sess);
     setParticipants(parts || []);
   };
 
+  // 3. Modifikasi startLocalTimer untuk memaksa 'submit' kosong saat waktu 0
   const startLocalTimer = (seconds: number) => {
     if (timerRef.current) clearInterval(timerRef.current);
     setTimeLeft(seconds);
+    
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timerRef.current);
+          
+          // PAKSA PESERTA KE HALAMAN RESULT JIKA BELUM MENJAWAB
+          if (!hasAnsweredRef.current) {
+            setHasAnswered(true);
+            hasAnsweredRef.current = true;
+            setIsCorrect(false);
+            setIsTimeOut(true); // Tandai bahwa ini karena kehabisan waktu
+            setStep('result');
+          }
           return 0;
         }
         return prev - 1;
@@ -71,24 +117,59 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
 
   const handleJoin = async () => {
     if (!name) return;
-    const { data } = await supabase.from("quiz_participants").insert({ session_id: id, name: name }).select().single();
-    setParticipantId(data.id);
-    setStep('waiting');
+    try {
+      const { data } = await supabase.from("quiz_participants").insert({ session_id: id, name: name }).select().single();
+      setParticipantId(data.id);
+      
+      // PERBAIKAN: Jika telat gabung dan kuis sudah mulai
+      if (session?.status === 'started') {
+        setStep('play');
+        setHasAnswered(true); // Langsung dianggap sudah jawab (karena telat masuk soal ini)
+        setStep('result'); // Tembak ke result agar menunggu soal berikutnya
+      } else {
+        setStep('waiting');
+      }
+    } catch (e) {
+      alert("Gagal bergabung");
+    }
   };
 
   const submitAnswer = async (points: number) => {
-    if (hasAnswered || timeLeft === 0) return;
+    // Cegah double submit atau submit setelah waktu habis
+    if (hasAnsweredRef.current || timeLeft === 0) return; 
     
     setHasAnswered(true);
+    hasAnsweredRef.current = true;
     setIsCorrect(points > 0);
     
     if (points > 0) {
-      // Hitung skor berdasarkan sisa waktu (bonus kecepatan)
-      const finalScore = points + timeLeft; 
-      await supabase.rpc('increment_participant_score', { 
-          p_id: participantId, 
-          p_increment: finalScore 
-      });
+      // 1. Ambil total durasi soal saat ini
+      const totalTime = session?.duration_per_question || 30;
+      
+      // 2. Hitung berapa lama peserta berpikir
+      const timeTaken = totalTime - timeLeft;
+      
+      // 3. RUMUS KAHOOT: Base * (1 - (TimeTaken / (2 * TotalTime)))
+      // Pastikan points dari database bernilai cukup besar (cth: 1000) agar seru.
+      // Jika dari DB belum besar, Anda bisa kalikan (points * 100) di sini.
+      let basePoint = points; 
+      
+      // (Opsional) Jika poin di bank soal Anda kecil (misal 10), kalikan agar mencapai standar 1000
+      if (basePoint <= 100) {
+         basePoint = basePoint * 100; // 10 menjadi 1000
+      }
+
+      // Hitung skor akhir dan bulatkan (Math.round)
+      const finalScore = Math.round(basePoint * (1 - (timeTaken / (2 * totalTime))));
+      
+      try {
+        await supabase.rpc('increment_participant_score', { 
+            p_id: participantId, 
+            p_increment: finalScore 
+        });
+      } catch (e) {
+        console.error("Gagal mengirim skor", e);
+      }
     }
     setStep('result');
   };
@@ -124,36 +205,74 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
   }
 
   if (step === 'play') {
-    const currentQ = session.questions_data[session.current_question_index];
+    const currentQ = session?.questions_data?.[session?.current_question_index || 0];
+
+    if (!currentQ) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+           <Loader2 className="animate-spin text-blue-500" size={40} />
+        </div>
+      );
+    }
+
+    // 1. HITUNG PERSENTASE WAKTU
+    const totalTime = session?.duration_per_question || 30;
+    const timePercentage = Math.max(0, (timeLeft / totalTime) * 100);
+
+    // 2. TENTUKAN WARNA BERDASARKAN WAKTU TERSISA
+    let barColor = "bg-green-500"; // Default (Aman)
+    if (timePercentage <= 50 && timePercentage > 20) {
+      barColor = "bg-yellow-400"; // Peringatan (< 50%)
+    } else if (timePercentage <= 20) {
+      barColor = "bg-red-500"; // Kritis (< 20%)
+    }
+
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-        {/* Progress & Timer */}
-        <div className="p-4 flex items-center justify-between bg-white border-b">
-          <span className="font-bold text-slate-500">Soal {session.current_question_index + 1} / {session.questions_data.length}</span>
-          <div className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-600 rounded-full font-black">
-            <Timer size={18} /> {timeLeft}s
+        
+        {/* HEADER */}
+        <div className="p-4 flex items-center justify-between bg-white">
+          <span className="font-bold text-slate-500">
+            Soal {(session?.current_question_index || 0) + 1} / {session?.questions_data?.length || 0}
+          </span>
+          <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-full font-black">
+            <Timer size={18} className={timePercentage <= 20 ? "text-red-500 animate-bounce" : ""} /> 
+            <span className={timePercentage <= 20 ? "text-red-500" : ""}>{timeLeft}s</span>
           </div>
         </div>
 
-        {/* Question Area */}
+        {/* 3. PROGRESS BAR WAKTU */}
+        <div className="w-full h-2 bg-slate-200">
+          <div 
+            className={`h-full ${barColor}`}
+            style={{ 
+              width: `${timePercentage}%`,
+              // Transisi linear 1s ini adalah kunci yang membuat penyusutan terlihat super mulus
+              transition: 'width 1s linear, background-color 0.5s ease' 
+            }}
+          />
+        </div>
+
+        {/* AREA SOAL & JAWABAN */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
             <h2 className="text-2xl md:text-4xl font-black text-slate-800 mb-12 max-w-3xl leading-tight">
-                {currentQ.question}
+                {currentQ?.question || "Memuat pertanyaan..."}
             </h2>
             
-            {/* Options Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl">
-                {currentQ.options.map((opt: any, idx: number) => (
+                {currentQ?.options?.map((opt: any, idx: number) => (
                     <button 
                         key={idx}
                         onClick={() => submitAnswer(opt.points || 0)}
                         className={`p-6 rounded-3xl text-left border-b-4 transition-all active:translate-y-1 flex items-center gap-4 group
-                            ${idx === 0 ? 'bg-red-500 border-red-700 text-white' : 
-                              idx === 1 ? 'bg-blue-500 border-blue-700 text-white' : 
-                              idx === 2 ? 'bg-yellow-500 border-yellow-700 text-white' : 
-                              'bg-green-500 border-green-700 text-white'}`}
+                            ${idx === 0 ? 'bg-red-500 border-red-700 text-white hover:bg-red-600' : 
+                              idx === 1 ? 'bg-blue-500 border-blue-700 text-white hover:bg-blue-600' : 
+                              idx === 2 ? 'bg-yellow-500 border-yellow-700 text-white hover:bg-yellow-600' : 
+                              'bg-green-500 border-green-700 text-white hover:bg-green-600'}`}
                     >
-                        <span className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-black text-xl">{String.fromCharCode(65 + idx)}</span>
+                        <span className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-black text-xl shadow-inner">
+                          {String.fromCharCode(65 + idx)}
+                        </span>
                         <span className="text-xl font-bold">{opt.text || opt.teks}</span>
                     </button>
                 ))}
@@ -163,31 +282,63 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
     );
   }
 
+  // 5. Update tampilan Result UI agar memunculkan tulisan "WAKTU HABIS"
   if (step === 'result') {
-      return (
-        <div className={`min-h-screen flex items-center justify-center p-6 text-white font-sans ${isCorrect ? 'bg-green-500' : 'bg-red-500'}`}>
-            <div className="text-center space-y-6">
-                {isCorrect ? (
-                    <div className="animate-bounce-short"><CheckCircle size={100} className="mx-auto" /></div>
-                ) : (
-                    <div className="animate-shake"><XCircle size={100} className="mx-auto" /></div>
-                )}
-                <h1 className="text-5xl font-black uppercase italic tracking-tighter">
-                    {isCorrect ? 'BENAR!' : 'SALAH!'}
-                </h1>
-                <p className="text-xl font-bold opacity-80">Menunggu soal selanjutnya dari Admin...</p>
-            </div>
-        </div>
-      )
+    return (
+      <div className={`min-h-screen flex items-center justify-center p-6 text-white font-sans ${isTimeOut ? 'bg-orange-500' : (isCorrect ? 'bg-green-500' : 'bg-red-500')}`}>
+          <div className="text-center space-y-6">
+              {isTimeOut ? (
+                  <div className="animate-pulse"><Timer size={100} className="mx-auto" /></div>
+              ) : isCorrect ? (
+                  <div className="animate-bounce-short"><CheckCircle size={100} className="mx-auto" /></div>
+              ) : (
+                  <div className="animate-shake"><XCircle size={100} className="mx-auto" /></div>
+              )}
+              
+              <h1 className="text-5xl font-black uppercase italic tracking-tighter">
+                  {isTimeOut ? 'WAKTU HABIS!' : (isCorrect ? 'BENAR!' : 'SALAH!')}
+              </h1>
+              <p className="text-xl font-bold opacity-80">Siap-siap, soal selanjutnya akan segera muncul...</p>
+          </div>
+      </div>
+    )
   }
 
   if (step === 'finished') {
+    // Cari peringkat (index) peserta saat ini berdasarkan ID mereka
+    const myRankIndex = participants.findIndex(p => p.id === participantId);
+    
+    // Cek apakah masuk Top 3 (Index 0, 1, 2)
+    const isTop3 = myRankIndex >= 0 && myRankIndex <= 2;
+
     return (
-        <div className="min-h-screen bg-slate-100 p-6 font-sans">
-            <div className="max-w-md mx-auto bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200 space-y-8">
+        <div className="min-h-screen bg-slate-100 p-6 font-sans relative overflow-hidden">
+            
+            {/* TAMPILKAN CONFETTI JIKA MASUK TOP 3 */}
+            {isTop3 && (
+               <Confetti 
+                  width={windowDim.width} 
+                  height={windowDim.height} 
+                  recycle={false} // Berhenti mengeluarkan confetti baru setelah beberapa saat
+                  numberOfPieces={500} // Jumlah serpihan kertas
+                  gravity={0.15} // Kecepatan jatuh
+               />
+            )}
+
+            <div className="max-w-md mx-auto bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200 space-y-8 relative z-10 mt-10">
                 <div className="text-center space-y-2">
-                    <Trophy size={64} className="mx-auto text-yellow-500" />
-                    <h1 className="text-3xl font-black uppercase text-slate-800">KUIS SELESAI!</h1>
+                    {/* Ubah Icon Trophy khusus Juara 1 */}
+                    <Trophy 
+                      size={80} 
+                      className={`mx-auto ${myRankIndex === 0 ? 'text-yellow-500 animate-bounce' : 'text-slate-400'}`} 
+                    />
+                    <h1 className="text-3xl font-black uppercase text-slate-800">
+                      {myRankIndex === 0 ? '🏆 JUARA 1! 🏆' : 'KUIS SELESAI!'}
+                    </h1>
+                    
+                    {isTop3 && myRankIndex !== 0 && (
+                      <p className="font-bold text-blue-600">Selamat! Anda masuk Top 3!</p>
+                    )}
                 </div>
                 
                 <div className="space-y-4">
@@ -198,8 +349,17 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
                         {participants.map((p, idx) => (
                             <div key={p.id} className={`flex justify-between items-center p-4 rounded-2xl ${p.id === participantId ? 'bg-blue-50 border-2 border-blue-200' : 'bg-slate-50'}`}>
                                 <div className="flex items-center gap-3">
-                                    <span className={`w-8 h-8 flex items-center justify-center rounded-full text-xs font-black ${idx === 0 ? 'bg-yellow-400 text-white' : 'bg-white text-slate-400'}`}>{idx + 1}</span>
-                                    <span className={`font-black ${p.id === participantId ? 'text-blue-700' : 'text-slate-700'}`}>{p.name} {p.id === participantId && '(Anda)'}</span>
+                                    <span className={`w-8 h-8 flex items-center justify-center rounded-full text-xs font-black ${
+                                      idx === 0 ? 'bg-yellow-400 text-white' : 
+                                      idx === 1 ? 'bg-slate-300 text-slate-700' :
+                                      idx === 2 ? 'bg-orange-300 text-white' :
+                                      'bg-white text-slate-400'
+                                    }`}>
+                                      {idx + 1}
+                                    </span>
+                                    <span className={`font-black ${p.id === participantId ? 'text-blue-700' : 'text-slate-700'}`}>
+                                      {p.name} {p.id === participantId && '(Anda)'}
+                                    </span>
                                 </div>
                                 <span className="font-black text-blue-600">{p.score} pts</span>
                             </div>
@@ -207,8 +367,8 @@ export default function ParticipantQuizPage({ params }: { params: Promise<{ id: 
                     </div>
                 </div>
 
-                <button onClick={() => window.location.reload()} className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black hover:bg-slate-900 transition-all">
-                    KELUAR
+                <button onClick={() => window.location.reload()} className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black hover:bg-slate-900 transition-all active:scale-95">
+                    KEMBALI KE BERANDA
                 </button>
             </div>
         </div>
