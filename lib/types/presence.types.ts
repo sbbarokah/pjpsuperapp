@@ -34,7 +34,7 @@ export type MeetingAttendanceModel = {
   category_ids: number[];
   datetime: string;
   activity: string;
-  activity_type: "Sambung" | "Khusus" | null;
+  activity_type: "ngaji_cr" | "ngaji_prj" | "ngaji_remaja" | "ngaji_prn" | "ngaji_mm" | "Sambung" | "Khusus" | null;
   activity_level: "Kelompok" | "Desa" | "Daerah" | null;
   place: string | null;
   material: MeetingMaterial[];
